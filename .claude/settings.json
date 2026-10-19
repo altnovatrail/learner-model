@@ -1,0 +1,6 @@
+{
+  "claudeMdExcludes": [
+    "**/learner-model/spec/CLAUDE.md",
+    "**/learner-model/spec/**/CLAUDE.md"
+  ]
+}
