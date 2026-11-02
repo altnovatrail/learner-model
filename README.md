@@ -17,13 +17,13 @@ A component of [NovaTrail](https://github.com/altnovatrail/spec/tree/v0.6.6), a 
 
 ## Status
 
-Detailing. The documents come first: the first epic of [RUN.md](RUN.md) decides what the component's card left open, and the code follows in the order RUN.md sets. There is no code here yet: it comes with engine and sim, and the simulator's criterion is written down before the first candidate.
+Detailing is done: the first epic of [RUN.md](RUN.md) decided what the component's card left open, and section 3 of [docs/architecture.md](docs/architecture.md) is what to build. There is no code here yet: it comes with engine and sim, in the next epic of RUN.md, and the simulator's criterion is written down before the first candidate.
 
 ## Documents
 
 The documents are in Russian.
 
-- [docs/architecture.md](docs/architecture.md) — the component: what it does and does not do, its data and links, and what is still to decide.
+- [docs/architecture.md](docs/architecture.md) — the component: what it does and does not do, its data and links, what was deliberately deferred, and what to build.
 - [docs/decisions.md](docs/decisions.md) — the decision log: what was decided, why, and what was rejected.
 - [RUN.md](RUN.md) — the work plan, in epics.
 
