@@ -45,6 +45,10 @@ type ModuleState struct {
 	Trial        []TrialAnswer // in the order of the log, while the trial series lasts
 	Traps        []TrapCount   // the traps with no skill that has a state
 	Skills       []SkillState  // ordered by skill ID byte by byte
+	// LastInTrial tells whether the last piece of evidence that moved the module was still in the
+	// trial series, the one that ended it too: that one clears the series' answers, and the engine
+	// still needs to know (R104 of spec). Evidence that moves nothing leaves it as it is.
+	LastInTrial bool
 }
 
 // State is the state of one learner: the fold of the evidence log.

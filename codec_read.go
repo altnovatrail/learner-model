@@ -406,13 +406,15 @@ func readModule(b []byte) (ModuleState, error) {
 			return element(&m.Traps, readTrapCount)
 		case 7:
 			return element(&m.Skills, readSkill)
+		case 8:
+			return boolField(n, seen, &m.LastInTrial)
 		}
 		return nil
 	})
 	if err != nil {
 		return ModuleState{}, err
 	}
-	return m, seen.require("a module", 1, 2, 3, 4)
+	return m, seen.require("a module", 1, 2, 3, 4, 8)
 }
 
 func readTrialAnswer(b []byte) (TrialAnswer, error) {

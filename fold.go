@@ -81,7 +81,7 @@ type input struct {
 // start band it took.
 func (s *State) append(e Evidence, in input) Evidence {
 	s.Kind = StateKind
-	i, ok := slices.BinarySearchFunc(s.Modules, in.module, func(m ModuleState, id string) int { return strings.Compare(m.Module, id) })
+	i, ok := s.moduleIndex(in.module)
 	if ok {
 		e.StartBand = s.Modules[i].StartBand
 	}
@@ -92,12 +92,23 @@ func (s *State) append(e Evidence, in input) Evidence {
 		s.Modules[i].step(e, in.items, &in.graph.Graph)
 		return e
 	}
-	// θ needs no start of its own: a new module is in the trial series, whose θ comes from θ₀.
-	ms := ModuleState{Module: in.module, StartBand: e.StartBand}
+	ms := newModule(in.module, e.StartBand)
 	if ms.step(e, in.items, &in.graph.Graph) {
 		s.Modules = slices.Insert(s.Modules, i, ms)
 	}
 	return e
+}
+
+// newModule is a module before its first evidence, at θ₀ of its start band, as both the step and
+// reading take it: the trial series gives θ from θ₀ anew, so the start changes no bit of the
+// state, but the step's P of the first evidence is the P reading gives.
+func newModule(module string, start BandRef) ModuleState {
+	return ModuleState{Module: module, StartBand: start, Level: shift(start.Place)}
+}
+
+// moduleIndex finds a module's state, or where it would stand.
+func (s *State) moduleIndex(id string) (int, bool) {
+	return slices.BinarySearchFunc(s.Modules, id, func(m ModuleState, id string) int { return strings.Compare(m.Module, id) })
 }
 
 // moduleOf gives the module of a full ID, `<publisher>/<name>/<kind>/<ID>`: its first two parts.
@@ -112,7 +123,7 @@ func moduleOf(id string) (string, bool) {
 // checkInputState checks a state as the step needs it, beside what EncodeState checks: every skill
 // has a stability of τ₀ or more, and a trial answer is one the step writes — a point on the scale,
 // slots of known kinds, a verdict right or not yet and a positive weight — and the trial series is
-// over once n ≥ 5.
+// over once n ≥ 5, while before it the module's last evidence was in it.
 func checkInputState(s State) error {
 	if s.Kind == 0 && len(s.Modules) == 0 {
 		return nil
@@ -127,8 +138,12 @@ func checkInputState(s State) error {
 		if m.StartBand.Place < 1 {
 			return invalid("module " + m.Module + " starts at band place " + itoa(m.StartBand.Place))
 		}
-		if len(m.Trial) > 0 && m.AnswerWeight >= trialWeight-weightTolerance {
+		if len(m.Trial) > 0 && !m.inTrial() {
 			return invalid("module " + m.Module + " keeps trial answers past the trial series")
+		}
+		// A module has a state once evidence moved it, and while the series lasts that was in it.
+		if !m.LastInTrial && m.inTrial() {
+			return invalid("module " + m.Module + " in the trial series, whose last evidence was not in it")
 		}
 		// A skill has a state only once it has been practised, and its stability is then τ₀ or more.
 		for _, sk := range m.Skills {

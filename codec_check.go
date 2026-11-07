@@ -22,14 +22,11 @@ func checkEvidence(e Evidence) error {
 // checkEvidenceContent is checkEvidence but for the kind: Append takes evidence of a later kind
 // too.
 func checkEvidenceContent(e Evidence) error {
-	t := e.Task
-	if err := utf8Strings(t.ID, t.Band.ID, e.StartBand.ID); err != nil {
+	if err := utf8Strings(e.StartBand.ID); err != nil {
 		return err
 	}
-	if err := idList("primary skill", t.Primary); err != nil {
-		return err
-	}
-	if err := idList("supporting skill", t.Supporting); err != nil {
+	taskPlaces, err := checkTaskContent(e.Task)
+	if err != nil {
 		return err
 	}
 	if !e.Outcome.HasRung && e.Outcome.Rung != 0 {
@@ -38,19 +35,6 @@ func checkEvidenceContent(e Evidence) error {
 	if !e.HasSolutionSeenFact && e.SolutionSeenBefore {
 		return invalid("SolutionSeenBefore without HasSolutionSeenFact")
 	}
-	taskPlaces := make([]int32, 0, len(t.Items))
-	for _, item := range t.Items {
-		if err := idList("primary skill of an item", item.Primary); err != nil {
-			return err
-		}
-		if err := idList("supporting skill of an item", item.Supporting); err != nil {
-			return err
-		}
-		if err := checkSlots(item.Slots); err != nil {
-			return err
-		}
-		taskPlaces = append(taskPlaces, item.Place)
-	}
 	answerPlaces := make([]int32, 0, len(e.Items))
 	for _, a := range e.Items {
 		if err := checkAnswer(a); err != nil {
@@ -58,11 +42,7 @@ func checkEvidenceContent(e Evidence) error {
 		}
 		answerPlaces = append(answerPlaces, a.Place)
 	}
-	slices.Sort(taskPlaces)
 	slices.Sort(answerPlaces)
-	if err := uniqueSorted("item place", taskPlaces); err != nil {
-		return err
-	}
 	if !slices.Equal(taskPlaces, answerPlaces) {
 		return invalid("the items of the task and the answers name different places")
 	}
@@ -77,6 +57,35 @@ func checkEvidenceContent(e Evidence) error {
 		}
 	}
 	return idList("trap", traps)
+}
+
+// checkTaskContent checks the description of a task as the codec needs it — of evidence, or of a
+// candidate task of the engine — and gives the places of its items, ascending, each once.
+func checkTaskContent(t Task) ([]int32, error) {
+	if err := utf8Strings(t.ID, t.Band.ID); err != nil {
+		return nil, err
+	}
+	if err := idList("primary skill", t.Primary); err != nil {
+		return nil, err
+	}
+	if err := idList("supporting skill", t.Supporting); err != nil {
+		return nil, err
+	}
+	places := make([]int32, 0, len(t.Items))
+	for _, item := range t.Items {
+		if err := idList("primary skill of an item", item.Primary); err != nil {
+			return nil, err
+		}
+		if err := idList("supporting skill of an item", item.Supporting); err != nil {
+			return nil, err
+		}
+		if err := checkSlots(item.Slots); err != nil {
+			return nil, err
+		}
+		places = append(places, item.Place)
+	}
+	slices.Sort(places)
+	return places, uniqueSorted("item place", places)
 }
 
 func checkAnswer(a ItemAnswer) error {

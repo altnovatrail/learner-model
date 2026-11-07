@@ -31,6 +31,9 @@ message ModuleState {
   repeated TrapCount traps = 6;
   // The skills with a state, ordered by skill ID byte by byte.
   repeated SkillState skills = 7;
+  // Whether the last evidence that moved the module was still in the trial series, the evidence
+  // that ended it too: in the series the engine works through no mistake.
+  optional bool last_evidence_in_trial = 8;
 }
 
 // One answer of the trial series, as its likelihood needs it.
