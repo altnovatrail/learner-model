@@ -3,6 +3,7 @@
 [![CI](https://github.com/altnovatrail/learner-model/actions/workflows/ci.yml/badge.svg)](https://github.com/altnovatrail/learner-model/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/altnovatrail/learner-model/actions/workflows/codeql.yml/badge.svg)](https://github.com/altnovatrail/learner-model/actions/workflows/codeql.yml)
 [![Go version](https://img.shields.io/github/go-mod/go-version/altnovatrail/learner-model)](go.mod)
+[![Coverage](https://codecov.io/gh/altnovatrail/learner-model/branch/main/graph/badge.svg)](https://codecov.io/gh/altnovatrail/learner-model)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/altnovatrail/learner-model/badge)](https://scorecard.dev/viewer/?uri=github.com/altnovatrail/learner-model)
 [![License](https://img.shields.io/github/license/altnovatrail/learner-model)](LICENSE)
 
@@ -18,7 +19,7 @@ A component of [NovaTrail](https://github.com/altnovatrail/spec/tree/v0.9.3), a 
 
 ## Status
 
-Detailing is done: the first epic of [RUN.md](RUN.md) decided what the component's card left open, and section 3 of [docs/architecture.md](docs/architecture.md) is what to build. One question came later with О-25 — how much an answer typed in place of handwriting weighs — and is still open in its section 2.7. The code comes in epic E2 of RUN.md, and so far there is only its skeleton: the Go module, with no code of the model yet, and its checks — `just ci-lint`, `ci-test`, `ci-vuln` and `ci-licenses`, which CI runs too ([R13](docs/decisions.md)). `ci-test` holds the code to the same bits on every build from the start: a test of the rules of code, the tests on amd64 with and without fusion, on 386, in js/wasm and on arm64, and a comparison of the assembler with fusion and without it ([R09](docs/decisions.md)). Its first version, checked by its own tests, is to be the baseline the simulator is built on, released once spec agrees, and every change after it passes the simulator against a criterion written down before the first candidate ([R12](docs/decisions.md)).
+Detailing is done: the first epic of [RUN.md](RUN.md) decided what the component's card left open, and section 3 of [docs/architecture.md](docs/architecture.md) is what to build. One question came later with О-25 — how much an answer typed in place of handwriting weighs — and is still open in its section 2.7. The code comes in epic E2 of RUN.md, and so far there is its skeleton, with no code of the model yet: the Go module; its package `detmath` — exp, log, the logistic function, a power and the retention of a skill, the same bits on every build, which the engine may take too; and its checks — `just ci-lint`, `ci-test`, `ci-vuln` and `ci-licenses`, which CI runs too ([R13](docs/decisions.md)). `ci-test` holds the code to the same bits on every build from the start: a test of the rules of code, the tests on amd64 with and without fusion, on 386, in js/wasm and on arm64, and a comparison of the assembler with fusion and without it ([R09](docs/decisions.md)). Its first version, checked by its own tests, is to be the baseline the simulator is built on, released once spec agrees, and every change after it passes the simulator against a criterion written down before the first candidate ([R12](docs/decisions.md)).
 
 ## Documents
 
