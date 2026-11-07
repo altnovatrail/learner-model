@@ -1,0 +1,7 @@
+# The SHA-256 of the bits of each function of detmath over its sweep, the same on every
+# build (detmath/golden_test.go): a function, the length of its run and the hash.
+exp 100000 4df186f0222f9492fbbfa07fc9670e309aad220eeb91d437133ccf02af4dee19
+log 100000 1b7d48e516c7bd262ef696ceea04118ea22b5472eed49b0bcbb1c74640af8179
+sigmoid 100000 e223dc3ebec5dee5233afa735ae54061bc701c9c669609861d7d3990afcf7fc4
+pow 100000 2dde95fcfffe389ddc9c5b337e655142ff8f22966acc76ca9bd0fc7db1292cd8
+retention 100000 0f2d8320f9f7e2235d5870bdf7ce1318275bfb8dc4baf5cbbbc6a46dbb9e078c
