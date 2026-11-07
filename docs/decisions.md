@@ -4,7 +4,7 @@
 >
 > **Правило:** не предлагать повторно отвергнутое без новых фактов. Если решение нужно поменять, спросить автора и обновить этот файл. Запись не переписывается: её правит поправка с датой в конце записи или заменяет новая запись, а старая остаётся на месте с пометкой «Заменено».
 >
-> Репозиторий заведён 2026-10-19 из заготовки `spec` v0.1.0 (R21 spec), 2026-10-20 перешёл на `spec` v0.2.9 (R01), 2026-11-02 — на v0.6.3 (R02), в тот же день — на v0.6.6 (R05), а 2026-11-06 — на v0.9.3 (R11). Чем он со временем отличается от заготовки — инструментами в devcontainer, правилами в RUN.md, — записывается здесь решением, как R46 canvas-api записал отличия от своего образца. Следующий номер — R13.
+> Репозиторий заведён 2026-10-19 из заготовки `spec` v0.1.0 (R21 spec), 2026-10-20 перешёл на `spec` v0.2.9 (R01), 2026-11-02 — на v0.6.3 (R02), в тот же день — на v0.6.6 (R05), а 2026-11-06 — на v0.9.3 (R11). Чем он со временем отличается от заготовки — инструментами в devcontainer, правилами в RUN.md, — записывается здесь решением, как R46 canvas-api записал отличия от своего образца. Следующий номер — R15.
 >
 > Здесь записи цитируются как `R03`, в других репозиториях — как `R03 learner-model`. Решения `spec` цитируются как «R18 spec», решения MathTrail — как «R37 canvas-api», а списком — «canvas-api: R37, R38». У каждого журнала свои номера.
 >
@@ -585,3 +585,44 @@
 - `sim` держит у себя копию модели standalone как базовую линию: модель жила бы в двух репозиториях, и стенд мерил бы `learner-model` чужим кодом.
 
 — *Следствие:* RUN.md — E2 в таблице 1, задачи T12–T23, В24 в таблице 3; CLAUDE.md и README.md — когда приходит код; [architecture.md](architecture.md), раздел 1.
+
+## Каркас и CI
+
+**R13. У библиотеки есть модуль Go `github.com/altnovatrail/learner-model` с `go 1.27.3` и без `require` и проверки CI для её кода: рецепты `ci-lint`, `ci-test`, `ci-vuln` и `ci-licenses` в `justfile` зовёт job «Go» — общий `go.yml` `.github` v0.1.15, — покрытие уходит в Codecov, а CodeQL читает Go. Все ссылки на общие workflow — на v0.1.15. `ci-lint` — `gofmt`, `go vet` и сверка версии gopls (R14), без других линтеров.** Ответы автора 2026-11-06 при планировании T12 (RUN.md, T12, «Решено автором») — по рекомендациям плана.
+- **Что заведено:**
+  - `go.mod` — `go 1.27.3`, версия Go контейнера `spec`: обещание R09 держится «в любой версии Go не ниже той, что называет `go.mod`», а проверено на 1.27.3. `require` нет и не будет (R09). В корне — `doc.go` пакета `learnermodel`, на английском: что это за библиотека;
+  - `justfile` — по образцу `module-kit` (R04, R18 module-kit), без его рецептов релиза и сверки модулей `spec`:
+    - `ci-lint` — `gofmt` по файлам Go, которые знает git, кроме `testdata/`, `go vet ./...` и сверка версии gopls (R14);
+    - `ci-test` — `go test -race -count=1 -covermode=atomic -coverpkg=./... -coverprofile=coverage/go.out ./...`: один профиль Go, который job `coverage` обёртки шлёт в Codecov по OIDC, без секрета (R48 spec). Прогоны на целях R09 сюда добавит T13;
+    - `ci-vuln` — govulncheck v1.9.0, `ci-licenses` — go-licenses v2.0.1 со списком `ALLOWED_LICENSES`, который передаёт обёртка. Оба — `go run` по точной версии, без установки, вне `go.mod` и вне Dependabot: их поднимают руками;
+  - `.github/workflows/ci.yml` — job «Go» по тексту architecture 3.3 .github, с `contents: read` и `id-token: write`; `codeql.yml` — `languages: go`; `.github/codecov.yml` — текст шаблона, как у `module-kit`: изменённые строки покрыты не меньше чем на 90 %; `dependabot.yml` — экосистема `gomod` по шаблону, хотя поднимать ей нечего; `.gitignore` — `coverage/` и `dist/`;
+  - ссылки на `secrets.yml`, `dco.yml`, `documents.yml`, `codeql.yml` и `scorecard.yml` — с v0.1.0 на v0.1.15, коммит 89d3cee, вместе с `go.yml`;
+  - README — значок версии Go (repositories 2.3 spec). Значка покрытия нет: в профиле пока ни одной строки, а значок без данных не ставится (R48 spec). Его ставит задача, после мержа которой загрузка на `main` впервые несёт строки.
+- **Проверено** (2026-11-06): в контейнере `just ci-lint ci-test ci-vuln` и `ci-licenses` со списком `go.yml` проходят; профиль — одна строка `mode: atomic`; govulncheck — «No vulnerabilities found»; `ci-licenses` без списка падает и говорит, где его взять; `ci-lint` падает на файле, который `gofmt` переписал бы. `gh release verify v0.1.15 -R altnovatrail/.github` — «Release v0.1.15 verified!». Прогон job на pull request — после push автора.
+
+— *Почему:* без модуля, рецептов и job «Go» коду T13–T20 негде проходить проверки, а тесты и `codecov/patch` идут с каждым изменением кода (RULES.md, How we work; R48 spec). Что код добавляет к файлам CI, пишет сессия самого репозитория (поправка 2026-10-21 к R30 spec). Ссылки — на v0.1.15 все: `codeql.yml` берёт `go` только в новых релизах, `go.yml` с загрузкой покрытия — с v0.1.12, а `secrets.yml`, `dco.yml`, `documents.yml` и `scorecard.yml` между v0.1.0 и v0.1.15 не менялись, так что их подъём меняет один SHA, и pull request Dependabot #5–#9 закроются сами. Codecov включать не нужно: его приложение стоит у организации на все репозитории, а репозиторий он включит первой загрузкой ([architecture.md](architecture.md), раздел 4). Денег это не стоит: репозиторий публичный (R30, R48 spec).
+
+— *Отвергнуто:*
+- поднять руками только `go.yml` и `codeql.yml`, как R18 module-kit: в файлах стояли бы разные релизы, а #5–#9 пришлось бы сливать или закрывать отдельно;
+- staticcheck в `ci-lint`: правила R09 ловит тест правил T13, запахи кода — SonarCloud, а ещё один инструмент вне Dependabot пришлось бы поднимать руками с каждой версией Go;
+- строка `go` ниже 1.27.3, как `go 1.27.0` у `module-kit`: обещание R09 называло бы версии, на которых его никто не проверял;
+- значок покрытия сразу: до первой строки кода он показывал бы «unknown».
+
+— *Следствие:* шаг автора — в ruleset `main` «Go / lint», «Go / test», «Go / vuln», «Go / licenses» и «CodeQL / analyze (go)» с `integration_id` 15368 после прогона pull request T12. `codecov/patch` с `integration_id` 254 ставит исполнитель, по поручению автора 2026-11-06, — после первого pull request Dependabot с загрузкой, первым шагом той задачи, перед которой это условие выполнено (поправка 2026-10-23 к R30 spec; architecture 3.3 .github; RUN.md, T13). Раньше нельзя: обязательная проверка, которая не приходит, держала бы мерж каждого pull request, а список обхода ruleset пуст. — `go.mod`, `doc.go`, `justfile`, `.gitignore`, `.github/`; README.md; [architecture.md](architecture.md), разделы 3.6 и 4; RUN.md, T12.
+
+**R14. gopls стоит в образе devcontainer точной версии, v0.24.0, и собирается из своего lock-файла `.devcontainer/gopls/`, как в R19 module-kit. Это отличие контейнера `learner-model` от контейнера `spec`, пока заготовка `spec` не даст gopls виду `go`.** Ответ автора 2026-11-06 при планировании T12 (RUN.md, T12, «Решено автором»).
+- **Что заведено** — то же, что у `module-kit`, слово в слово, кроме имени репозитория и номера записи:
+  - `.devcontainer/gopls/go.mod` — модуль `devcontainer/gopls` с `tool golang.org/x/tools/gopls`, а `go.sum` держит хеш каждого модуля сборки. Их дали `go mod init` и `go get -tool golang.org/x/tools/gopls@v0.24.0`; `go.sum` совпал с `go.sum` `module-kit` побайтно, а `go mod verify` — «all modules verified»;
+  - в стадии `devcontainer` Dockerfile — `ARG GOPLS_VERSION=0.24.0`, `COPY` lock-файла и `go install -mod=readonly tool` в `/usr/local/bin`; `gopls version` должен назвать `GOPLS_VERSION` строкой целиком. Стадия `toolchain`, в которой идут проверки, не меняется;
+  - `devcontainer.json` — расширение Go не обновляет своих инструментов, не ищет их обновлений и не линтует при сохранении, а комментарий к `context` говорит, что образ берёт из своей папки `gopls/`. Недостающий инструмент — отладчик dlv, скажем, — оно всё же предлагает поставить, без точной версии, и такое предложение отклоняют;
+  - `ci-lint` сверяет `GOPLS_VERSION` с версией в lock-файле: CI стадию `devcontainer` не собирает;
+  - `dependabot.yml` папку `.devcontainer/gopls/` не берёт: gopls поднимают `go get -tool` в ней вместе с `GOPLS_VERSION`.
+- **Проверено** (2026-11-06): lock-файл во временной папке собирает gopls тем же `go install -mod=readonly tool`, и `gopls version` — `golang.org/x/tools/gopls v0.24.0`; `ci-lint` падает и называет обе версии при `GOPLS_VERSION=0.24.1` и без `ARG GOPLS_VERSION`. Docker в контейнере нет, и образ здесь не собирался: его проверит Rebuild Container автора.
+
+— *Почему:* без gopls в образе расширение Go ставит его последнюю версию само, а не точную (RULES.md, Exact versions only). `spec` уже решил дать виду `go` тот же шаг (R102 spec, ответ на В19 module-kit), но эпик E7, который это сделает, не вышел ни в v0.9.3, ни в v0.9.4 (`gh api repos/altnovatrail/spec/compare/v0.9.3...v0.9.4`, 2026-11-06). gopls v0.24.0 — последний, от 2026-10-14 ([architecture.md](architecture.md), раздел 4); лицензия BSD-3-Clause, и это инструмент разработки: никуда не поставляется и своего кода в поставляемое не вносит.
+
+— *Отвергнуто:*
+- ждать заготовку `spec`: до тега с E7 расширение Go ставило бы gopls незакреплённой версии;
+- только запретить расширению ставить инструменты: без языкового сервера до того же тега.
+
+— *Следствие:* Dockerfile и `devcontainer.json` больше не совпадают побайтно с рецептом `spec`. Переход на тег `spec`, где заготовка даст gopls виду `go`, снимает свой шаг и заменяет эту запись — Д12 в таблице 4 RUN.md. Rebuild Container — шаг автора. — `.devcontainer/`, `justfile` (`ci-lint`), `.github/dependabot.yml`; CLAUDE.md; RUN.md, T12, таблица 4.
