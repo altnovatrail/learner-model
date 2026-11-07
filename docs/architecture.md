@@ -657,7 +657,7 @@ Standalone профиля новее себя не читал, потому чт
 - Job на `ubuntu-24.04-arm` в `ci.yml` — та же стадия `toolchain` того же Dockerfile и тот же `ci-test`, на железе arm64. Раннеры arm64 для публичных репозиториев бесплатны (раздел 4).
 - buf — `buf lint`, `buf breaking` и `buf convert` (раздел 3.7).
 
-С T12 стоят каркас и общие проверки (R13): job «Go» — `go.yml` `.github` v0.1.15; `ci-lint` — `gofmt`, `go vet` и сверка версии gopls образа с его lock-файлом (R14); `ci-test` — пока только прогон с `-race` и покрытием в `coverage/go.out`, которое job `coverage` обёртки шлёт в Codecov; `ci-vuln` — govulncheck v1.9.0; `ci-licenses` — go-licenses v2.0.1 со списком лицензий обёртки; CodeQL читает Go из сборки. buf приходит с T15.
+С T12 стоят каркас и общие проверки (R13): job «Go» — `go.yml` `.github` v0.1.15; `ci-lint` — `gofmt`, `go vet` и сверка версии gopls образа с его lock-файлом (R14); `ci-test` — пока только прогон с `-race` и покрытием в `coverage/go.out`, которое job `coverage` обёртки шлёт в Codecov; `ci-vuln` — govulncheck v1.9.0; `ci-licenses` — go-licenses v2.0.1 со списком лицензий обёртки; CodeQL читает Go из сборки. buf пришёл с T15 — рецепт `ci-proto` и job «Proto» в `ci.yml` (раздел 3.7).
 
 С T13 стоят проверки одних битов из списка выше (поправка 2026-11-07 к R09):
 - `ci-test` после прогона с покрытием зовёт два рецепта. `test-targets` — прогоны на целях; на хосте не amd64, в job arm64, прогонов amd64 и 386 нет, а свой прогон идёт с `GODEBUG=cpu.all=off`. `fma-diff` — разностная проверка: пакеты — по одному, чтобы вывод `-S` шёл в одном порядке, а контроль — `testdata/fma`;
@@ -767,6 +767,12 @@ Standalone профиля новее себя не читал, потому чт
 Опыт T05: `buf convert` с `use_proto_names=true` перевёл свидетельство, закодированное руками, в `{"kind":1,"practice_time":"1762041600","x":-0,"items":[{"place":1,"first_verdict":"VERDICT_CORRECT"}]}` и обратно в те же байты, а `buf breaking` на удалённом поле ответил «Previously present field "3" with name "x" on message "Evidence" was deleted» (RUN.md, T05).
 
 **Рантайма protobuf нет.** `google.golang.org/protobuf` — сторонний модуль (раздел 3.6), а его детерминированный вывод обещан только внутри одного бинарника: «It is not guaranteed to remain stable over time» (раздел 4). Пересчёт же сверяет байты состояния между сборками и версиями Go.
+
+**Что стоит с T15** (поправка 2026-11-07 к R10):
+- типы — в корне модуля: граф `Graph` и `NewGraph`, который выводит полосы, где навыку учат; вход «графы» `Graphs`; описание задачи `Task`; свидетельство `Evidence`, где описание задачи — `Task`, а что было с пунктами в попытке — `Items` по месту; состояние `State`; типы выхода чтения без счёта. Поле, которого может не быть по смыслу, — значение и флаг рядом, без указателей;
+- схема — `common.proto`, `evidence.proto` и `state.proto` в `proto/novatrail/learnermodel/v1/`, `buf.yaml` — в корне;
+- кодек — `EncodeEvidence`, `DecodeEvidence`, `EncodeState` и `DecodeState` над `internal/wire`. Писатель и читатель строгие: писатель не пишет значения без флага, строки не в UTF-8 и дублей, а читатель считает порчей поле не того типа провода, неповторяемое поле дважды, поле, которое пишет каждый вид, когда его нет, и элементы не в каноническом порядке. Что читатель принял, писатель отдаёт теми же байтами;
+- проверки — рецепт `ci-proto` и job «Proto»: `buf lint`, `buf breaking` против последнего тега `v*` — до первого тега сверять не с чем, — и `buf convert` золотых байтов `testdata/wire/` в JSON рядом с ними и обратно в те же байты.
 
 ## 4. Источники
 

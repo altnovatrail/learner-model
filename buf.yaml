@@ -1,0 +1,16 @@
+# The schema of the evidence and the state of the learner model (R10 in docs/decisions.md;
+# docs/architecture.md, section 3.7): one module, proto/, and no deps, as spec's contracts have
+# it (R83 in spec), so that nothing of the check comes from the Buf Schema Registry. Every file
+# is held to the lint categories STANDARD and COMMENTS, with no comment that switches a rule off,
+# and to the breaking category FILE against the latest tag of this repository: just ci-proto.
+version: v2
+modules:
+  - path: proto
+lint:
+  use:
+    - STANDARD
+    - COMMENTS
+  disallow_comment_ignores: true
+breaking:
+  use:
+    - FILE
