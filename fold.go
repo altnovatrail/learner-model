@@ -24,7 +24,8 @@ import (
 //
 // It refuses, with ErrInvalid:
 //   - a state of a kind outside 1 to StateKind, unless it is the zero State, one not in its
-//     canonical order, and one EncodeState would refuse;
+//     canonical order, one with a skill of a stability below τ₀, and one EncodeState would
+//     refuse;
 //   - evidence of a kind below 1, evidence EncodeEvidence would refuse but for a later kind, and
 //     evidence whose task ID names no module, whose task is not of a difficulty from 1 to 5, or
 //     whose task band or start band is at a place below 1;
@@ -102,9 +103,10 @@ func moduleOf(id string) (string, bool) {
 	return parts[0] + "/" + parts[1], true
 }
 
-// checkInputState checks a state as the step needs it, beside what EncodeState checks: a trial
-// answer is one the step writes — a point on the scale, slots of known kinds, a verdict right or
-// not yet and a positive weight — and the trial series is over once n ≥ 5.
+// checkInputState checks a state as the step needs it, beside what EncodeState checks: every skill
+// has a stability of τ₀ or more, and a trial answer is one the step writes — a point on the scale,
+// slots of known kinds, a verdict right or not yet and a positive weight — and the trial series is
+// over once n ≥ 5.
 func checkInputState(s State) error {
 	if s.Kind == 0 && len(s.Modules) == 0 {
 		return nil
@@ -121,6 +123,12 @@ func checkInputState(s State) error {
 		}
 		if len(m.Trial) > 0 && m.AnswerWeight >= trialWeight-weightTolerance {
 			return invalid("module " + m.Module + " keeps trial answers past the trial series")
+		}
+		// A skill has a state only once it has been practised, and its stability is then τ₀ or more.
+		for _, sk := range m.Skills {
+			if !(sk.Stability >= stabilityFloor) {
+				return invalid("skill " + sk.Skill + " of a stability below τ₀")
+			}
 		}
 		for _, a := range m.Trial {
 			what := "a trial answer of " + m.Module

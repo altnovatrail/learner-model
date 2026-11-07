@@ -5,6 +5,8 @@ import (
 	"math"
 	"slices"
 	"strings"
+
+	"github.com/altnovatrail/learner-model/detmath"
 )
 
 // The step of one piece of evidence (docs/architecture.md, sections 3.1, 3.3 and 3.5): a function
@@ -13,12 +15,14 @@ import (
 // evidence, and the moves of its answers add up into one step. Sums run in the canonical order —
 // items by place, skills by ID — so that the bits do not depend on the order of the input.
 //
-// From T16 the step is that of R03 with the weights of R06: the first verdict of an item is its
+// The step is that of R03 with the weights of R06 (T16): the first verdict of an item is its
 // answer, each of an attempt's N answers weighs u = 3 / (N + 2), a primary skill of an item gets
-// 1/J of its step, and a failure is fewer than half of a skill's answers right. Retention and
-// stability (R04), help, outcomes, provenance and traps (R06) and the transfer by retired_skills
-// (R08) come with T17–T19: until then R̄ = 1, every right answer is unaided, and a primary skill
-// that is not a skill of the graph with a verdict gets nothing.
+// 1/J of its step, and a failure is fewer than half of a skill's answers right. Forgetting (R04,
+// T17): P carries the mean retention R̄ of the item's skills, each answer moves θ and δ with its
+// weight w, and a skill's stability τ changes once per piece of evidence, by the share of its
+// answers right. Help, outcomes, provenance and traps (R06) and the transfer by retired_skills
+// (R08) come with T18 and T19: until then every right answer is unaided, and a primary skill that
+// is not a skill of the graph with a verdict gets nothing.
 
 // item is an item of the task with what happened to it in the attempt.
 type item struct {
@@ -46,7 +50,8 @@ type answer struct {
 	verdict Verdict
 	// skills are the item's primary skills that have a state to move, by ID: J = len(skills).
 	skills []Skill
-	p      float64
+	p      float64 // P, with the retention of the skills
+	w      float64 // the weight of retention, w; 1 without forgetting
 }
 
 func (a answer) outcome() float64 {
@@ -58,10 +63,11 @@ func (a answer) outcome() float64 {
 
 // skillMove gathers what one piece of evidence does to a skill.
 type skillMove struct {
-	skill   Skill
-	answers int     // N_s, the answers where it is a primary skill
-	correct int     // the right ones among them
-	pull    float64 // Σ (S − P) / J over them
+	skill     Skill
+	retention float64 // R of the skill at the evidence's practice time, from its state before it
+	answers   int     // N_s, the answers where it is a primary skill
+	correct   int     // the right ones among them
+	pull      float64 // Σ w · (S − P) / J over them
 }
 
 // itemSkills gives the primary skills of an item: its own, or the task's.
@@ -107,9 +113,49 @@ func (ms *ModuleState) correction(id string) float64 {
 	return 0
 }
 
+// skillRetention is R of a skill at the evidence's practice time, from the state before it.
+type skillRetention struct {
+	skill string
+	r     float64
+}
+
+// retentions gives R of each skill the answers name, once a skill and in the order of IDs.
+func (ms *ModuleState) retentions(t Task, items []item, g *Graph, at int64) []skillRetention {
+	var out []skillRetention
+	for _, it := range items {
+		if !isAnswer(it.task, it.answer) {
+			continue
+		}
+		for _, id := range itemSkills(t, it.task) {
+			s, ok := graphSkill(g, id)
+			if !ok || s.Assessability != AssessabilityVerdict {
+				continue
+			}
+			i, found := slices.BinarySearchFunc(out, id, func(r skillRetention, id string) int { return strings.Compare(r.skill, id) })
+			if found {
+				continue
+			}
+			// A skill with no practice forgets nothing.
+			r := 1.0
+			if k, ok := ms.skillIndex(id); ok {
+				r = retentionAt(ms.Skills[k], at)
+			}
+			out = slices.Insert(out, i, skillRetention{skill: id, r: r})
+		}
+	}
+	return out
+}
+
+func retentionOf(rs []skillRetention, id string) float64 {
+	i, _ := slices.BinarySearchFunc(rs, id, func(r skillRetention, id string) int { return strings.Compare(r.skill, id) })
+	return rs[i].r
+}
+
 // answers reads the answers of the evidence, items by place, each with its P from the state
-// before it: P = c + (1 − c) · σ(θ + δ̄ − β), δ̄ the mean δ of its J skills, 0 with none.
-func (ms *ModuleState) answers(t Task, items []item, g *Graph) []answer {
+// before it: P = c + (1 − c) · R̄ · σ(θ + δ̄ − β), δ̄ and R̄ the mean δ and R of its J skills — 0
+// and 1 with none — with R of each skill from rs, the same for every item that names it. In the
+// trial series P is without retention, R̄ = 1, and so w = 1.
+func (ms *ModuleState) answers(t Task, items []item, g *Graph, rs []skillRetention, trial bool) []answer {
 	b := beta(t.Band.Place, t.Difficulty)
 	var out []answer
 	for _, it := range items {
@@ -123,40 +169,52 @@ func (ms *ModuleState) answers(t Task, items []item, g *Graph) []answer {
 			}
 		}
 		slices.SortFunc(skills, func(a, b Skill) int { return strings.Compare(a.ID, b.ID) })
-		var mean float64
+		mean, rbar := 0.0, 1.0
 		if len(skills) > 0 {
-			var sum float64
+			var corrections, retentions float64
 			for _, s := range skills {
-				sum += ms.correction(s.ID)
+				corrections += ms.correction(s.ID)
+				if !trial {
+					retentions += retentionOf(rs, s.ID)
+				}
 			}
-			mean = float64(sum / float64(len(skills)))
+			j := float64(len(skills))
+			mean = float64(corrections / j)
+			if !trial {
+				rbar = float64(retentions / j)
+			}
 		}
+		c := guess(it.task.Slots)
+		sigma := detmath.Sigmoid(ms.Level + mean - b)
+		p1, p := chance(c, sigma, 1), chance(c, sigma, rbar)
 		out = append(out, answer{
 			slots:   it.task.Slots,
 			verdict: it.answer.FirstVerdict,
 			skills:  skills,
-			p:       probability(guess(it.task.Slots), ms.Level+mean-b),
+			p:       p,
+			w:       retentionWeight(c, sigma, rbar, p1, p),
 		})
 	}
 	return out
 }
 
-// moves gathers the evidence's answers by skill, in the order of skill IDs.
-func moves(answers []answer) []skillMove {
+// moves gathers the evidence's answers by skill, in the order of skill IDs, each with its
+// retention from rs.
+func moves(answers []answer, rs []skillRetention) []skillMove {
 	var out []skillMove
 	for _, a := range answers {
 		j := float64(len(a.skills))
 		for _, s := range a.skills {
 			i, ok := slices.BinarySearchFunc(out, s.ID, func(m skillMove, id string) int { return strings.Compare(m.skill.ID, id) })
 			if !ok {
-				out = slices.Insert(out, i, skillMove{skill: s})
+				out = slices.Insert(out, i, skillMove{skill: s, retention: retentionOf(rs, s.ID)})
 			}
 			m := &out[i]
 			m.answers++
 			if a.verdict == VerdictCorrect {
 				m.correct++
 			}
-			m.pull += float64((a.outcome() - a.p) / j)
+			m.pull += float64(a.w * (a.outcome() - a.p) / j)
 		}
 	}
 	return out
@@ -171,10 +229,14 @@ func (ms *ModuleState) step(e Evidence, items []item, g *Graph) bool {
 
 // move is the step, with the trial series or without it as trial says.
 func (ms *ModuleState) move(e Evidence, items []item, g *Graph, trial bool) bool {
-	answers := ms.answers(e.Task, items, g)
+	at := e.PracticeTime
+	rs := ms.retentions(e.Task, items, g, at)
+	answers := ms.answers(e.Task, items, g, rs, trial)
 	if len(answers) == 0 {
 		return false
 	}
+	// The retention of each skill comes from the state before the evidence, as P does.
+	skills := moves(answers, rs)
 	u := seriesWeight(len(answers))
 	if trial {
 		for _, a := range answers {
@@ -190,7 +252,7 @@ func (ms *ModuleState) move(e Evidence, items []item, g *Graph, trial bool) bool
 	} else {
 		var pull float64
 		for _, a := range answers {
-			pull += a.outcome() - a.p
+			pull += float64(a.w * (a.outcome() - a.p))
 		}
 		ms.Level += float64(levelStep(ms.AnswerWeight) * u * pull)
 	}
@@ -199,10 +261,14 @@ func (ms *ModuleState) move(e Evidence, items []item, g *Graph, trial bool) bool
 		ms.Trial = nil
 	}
 
-	for _, m := range moves(answers) {
+	for _, m := range skills {
 		i, ok := ms.skillIndex(m.skill.ID)
-		if !ok {
-			ms.Skills = slices.Insert(ms.Skills, i, SkillState{Skill: m.skill.ID, LastPractice: e.PracticeTime})
+		if ok {
+			sk := &ms.Skills[i]
+			sk.Stability = stabilityAfter(sk.Stability, m.retention, float64(float64(m.correct)/float64(m.answers)))
+		} else {
+			// The first answer of a skill: τ = τ₀, and the time of practice starts.
+			ms.Skills = slices.Insert(ms.Skills, i, SkillState{Skill: m.skill.ID, LastPractice: at, Stability: stabilityFloor})
 		}
 		sk := &ms.Skills[i]
 		us := seriesWeight(m.answers)
@@ -211,7 +277,8 @@ func (ms *ModuleState) move(e Evidence, items []item, g *Graph, trial bool) bool
 		}
 		sk.AnswerWeight += float64(float64(m.answers) * us)
 		sk.EvidenceCount++
-		sk.LastPractice = max(sk.LastPractice, e.PracticeTime)
+		// A time that came back winds no clock back.
+		sk.LastPractice = max(sk.LastPractice, at)
 		ms.judge(sk, m, e.Task.Band.Place)
 	}
 	return true

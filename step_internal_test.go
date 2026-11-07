@@ -4,6 +4,8 @@ import (
 	"math"
 	"strconv"
 	"testing"
+
+	"github.com/altnovatrail/learner-model/detmath"
 )
 
 // SPEC 2.6 of standalone, at commit 6b29dd9 of its main, read 2026-11-07: the step of Elo run from
@@ -64,7 +66,7 @@ func TestStandaloneTenAnswers(t *testing.T) {
 			Items:     []ItemAnswer{{Place: 1, Submitted: true, FirstVerdict: verdict, HasFirstVerdict: true}},
 		}
 		items := pairItems(e)
-		answers := ms.answers(e.Task, items, &g)
+		answers := ms.answers(e.Task, items, &g, ms.retentions(e.Task, items, &g, e.PracticeTime), false)
 		if len(answers) != 1 {
 			t.Fatalf("%s: %d answers", step, len(answers))
 		}
@@ -131,5 +133,135 @@ func TestModelNumbers(t *testing.T) {
 	}
 	if trialLevel(2.5, nil) != 2.5 {
 		t.Errorf("the trial level with no answers is not the start")
+	}
+}
+
+// The example of docs/architecture.md, section 3.2: a skill mastered at the band `3-4`, shift
+// 2.5, with θ + δ = 4.5, n = 100 and m = 20. The document prints three decimals.
+func TestForgettingExample(t *testing.T) {
+	const day = 86400
+	near3 := func(what string, got, want float64) {
+		t.Helper()
+		if math.Abs(got-want) > 1e-3 {
+			t.Errorf("%s = %.6f, want %.3f", what, got, want)
+		}
+	}
+	nearTo(t, "v", uncertainty(100, 20), 0.2327)
+	near3("λ", cautiousLevel(4, 0.5, 100, 20), 4.018)
+	q := masteryChance(4, 100, SkillState{Correction: 0.5, AnswerWeight: 20, MasteryBand: 2})
+	near3("q", q, 0.820)
+	days := func(r ReviewDate, from int64) float64 { return float64(float64(r.At-from) / day) }
+	near3("the review after τ = 1", days(reviewDate(q, 1, 0), 0), 1.288)
+	near1 := func(what string, got, want float64) {
+		t.Helper()
+		if math.Abs(got-want) > 0.05 {
+			t.Errorf("%s = %.6f, want %.1f", what, got, want)
+		}
+	}
+	near1("the review after τ = 10", days(reviewDate(q, 10, 0), 0), 12.9)
+
+	// Back after a day and right: R(1; 1) = 0.9, τ = 2.5, and the next review in 3.2 days.
+	r := retentionAt(SkillState{LastPractice: 0, Stability: 1}, day)
+	nearTo(t, "R(1; 1)", r, 0.9)
+	tau := stabilityAfter(1, r, 1)
+	nearTo(t, "τ after a right answer at R = 0.9", tau, 2.5)
+	near1("the review after it", days(reviewDate(q, tau, day), day), 3.2)
+
+	// Back after a summer break of 60 days at τ = 10, on difficulty 3 of `3-4` with five options.
+	r = retentionAt(SkillState{LastPractice: 0, Stability: 10}, 60*day)
+	near3("R(60; 10)", r, 0.645)
+	sigma := detmath.Sigmoid(4.5 - beta(2, 3))
+	near3("P without forgetting", chance(0.2, sigma, 1), 0.905)
+	p := chance(0.2, sigma, r)
+	near3("P with forgetting", p, 0.654)
+	w := retentionWeight(0.2, sigma, r, chance(0.2, sigma, 1), p)
+	near3("w", w, 0.246)
+	near3("the move of a right answer", float64(w*(1-p)), 0.085)
+	near3("the move of a wrong one", float64(w*(0-p)), -0.161)
+	near1("τ after a right answer", stabilityAfter(10, r, 1), 63.3)
+	nearTo(t, "τ after a wrong one", stabilityAfter(10, r, 0), 5)
+
+	// Within a lesson R stays near 1: two minutes after an answer at τ = 1.
+	nearTo(t, "R after two minutes", retentionAt(SkillState{Stability: 1}, 120), 0.99984)
+}
+
+// The edges of the rules of forgetting.
+func TestForgettingEdges(t *testing.T) {
+	const day = 86400
+	// The pause: none before the last practice, and below 2⁵³ seconds whatever the times.
+	if pauseDays(5, 10) != 0 || pauseDays(10, 10) != 0 || pauseDays(2*day, 0) != 2 {
+		t.Errorf("pauseDays of plain times")
+	}
+	if got := pauseDays(math.MaxInt64, math.MinInt64); got != float64(float64(1<<53)/day) {
+		t.Errorf("pauseDays of the widest times = %v", got)
+	}
+	if retentionAt(SkillState{LastPractice: 100, Stability: 1}, 50) != 1 {
+		t.Errorf("a time before the last practice forgets")
+	}
+
+	// The weight: 1 without forgetting, 0 where σ is 1, and the formula of section 3.2 elsewhere.
+	weight := func(c, sigma, rbar float64) float64 {
+		return retentionWeight(c, sigma, rbar, chance(c, sigma, 1), chance(c, sigma, rbar))
+	}
+	if weight(0.2, 0.7, 1) != 1 || weight(0, 1, 0.5) != 0 {
+		t.Errorf("the weight at its ends")
+	}
+	for _, c := range []float64{0, 0.2, float64(1.0 / 9)} {
+		for _, sigma := range []float64{0.01, 0.5, 0.99} {
+			rbar := 0.7
+			p1, p := chance(c, sigma, 1), chance(c, sigma, rbar)
+			want := float64(rbar * p1 * (1 - p1) / (p * (1 - p)))
+			if got := weight(c, sigma, rbar); math.Abs(got-want) > 1e-12 {
+				t.Errorf("w(c = %v, σ = %v) = %v, want %v", c, sigma, got, want)
+			}
+		}
+	}
+	// No guessing and σ at its smallest: the weight is still a plain number.
+	if w := weight(0, detmath.Sigmoid(-708), 0.5); math.Abs(w-1) > 1e-12 {
+		t.Errorf("w at the smallest σ = %v", w)
+	}
+
+	// The stability: S̄ = 1 is τ · (1 + g · (1 − R)) to the bit, S̄ = 0 halves it down to τ₀, and a
+	// page right but for some grows it less.
+	r := 0.9 // a variable, so that 1 − r is the float the code takes, not an exact constant
+	if got, want := stabilityAfter(3, r, 1), float64(3*(1+float64(15*(1-r)))); got != want {
+		t.Errorf("τ after right answers = %v, want %v", got, want)
+	}
+	if stabilityAfter(3, 0.9, 0) != 1.5 || stabilityAfter(1.5, 0.9, 0) != 1 {
+		t.Errorf("τ after wrong answers")
+	}
+	nearTo(t, "τ after 8 of 10 at R = 0.9", stabilityAfter(1, 0.9, 0.8), 1.8119)
+	nearTo(t, "τ after half at R = 0.9", stabilityAfter(1, 0.9, 0.5), 1.1180)
+	if got := stabilityAfter(math.MaxFloat64, 0, 1); got != math.MaxFloat64 {
+		t.Errorf("τ past the largest float = %v", got)
+	}
+
+	// The review date: "already" below the threshold, never sooner than τ₀, rounded up to the
+	// second, and saturating past the largest time.
+	if !reviewDate(0.7, 1, 0).Already {
+		t.Errorf("q below the threshold is not already due")
+	}
+	if got := reviewDate(0.72, 1, 1000); got.Already || got.At != 1000+day {
+		t.Errorf("a mastery barely held is due at %+v, want a day after its practice", got)
+	}
+	q := 0.9
+	rStar := float64(masteryThreshold / q)
+	exact := float64(float64(5*(float64(1/float64(rStar*rStar))-1)/detmath.RetentionFactor) * day)
+	if got := reviewDate(q, 5, 0).At; float64(got) < exact || float64(got)-exact >= 1 {
+		t.Errorf("the review at %d s, want %v rounded up", got, exact)
+	}
+	// Δt* lands on a whole second here, and its three roundings bring it to a second at which R · q
+	// still holds the threshold: the date moves on to the next one.
+	edge, tauEdge := 0.7509902336184128, 3.0
+	at := reviewDate(edge, tauEdge, 0).At
+	holds := func(s int64) bool {
+		return float64(retentionAt(SkillState{Stability: tauEdge}, s)*edge) > masteryThreshold
+	}
+	if at != 101357 || holds(at) || !holds(at-1) {
+		t.Errorf("the review on the edge is at %d s, want 101357, the first second past the threshold", at)
+	}
+	if reviewDate(q, 1e300, 0).At != math.MaxInt64 || addSeconds(math.MaxInt64-5, 10) != math.MaxInt64 ||
+		addSeconds(5, math.Inf(1)) != math.MaxInt64 || addSeconds(5, -3) != 5 {
+		t.Errorf("the review date does not saturate")
 	}
 }

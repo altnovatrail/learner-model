@@ -104,7 +104,7 @@ func TestStandaloneThreeFailures(t *testing.T) {
 	g := olympiadGraphs(t, map[string][]int32{a: {1}})
 	s := lm.State{Kind: lm.StateKind, Modules: []lm.ModuleState{{
 		Module: olympiad, Level: 0.9, AnswerWeight: 20, StartBand: ladderBand(1),
-		Skills: []lm.SkillState{{Skill: a, Correction: 0.3, AnswerWeight: 8, EvidenceCount: 8, LastPractice: 1000}},
+		Skills: []lm.SkillState{{Skill: a, Correction: 0.3, AnswerWeight: 8, EvidenceCount: 8, LastPractice: 1000, Stability: 1}},
 	}}}
 	rows := []standaloneRow{
 		{a, 1, 3, false, 0.8185, 0.0672},
@@ -115,7 +115,7 @@ func TestStandaloneThreeFailures(t *testing.T) {
 	failures := []int32{1, 2, 3, 0}
 	for i, r := range rows {
 		var err error
-		s, _, err = lm.Append(s, choiceAnswer(r.topic, r.place, r.d, r.correct, ladderBand(1), 2000+int64(i)), g)
+		s, _, err = lm.Append(s, choiceAnswer(r.topic, r.place, r.d, r.correct, ladderBand(1), 1000), g)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -125,7 +125,7 @@ func TestStandaloneThreeFailures(t *testing.T) {
 		if sk.FailuresInARow != failures[i] || sk.Mastered {
 			t.Errorf("answer %d: failures in a row %d, mastered %v; want %d, not mastered", i+1, sk.FailuresInARow, sk.Mastered, failures[i])
 		}
-		if sk.AnswerWeight != float64(9+i) || sk.EvidenceCount != int64(9+i) || sk.LastPractice != 2000+int64(i) {
+		if sk.AnswerWeight != float64(9+i) || sk.EvidenceCount != int64(9+i) || sk.LastPractice != 1000 {
 			t.Errorf("answer %d: m %v, evidence %d, last practice %d", i+1, sk.AnswerWeight, sk.EvidenceCount, sk.LastPractice)
 		}
 	}
@@ -189,7 +189,7 @@ func TestStandaloneFloorAndMastery(t *testing.T) {
 	g := olympiadGraphs(t, map[string][]int32{a: {1, 2, 3}})
 	s := lm.State{Kind: lm.StateKind, Modules: []lm.ModuleState{{
 		Module: olympiad, Level: 1.2, AnswerWeight: 79, StartBand: ladderBand(1),
-		Skills: []lm.SkillState{{Skill: a, Correction: 0.5, AnswerWeight: 9, EvidenceCount: 9}},
+		Skills: []lm.SkillState{{Skill: a, Correction: 0.5, AnswerWeight: 9, EvidenceCount: 9, Stability: 1}},
 	}}}
 	rows := []standaloneRow{
 		{a, 2, 1, true, 1.2093, 0.5511},
@@ -199,7 +199,7 @@ func TestStandaloneFloorAndMastery(t *testing.T) {
 	mastered := []bool{true, true, false}
 	for i, r := range rows {
 		var err error
-		s, _, err = lm.Append(s, choiceAnswer(r.topic, r.place, r.d, r.correct, ladderBand(1), int64(i)), g)
+		s, _, err = lm.Append(s, choiceAnswer(r.topic, r.place, r.d, r.correct, ladderBand(1), 0), g)
 		if err != nil {
 			t.Fatal(err)
 		}

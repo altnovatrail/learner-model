@@ -268,7 +268,7 @@ func TestWeightsAndShares(t *testing.T) {
 	add, sub := skill("addition"), skill("subtraction")
 	before := lm.State{Kind: lm.StateKind, Modules: []lm.ModuleState{{
 		Module: workbook, Level: 0.5, AnswerWeight: 20, StartBand: lm.BandRef{Place: 1, ID: "grade-2"},
-		Skills: []lm.SkillState{{Skill: add, Correction: 0.4, AnswerWeight: 8, EvidenceCount: 3}},
+		Skills: []lm.SkillState{{Skill: add, Correction: 0.4, AnswerWeight: 8, EvidenceCount: 3, LastPractice: 7, Stability: 1}},
 	}}}
 	e := page(3, 2, []string{add, sub, skill("essay"), skill("unknown")}, 7)
 	// The third item names its own skill, one with no state to move.
@@ -356,6 +356,7 @@ func TestAppendRefuses(t *testing.T) {
 		{"a trial answer with no verdict", func(s *lm.State) { s.Modules[0].Trial[0].Verdict = 7 }, lm.ErrInvalid},
 		{"a trial answer of weight 0", func(s *lm.State) { s.Modules[0].Trial[0].Weight = 0 }, lm.ErrInvalid},
 		{"trial answers past the series", func(s *lm.State) { s.Modules[0].AnswerWeight = 5 }, lm.ErrInvalid},
+		{"a skill of a stability below τ₀", func(s *lm.State) { s.Modules[0].Skills[0].Stability = 0.5 }, lm.ErrInvalid},
 		{"a level that is NaN", func(s *lm.State) { s.Modules[0].Level = math.Float64frombits(0x7ff8000000000001) }, lm.ErrNotFinite},
 	}
 	for _, c := range states {
@@ -451,7 +452,7 @@ func TestMasteryHeldAndRaised(t *testing.T) {
 	g := olympiadGraphs(t, map[string][]int32{a: {1, 2, 3}})
 	s := lm.State{Kind: lm.StateKind, Modules: []lm.ModuleState{{
 		Module: olympiad, Level: 4, AnswerWeight: 200, StartBand: ladderBand(1),
-		Skills: []lm.SkillState{{Skill: a, Correction: 1, AnswerWeight: 50, EvidenceCount: 50, Mastered: true, MasteryBand: 2}},
+		Skills: []lm.SkillState{{Skill: a, Correction: 1, AnswerWeight: 50, EvidenceCount: 50, LastPractice: 1, Stability: 10, Mastered: true, MasteryBand: 2}},
 	}}}
 	// A right answer at band 1: the band held, 2, stays.
 	s = mustAppend(t, s, choiceAnswer(a, 1, 3, true, ladderBand(1), 1), g)
@@ -474,4 +475,64 @@ func TestMasteryHeldAndRaised(t *testing.T) {
 func hard(e lm.Evidence) lm.Evidence {
 	e.Task.Difficulty = 5
 	return e
+}
+
+// The example page of docs/architecture.md, section 3.3: 10 items of a number slot with one
+// primary skill, band 1, difficulty 3, so β = 0; before it θ = δ = 0.5, n = 20, m = 8 and τ = 1,
+// and the skill was practised a day before, R = 0.9. 8 first verdicts are right and 2 not yet.
+// The document prints three decimals, and τ two.
+func TestForgettingPage(t *testing.T) {
+	g := workbookGraphs(t)
+	add := skill("addition")
+	const t0 = 1762041600
+	before := lm.State{Kind: lm.StateKind, Modules: []lm.ModuleState{{
+		Module: workbook, Level: 0.5, AnswerWeight: 20, StartBand: lm.BandRef{Place: 1, ID: "grade-2"},
+		Skills: []lm.SkillState{{Skill: add, Correction: 0.5, AnswerWeight: 8, EvidenceCount: 3, LastPractice: t0, Stability: 1}},
+	}}}
+	e := page(10, 8, []string{add}, t0+86400)
+	e.Task.Difficulty = 3
+	s := mustAppend(t, before, e, g)
+	m, sk := s.Modules[0], skillOf(t, s, add)
+	near3 := func(what string, got, want float64) {
+		t.Helper()
+		if math.Abs(got-want) > 1e-3 {
+			t.Errorf("%s = %.6f, want %.3f", what, got, want)
+		}
+	}
+	near3("θ", m.Level, 0.528)
+	near3("δ", sk.Correction, 0.580)
+	if math.Abs(sk.Stability-1.81) > 0.005 { // printed to two decimals
+		t.Errorf("τ = %.6f, want 1.81", sk.Stability)
+	}
+	if math.Abs(m.AnswerWeight-22.5) > 1e-12 || math.Abs(sk.AnswerWeight-10.5) > 1e-12 {
+		t.Errorf("n %v and m %v, want 22.5 and 10.5", m.AnswerWeight, sk.AnswerWeight)
+	}
+	if sk.Mastered || sk.FailuresInARow != 0 || sk.LastPractice != t0+86400 || sk.EvidenceCount != 4 {
+		t.Errorf("the skill after the page: %+v", sk)
+	}
+
+	// A time that came back: no forgetting, R = 1, and the last practice stays where it was. A page
+	// all right at R = 1 leaves τ as it is.
+	back := page(10, 10, []string{add}, t0-1000)
+	back.Task.Difficulty = 3
+	s = mustAppend(t, before, back, g)
+	if sk := skillOf(t, s, add); sk.LastPractice != t0 || sk.Stability != 1 {
+		t.Errorf("a time that came back: last practice %d, τ %v", sk.LastPractice, sk.Stability)
+	}
+}
+
+// In the trial series P is without retention: a pause between its pieces of evidence moves θ no
+// differently, while τ and the last practice are written as usual.
+func TestForgettingTrial(t *testing.T) {
+	g := workbookGraphs(t)
+	add := []string{skill("addition")}
+	soon := mustAppend(t, mustAppend(t, lm.State{}, page(4, 3, add, 0), g), page(4, 4, add, 60), g)
+	late := mustAppend(t, mustAppend(t, lm.State{}, page(4, 3, add, 0), g), page(4, 4, add, 30*86400), g)
+	if len(late.Modules[0].Trial) == 0 || soon.Modules[0].Level != late.Modules[0].Level {
+		t.Errorf("a pause in the trial series moved θ: %v and %v", soon.Modules[0].Level, late.Modules[0].Level)
+	}
+	a, b := skillOf(t, soon, add[0]), skillOf(t, late, add[0])
+	if !(b.Stability > a.Stability && a.Stability > 1) || b.LastPractice != 30*86400 {
+		t.Errorf("τ in the trial series: %v after a minute, %v after a month", a.Stability, b.Stability)
+	}
 }
