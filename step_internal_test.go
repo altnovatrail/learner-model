@@ -67,7 +67,7 @@ func TestStandaloneTenAnswers(t *testing.T) {
 			Items:     []ItemAnswer{{Place: 1, Submitted: true, FirstVerdict: verdict, HasFirstVerdict: true}},
 		}
 		items := pairItems(e)
-		answers := ms.answers(e, items, &g, ms.retentions(e, items, &g, e.PracticeTime), false)
+		answers, _ := ms.answers(e, items, &g, false)
 		if len(answers) != 1 {
 			t.Fatalf("%s: %d answers", step, len(answers))
 		}

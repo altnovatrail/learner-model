@@ -25,7 +25,7 @@ type world struct {
 type worldModule struct {
 	id     string
 	bands  []lm.Band
-	skills []string // the IDs evidence may name: skills with a verdict, one with a rubric, one unknown
+	skills []string // the IDs evidence may name: skills with a verdict, one with a rubric, one unknown, retired ones
 }
 
 func newWorld(t *testing.T, r *rand.Rand) world {
@@ -57,13 +57,29 @@ func newWorld(t *testing.T, r *rand.Rand) world {
 		}
 		skills = append(skills, lm.Skill{ID: id + "/skill/essay", Assessability: lm.AssessabilityRubric})
 		mod.skills = append(mod.skills, id+"/skill/essay", id+"/skill/unknown")
-		g, err := lm.NewGraph(id, bands, skills, nil, tasks)
+		// Skills of earlier versions: renamed, split, merged, retired with `[]` and replaced by a
+		// skill with a rubric.
+		s := func(name string) string { return id + "/skill/" + name }
+		retired := []lm.RetiredSkill{
+			{ID: s("r0"), ReplacedBy: []string{s("s0")}},
+			{ID: s("r1"), ReplacedBy: []string{s("s1"), s("s2")}},
+			{ID: s("r2"), ReplacedBy: []string{s("s3")}},
+			{ID: s("r3"), ReplacedBy: []string{s("s3")}},
+			{ID: s("r4")},
+			{ID: s("r5"), ReplacedBy: []string{s("essay")}},
+		}
+		for _, r := range retired {
+			mod.skills = append(mod.skills, r.ID)
+		}
+		g, err := lm.NewGraph(id, bands, skills, retired, tasks)
 		if err != nil {
 			t.Fatal(err)
 		}
 		w.graphs[id] = lm.ModuleGraph{Graph: g, Current: m != 2 || r.IntN(2) == 0}
 		w.modules = append(w.modules, mod)
 	}
+	// A graph of a module no evidence names, as reading brings: it changes nothing.
+	w.graphs["example/extra"] = lm.ModuleGraph{Graph: lm.Graph{Module: "example/extra"}, Current: true}
 	return w
 }
 
@@ -179,16 +195,23 @@ func encodeState(t *testing.T, s lm.State) []byte {
 // evidence at a time, with the state encoded and decoded between the steps as api keeps it, gives
 // the bytes Recompute gives — of the evidence Append gave back, which api stores, and of the
 // evidence as it came, since the step takes the start band of a module with a state from it.
+// The logs name skills of earlier versions, which go to their replacements, and lose any of their
+// evidence, as api cuts that of a version withdrawn for a wrong key.
 func TestAppendIsRecompute(t *testing.T) {
 	for seed := range uint64(50) {
 		r := rand.New(rand.NewPCG(seed, 16))
 		w := newWorld(t, r)
-		var s lm.State
-		var given, kept []lm.Evidence
+		var log []lm.Evidence
 		at := int64(1762041600)
 		for n := range 1 + r.IntN(50) {
 			at += int64(r.IntN(200000)) - 20000 // now and then a time that comes back
-			e := journalEvidence(t, r, w, n, at)
+			if e := journalEvidence(t, r, w, n, at); r.IntN(6) > 0 {
+				log = append(log, e)
+			}
+		}
+		var s lm.State
+		var given, kept []lm.Evidence
+		for n, e := range log {
 			next, stored, err := lm.Append(s, e, w.graphs)
 			if err != nil {
 				t.Fatalf("seed %d, evidence %d: %v", seed, n, err)
@@ -355,6 +378,19 @@ func TestAppendRefuses(t *testing.T) {
 			Skills: []lm.Skill{{ID: topic("b")}, {ID: topic("a")}}}}}},
 		{"bands taught out of their order", func(*lm.Evidence) {}, lm.Graphs{olympiad: {Current: true, Graph: lm.Graph{Module: olympiad,
 			Skills: []lm.Skill{{ID: topic("a"), BandsTaught: []int32{2, 1}}}}}}},
+		{"retired skills out of their order", func(*lm.Evidence) {}, lm.Graphs{olympiad: {Current: true, Graph: lm.Graph{Module: olympiad,
+			Skills: []lm.Skill{{ID: topic("a")}}, Retired: []lm.RetiredSkill{{ID: topic("y")}, {ID: topic("x")}}}}}},
+		{"a retired skill twice", func(*lm.Evidence) {}, lm.Graphs{olympiad: {Current: true, Graph: lm.Graph{Module: olympiad,
+			Skills: []lm.Skill{{ID: topic("a")}}, Retired: []lm.RetiredSkill{{ID: topic("x")}, {ID: topic("x")}}}}}},
+		{"replacements out of their order", func(*lm.Evidence) {}, lm.Graphs{olympiad: {Current: true, Graph: lm.Graph{Module: olympiad,
+			Skills:  []lm.Skill{{ID: topic("a")}, {ID: topic("b")}},
+			Retired: []lm.RetiredSkill{{ID: topic("x"), ReplacedBy: []string{topic("b"), topic("a")}}}}}}},
+		{"a retired skill that is still a skill", func(*lm.Evidence) {}, lm.Graphs{olympiad: {Current: true, Graph: lm.Graph{Module: olympiad,
+			Skills: []lm.Skill{{ID: topic("a")}}, Retired: []lm.RetiredSkill{{ID: topic("a")}}}}}},
+		// A chain the graph has not made one step: x goes to y, which is retired too.
+		{"a replacement that is no skill", func(*lm.Evidence) {}, lm.Graphs{olympiad: {Current: true, Graph: lm.Graph{Module: olympiad,
+			Skills:  []lm.Skill{{ID: topic("a")}},
+			Retired: []lm.RetiredSkill{{ID: topic("x"), ReplacedBy: []string{topic("y")}}, {ID: topic("y"), ReplacedBy: []string{topic("a")}}}}}}},
 	}
 	for _, c := range evidence {
 		e := validEvidence()

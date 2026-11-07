@@ -18,11 +18,12 @@ import (
 // both in one transaction. The zero State is the empty one; the state Append gives is of
 // StateKind and shares no memory with s, while the evidence it gives shares e's lists.
 //
-// The step reads only the graph of the evidence's module. A module whose entry says it has no
-// current version moves nothing: its evidence waits in the log. Evidence with no answer moves
-// nothing either, and gives a module no state; nor does evidence whose key or skill tags came from
-// AI, or whose provenance is not given or one this version does not know (docs/architecture.md,
-// section 3.3).
+// The step reads only the graph of the evidence's module, and gives the evidence of a skill that
+// graph retired to each skill that replaced it, in full (docs/architecture.md, section 3.5). A
+// module whose entry says it has no current version moves nothing: its evidence waits in the log.
+// Evidence with no answer moves nothing either, and gives a module no state; nor does evidence
+// whose key or skill tags came from AI, or whose provenance is not given or one this version does
+// not know (docs/architecture.md, section 3.3).
 //
 // It refuses, with ErrInvalid:
 //   - a state of a kind outside 1 to StateKind, unless it is the zero State, one not in its
@@ -34,8 +35,10 @@ import (
 //   - a choice without its number of options or with fewer than two, an item with reasons of
 //     submissions that was never submitted, and an item with an answer, in evidence that weighs,
 //     and no slot;
-//   - a module with no entry in g, and a graph whose module is not its entry's or whose lists are
-//     not in the order NewGraph gives.
+//   - a module with no entry in g, and a graph whose module is not its entry's, whose lists — its
+//     skills, the bands each is taught at, its retired skills and the replacements of each — are
+//     not in the order NewGraph gives, or with a retired skill that is still a skill or a
+//     replacement that is not one.
 func Append(s State, e Evidence, g Graphs) (State, Evidence, error) {
 	if err := checkInputState(s); err != nil {
 		return State{}, Evidence{}, err
@@ -220,7 +223,8 @@ func checkChoices(slots []Slot) error {
 }
 
 // checkGraph checks what the step relies on in a graph: its module, and skills and the bands
-// each is taught at in their order, as NewGraph gives them.
+// each is taught at, retired skills and the replacements of each in their order, as NewGraph
+// gives them; and that the retired skills are no skills of the graph and their replacements are.
 func checkGraph(module string, g Graph) error {
 	if g.Module != module {
 		return invalid("the graph of module " + g.Module + " in the entry of " + module)
@@ -231,6 +235,23 @@ func checkGraph(module string, g Graph) error {
 	for _, s := range g.Skills {
 		if err := ascending("bands skill "+s.ID+" is taught at", s.BandsTaught, cmp.Compare[int32]); err != nil {
 			return invalid(err.Error())
+		}
+	}
+	if err := ascending("retired skills of the graph of "+module, g.Retired, func(a, b RetiredSkill) int { return strings.Compare(a.ID, b.ID) }); err != nil {
+		return invalid(err.Error())
+	}
+	// The transfer is one step: a retired skill is no skill, and each replacement is one.
+	for _, r := range g.Retired {
+		if err := ascending("replacements of retired skill "+r.ID, r.ReplacedBy, strings.Compare); err != nil {
+			return invalid(err.Error())
+		}
+		if _, ok := graphSkill(&g, r.ID); ok {
+			return invalid("retired skill " + r.ID + " is still a skill of the graph of " + module)
+		}
+		for _, id := range r.ReplacedBy {
+			if _, ok := graphSkill(&g, id); !ok {
+				return invalid("retired skill " + r.ID + " replaced by " + id + ", which the graph of " + module + " does not have")
+			}
 		}
 	}
 	return nil
