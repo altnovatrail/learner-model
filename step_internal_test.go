@@ -61,12 +61,13 @@ func TestStandaloneTenAnswers(t *testing.T) {
 		e := Evidence{
 			Kind: EvidenceKind,
 			Task: Task{ID: module + "/task/x", Band: BandRef{Place: 1, ID: "1-2"}, Difficulty: r.d, Primary: []string{r.skill},
+				KeyProvenance: ProvenanceAuthor, SkillTagsProvenance: ProvenanceAuthor,
 				Items: []TaskItem{{Place: 1, Slots: []Slot{{Check: CheckKindChoice, Options: 5, HasOptions: true}}}}},
 			StartBand: BandRef{Place: 1, ID: "1-2"},
 			Items:     []ItemAnswer{{Place: 1, Submitted: true, FirstVerdict: verdict, HasFirstVerdict: true}},
 		}
 		items := pairItems(e)
-		answers := ms.answers(e.Task, items, &g, ms.retentions(e.Task, items, &g, e.PracticeTime), false)
+		answers := ms.answers(e, items, &g, ms.retentions(e, items, &g, e.PracticeTime), false)
 		if len(answers) != 1 {
 			t.Fatalf("%s: %d answers", step, len(answers))
 		}
