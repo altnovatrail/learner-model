@@ -19,8 +19,9 @@ import (
 // The test of the rules of code: what keeps this module's bits the same on every build is held
 // here, on its sources, since no run on any one target sees a fusion that inlining would carry
 // into a consumer's build (R09; docs/architecture.md, section 3.6, the rules of code and what CI
-// checks them with). testdata/coderules is a module that breaks every rule, and the check must
-// report exactly what its "// want" comments name, so that a weakened check fails too.
+// checks them with). testdata/coderules is a module that breaks every rule, its go.mod kept as
+// go.mod.control, and the check must report exactly what its "// want" comments name, so that a
+// weakened check fails too.
 
 // The rules a finding names, as the comments "// want <rule>" in testdata/coderules name them.
 var allRules = []string{
@@ -97,7 +98,7 @@ var knownArch = []string{
 
 func TestCodeRules(t *testing.T) {
 	skipWithoutGoCommand(t)
-	findings, err := checkModule(".")
+	findings, err := checkModule(".", "go.mod")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,11 +108,13 @@ func TestCodeRules(t *testing.T) {
 }
 
 // TestCodeRulesControl holds the check to its control: every finding the "// want" comments of
-// testdata/coderules name, none they do not, and every rule among them.
+// testdata/coderules name, none they do not, and every rule among them. The control keeps its
+// go.mod as go.mod.control, since the zip of this module leaves out a nested module, and the check
+// reads it under that name.
 func TestCodeRulesControl(t *testing.T) {
 	skipWithoutGoCommand(t)
 	root := filepath.Join("testdata", "coderules")
-	found, err := checkModule(root)
+	found, err := checkModule(root, "go.mod.control")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,6 +138,36 @@ func TestCodeRulesControl(t *testing.T) {
 		if !slices.ContainsFunc(want, func(w finding) bool { return w.rule == rule }) {
 			t.Errorf("the control breaks no rule %q: testdata/coderules must break every rule", rule)
 		}
+	}
+}
+
+// The zip of a Go module leaves out every nested module — "Module zip files do not include … any
+// nested modules (subdirectories that contain go.mod files)" (Go Modules Reference) — so a go.mod
+// below the root would take its folder out of what consumers get, and their tests with it. The one
+// nested module is the lock file of gopls, .devcontainer/gopls, which no code or test reads; the
+// zip leaves out the folders of version control too, and spec, a submodule.
+func TestNoNestedModules(t *testing.T) {
+	var nested []string
+	err := filepath.WalkDir(".", func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if _, err := os.Stat(filepath.Join(path, ".git")); (err == nil && path != ".") || d.Name() == ".git" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if d.Name() == "go.mod" && path != "go.mod" && path != filepath.Join(".devcontainer", "gopls", "go.mod") {
+			nested = append(nested, path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(nested) > 0 {
+		t.Errorf("nested modules, which the module's zip leaves out: %v", nested)
 	}
 }
 
@@ -213,20 +246,21 @@ type packageDir struct {
 }
 
 type checker struct {
-	root, module string
-	fset         *token.FileSet
-	std          types.Importer
-	dirs         map[string]*packageDir // by import path
-	checked      map[string]*types.Package
-	findings     []finding
+	root, goMod, module string
+	fset                *token.FileSet
+	std                 types.Importer
+	dirs                map[string]*packageDir // by import path
+	checked             map[string]*types.Package
+	findings            []finding
 }
 
-// checkModule checks the module whose go.mod is in root: its go.mod, and every package directory
-// the go command would build, as it finds them — not testdata, not a directory whose name begins
-// with "." or "_", not another module within it.
-func checkModule(root string) ([]finding, error) {
+// checkModule checks the module whose go.mod is in root, under the name goMod: its go.mod, and
+// every package directory the go command would build, as it finds them — not testdata, not a
+// directory whose name begins with "." or "_", not another module within it.
+func checkModule(root, goMod string) ([]finding, error) {
 	c := &checker{
 		root:    root,
+		goMod:   goMod,
 		fset:    token.NewFileSet(),
 		dirs:    map[string]*packageDir{},
 		checked: map[string]*types.Package{},
@@ -270,7 +304,7 @@ func (c *checker) reportAt(path string, line int, rule, format string, args ...a
 }
 
 func (c *checker) readGoMod() error {
-	path := filepath.Join(c.root, "go.mod")
+	path := filepath.Join(c.root, c.goMod)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err

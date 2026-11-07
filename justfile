@@ -186,3 +186,75 @@ ci-licenses:
         exit 1
     fi
     go run {{ GO_LICENSES }} check ./... --allowed_licenses="$ALLOWED_LICENSES"
+
+# What .github's shared release.yml runs to build a release, in the toolchain stage of the commit
+# it releases, from that commit's tree with no git in it, and then signs every file (R16 in
+# docs/decisions.md; R18 .github). Go code takes the library as a Go module, by the tag, through
+# the module proxy and the checksum database; the release's one file is the schema of the evidence
+# and the state, for what reads them without Go: the export of a learner's data, say (section 3.7
+# of docs/architecture.md). dist/ is made afresh and holds learner-model-proto-<version>.tar.gz:
+# LICENSE, buf.yaml and every .proto file of proto/ in a folder of that name, in a tar every build
+# writes alike — names sorted, no times or owners, modes 0644 — and gzip without a name or a time.
+# Build a release's files into dist/, for a version such as v0.1.0.
+release-files version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    version={{ quote(version) }}
+    if ! [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+        echo "release-files: the version is v<major>.<minor>.<patch>, as v0.1.0, not ${version}" >&2
+        exit 1
+    fi
+    name="learner-model-proto-${version}"
+    rm -rf dist
+    mkdir dist
+    (printf '%s\n' LICENSE buf.yaml; find proto -type f -name '*.proto') | LC_ALL=C sort |
+        tar --create --verbatim-files-from --files-from=- --format=posix \
+            --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime \
+            --transform="s,^,${name}/," --mtime=@0 --owner=0 --group=0 --numeric-owner --mode=0644 |
+        gzip -9n > "dist/${name}.tar.gz"
+
+# Builds the release's files twice, a second apart, and fails unless the two are the same bytes;
+# unless the archive holds LICENSE, buf.yaml and every .proto file git tracks in proto/, as they are
+# in the tree, and nothing else; and unless buf builds the schema from the unpacked archive alone.
+# So the file a release signs is the schema of its commit, and anyone can build it again and
+# compare. It refuses to run beside a dist/ of one's own, which release-files would replace.
+# Check that the release's file is the schema, and the same bytes on every build.
+ci-release:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -e dist ]; then
+        echo "ci-release: dist/ is there already, and release-files would replace it: move it away first" >&2
+        exit 1
+    fi
+    version=v0.0.0-ci
+    name="learner-model-proto-${version}"
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "$tmp" dist' EXIT
+    just release-files "$version"
+    mv dist "$tmp/first"
+    sleep 1
+    just release-files "$version"
+    if [ "$(ls dist)" != "${name}.tar.gz" ] || ! cmp -s "$tmp/first/${name}.tar.gz" "dist/${name}.tar.gz"; then
+        echo "ci-release: two builds of the release's files differ, or dist/ holds another file:" >&2
+        ls -l "$tmp/first" dist >&2
+        exit 1
+    fi
+    mkdir "$tmp/unpacked"
+    tar -xzf "dist/${name}.tar.gz" -C "$tmp/unpacked"
+    got="$(cd "$tmp/unpacked/$name" && find . -type f | sed 's|^\./||' | LC_ALL=C sort)"
+    want="$( (printf '%s\n' LICENSE buf.yaml; git ls-files -- 'proto/*.proto') | LC_ALL=C sort)"
+    if [ "$got" != "$want" ]; then
+        echo "ci-release: the archive holds" >&2
+        echo "$got" >&2
+        echo "and git tracks" >&2
+        echo "$want" >&2
+        exit 1
+    fi
+    while IFS= read -r file; do
+        if ! cmp -s "$file" "$tmp/unpacked/$name/$file"; then
+            echo "ci-release: ${file} in the archive is not the tree's" >&2
+            exit 1
+        fi
+    done <<< "$want"
+    (cd "$tmp/unpacked/$name" && buf build -o /dev/null)
+    echo "ci-release: ${name}.tar.gz is the schema, the same bytes on two builds" >&2

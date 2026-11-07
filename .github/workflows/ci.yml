@@ -64,7 +64,8 @@ jobs:
 
   # The schema of the evidence and the state, by buf of the toolchain stage (R10;
   # docs/architecture.md, section 3.7): lint, breaking against the latest tag v*, which is why the
-  # checkout takes the tags, and the golden bytes of the codec converted to JSON and back.
+  # checkout takes the tags, and the golden bytes of the codec converted to JSON and back. Then the
+  # file a release signs, the schema's archive, built twice and held to the tree (R16).
   proto:
     name: Proto
     runs-on: ubuntu-24.04
@@ -83,3 +84,9 @@ jobs:
           docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp \
               --volume "$PWD:/work" --workdir /work \
               toolchain just ci-proto
+
+      - name: ci-release
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp \
+              --volume "$PWD:/work" --workdir /work \
+              toolchain just ci-release
