@@ -13,10 +13,16 @@ import (
 // reading, a value the writer would have given (codec.go).
 
 func checkEvidence(e Evidence) error {
-	t := e.Task
 	if e.Kind < 1 || e.Kind > EvidenceKind {
 		return invalid("evidence of kind " + itoa(e.Kind))
 	}
+	return checkEvidenceContent(e)
+}
+
+// checkEvidenceContent is checkEvidence but for the kind: Append takes evidence of a later kind
+// too.
+func checkEvidenceContent(e Evidence) error {
+	t := e.Task
 	if err := utf8Strings(t.ID, t.Band.ID, e.StartBand.ID); err != nil {
 		return err
 	}
