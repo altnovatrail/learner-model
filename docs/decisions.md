@@ -650,6 +650,8 @@
 
 — *Поправка 2026-11-07, третья:* по решению автора 2026-11-07 исполнитель поставил в ruleset `main` и job «Go arm64» с `integration_id` 15368, после его зелёных прогонов на #20 и #21 (`gh api -X PUT repos/altnovatrail/learner-model/rulesets/25506230`); прочие проверки и правила не менялись. Красный прогон на железе arm64 теперь держит мерж, как и прогоны amd64. — RUN.md, T13, T14 и T15.
 
+— *Поправка 2026-11-07, четвёртая:* по разрешению автора 2026-11-07, после мержа #22, исполнитель поставил в ruleset `main` job «Proto» с `integration_id` 15368 — после его зелёного прогона на #22 (`gh api -X PUT repos/altnovatrail/learner-model/rulesets/25506230`); прочие проверки и правила не менялись. Схема и золотые байты кодека теперь держат мерж, как и код. — RUN.md, T15.
+
 **R14. gopls стоит в образе devcontainer точной версии, v0.24.0, и собирается из своего lock-файла `.devcontainer/gopls/`, как в R19 module-kit. Это отличие контейнера `learner-model` от контейнера `spec`, пока заготовка `spec` не даст gopls виду `go`.** Ответ автора 2026-11-06 при планировании T12 (RUN.md, T12, «Решено автором»).
 - **Что заведено** — то же, что у `module-kit`, слово в слово, кроме имени репозитория и номера записи:
   - `.devcontainer/gopls/go.mod` — модуль `devcontainer/gopls` с `tool golang.org/x/tools/gopls`, а `go.sum` держит хеш каждого модуля сборки. Их дали `go mod init` и `go get -tool golang.org/x/tools/gopls@v0.24.0`; `go.sum` совпал с `go.sum` `module-kit` побайтно, а `go mod verify` — «all modules verified»;
