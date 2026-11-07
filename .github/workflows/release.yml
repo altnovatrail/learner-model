@@ -1,0 +1,43 @@
+# NovaTrail's shared release (R18 .github), pinned to a release of .github by SHA with its version
+# beside it. RELEASE_LINE is the line the releases are numbered in; paths, what they are built
+# from (R16 in docs/decisions.md). A commit of main whose CI has passed and which changes one of
+# the paths since the release before it gets the next patch of the line, its tag and its one file,
+# the schema's archive, signed; Go code takes the module by that tag.
+name: Release
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  RELEASE_LINE: "0.1"
+
+jobs:
+  release:
+    name: Release
+    permissions:
+      contents: write
+      id-token: write
+      actions: read
+    uses: altnovatrail/.github/.github/workflows/release.yml@89d3ceee0b9977b3334488a4133d084d76474e0d # v0.1.15
+    with:
+      # What consumers of the Go module build, and what builds the release's file: the code but
+      # its tests and their data, the schema and the license, and the recipe, the toolchain and
+      # this workflow. Tests, golden files and documents change no release.
+      paths: |
+        *.go
+        :(exclude)*_test.go
+        :(exclude)testdata/**
+        go.mod
+        proto/**
+        buf.yaml
+        LICENSE
+        justfile
+        .devcontainer/Dockerfile
+        .github/workflows/release.yml
