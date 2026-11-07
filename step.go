@@ -23,8 +23,10 @@ import (
 // answers right. The evidence read whole (R06, T18): the outcome, where a shown solution makes an
 // empty item "not solved"; help, which masters nothing; the provenance of the key and the skill
 // tags, by which evidence weighs 1 or nothing; and the traps the program found, counted at their
-// skills or at the module. The transfer by retired_skills (R08) comes with T19: until then a
-// primary skill that is not a skill of the graph with a verdict gets nothing.
+// skills or at the module. The transfer by retired_skills (R08, T19): each recorded primary skill
+// of an item, and each skill of a trap, goes to the skills transfer gives it by the graph of the
+// module's current version, so that a retired skill's evidence counts in full for each skill that
+// replaced it, and skills merged in one item count once.
 
 // item is an item of the task with what happened to it in the attempt, and the answer it gives by
 // answerOf, worked out once for the checks of input and the step alike.
@@ -55,11 +57,20 @@ func pairItems(e Evidence) []item {
 type answer struct {
 	slots   []Slot
 	verdict Verdict
-	// skills are the item's primary skills that have a state to move, by ID: J = len(skills).
-	skills []Skill
+	// shares are the skills the item's primary skills go to after the transfer, by ID, each once.
+	shares []share
+	// j is J, the number of the item's recorded primary skills that go to some skill.
+	j      int
 	p      float64 // P, with the retention of the skills
 	w      float64 // the weight of retention, w; 1 without forgetting
 	helped bool    // given with help: it masters nothing
+}
+
+// share is a skill an answer moves, with k, the number of the item's recorded primary skills that
+// go to it: it gets k/J of the item's step, and k is 2 for a skill that two of them merged into.
+type share struct {
+	skill Skill
+	k     int
 }
 
 func (a answer) outcome() float64 {
@@ -76,7 +87,7 @@ type skillMove struct {
 	answers   int     // N_s, the answers where it is a primary skill
 	correct   int     // the right ones among them
 	unaided   int     // the right ones among them given without help
-	pull      float64 // Σ w · (S − P) / J over them
+	pull      float64 // Σ w · (S − P) · k / J over them
 }
 
 // itemSkills gives the primary skills of an item: its own, or the task's.
@@ -85,6 +96,31 @@ func itemSkills(t Task, item TaskItem) []string {
 		return item.Primary
 	}
 	return t.Primary
+}
+
+// transfer gives the skills of the graph a recorded skill goes to (docs/architecture.md, section
+// 3.5), by ID: the skill itself, when it is a skill of the graph with a verdict; the replacements
+// with a verdict of a retired skill, which the graph names among its own skills, so that a chain
+// of retirements is one step already; and none for a skill that now has a rubric or none, and for
+// one the graph does not know — its evidence waits until a version names it.
+func transfer(g *Graph, id string) []Skill {
+	if s, ok := graphSkill(g, id); ok {
+		if s.Assessability == AssessabilityVerdict {
+			return []Skill{s}
+		}
+		return nil
+	}
+	i, ok := slices.BinarySearchFunc(g.Retired, id, func(r RetiredSkill, id string) int { return strings.Compare(r.ID, id) })
+	if !ok {
+		return nil
+	}
+	var out []Skill
+	for _, r := range g.Retired[i].ReplacedBy {
+		if s, ok := graphSkill(g, r); ok && s.Assessability == AssessabilityVerdict {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 // knownChecks tells whether every slot is of a kind of check this version knows: an item with
@@ -186,71 +222,75 @@ type skillRetention struct {
 	r     float64
 }
 
-// retentions gives R of each skill the answers name, once a skill and in the order of IDs.
-func (ms *ModuleState) retentions(e Evidence, items []item, g *Graph, at int64) []skillRetention {
-	t := e.Task
-	var out []skillRetention
-	for _, it := range items {
-		if !it.answered {
-			continue
+// retention gives R of a skill at a time from the state before the evidence, worked out once a
+// skill: rs keeps those already worked out, in the order of IDs, and gains this one.
+func (ms *ModuleState) retention(rs *[]skillRetention, id string, at int64) float64 {
+	i, found := slices.BinarySearchFunc(*rs, id, func(r skillRetention, id string) int { return strings.Compare(r.skill, id) })
+	if !found {
+		// A skill with no practice forgets nothing.
+		r := 1.0
+		if k, ok := ms.skillIndex(id); ok {
+			r = retentionAt(ms.Skills[k], at)
 		}
-		for _, id := range itemSkills(t, it.task) {
-			s, ok := graphSkill(g, id)
-			if !ok || s.Assessability != AssessabilityVerdict {
-				continue
-			}
-			i, found := slices.BinarySearchFunc(out, id, func(r skillRetention, id string) int { return strings.Compare(r.skill, id) })
-			if found {
-				continue
-			}
-			// A skill with no practice forgets nothing.
-			r := 1.0
-			if k, ok := ms.skillIndex(id); ok {
-				r = retentionAt(ms.Skills[k], at)
-			}
-			out = slices.Insert(out, i, skillRetention{skill: id, r: r})
-		}
+		*rs = slices.Insert(*rs, i, skillRetention{skill: id, r: r})
 	}
-	return out
+	return (*rs)[i].r
 }
 
+// retentionOf gives R of a skill that answers has worked out.
 func retentionOf(rs []skillRetention, id string) float64 {
 	i, _ := slices.BinarySearchFunc(rs, id, func(r skillRetention, id string) int { return strings.Compare(r.skill, id) })
 	return rs[i].r
 }
 
 // answers reads the answers of the evidence, items by place, each with its P from the state
-// before it: P = c + (1 − c) · R̄ · σ(θ + δ̄ − β), δ̄ and R̄ the mean δ and R of its J skills — 0
-// and 1 with none — with R of each skill from rs, the same for every item that names it. In the
-// trial series P is without retention, R̄ = 1, and so w = 1.
-func (ms *ModuleState) answers(e Evidence, items []item, g *Graph, rs []skillRetention, trial bool) []answer {
+// before it: P = c + (1 − c) · R̄ · σ(θ + δ̄ − β), δ̄ and R̄ the mean δ and R of its J recorded
+// skills, in the order of their IDs — 0 and 1 with none — where δ and R of a recorded skill are the
+// means over the skills it goes to, and R of each skill is the same for every item that names it.
+// With no transfer each of those means is of one value, and exact, so the bits are those of a step
+// without the transfer. In the trial series P is without retention, R̄ = 1, and so w = 1. It gives
+// with them R of every skill they move, for the stability, in the order of IDs.
+func (ms *ModuleState) answers(e Evidence, items []item, g *Graph, trial bool) ([]answer, []skillRetention) {
 	t := e.Task
 	b := beta(t.Band.Place, t.Difficulty)
 	var out []answer
+	var rs []skillRetention
 	for _, it := range items {
 		if !it.answered {
 			continue
 		}
-		var skills []Skill
-		for _, id := range itemSkills(t, it.task) {
-			if s, ok := graphSkill(g, id); ok && s.Assessability == AssessabilityVerdict {
-				skills = append(skills, s)
+		var shares []share
+		var corrections, retentions float64
+		j := 0
+		for _, x := range sortedCopy(itemSkills(t, it.task)) {
+			to := transfer(g, x)
+			if len(to) == 0 {
+				continue
+			}
+			j++
+			var correction, retention float64
+			for _, s := range to {
+				correction += ms.correction(s.ID)
+				if r := ms.retention(&rs, s.ID, e.PracticeTime); !trial {
+					retention += r
+				}
+				i, ok := slices.BinarySearchFunc(shares, s.ID, func(sh share, id string) int { return strings.Compare(sh.skill.ID, id) })
+				if !ok {
+					shares = slices.Insert(shares, i, share{skill: s})
+				}
+				shares[i].k++
+			}
+			parts := float64(len(to))
+			corrections += float64(correction / parts)
+			if !trial {
+				retentions += float64(retention / parts)
 			}
 		}
-		slices.SortFunc(skills, func(a, b Skill) int { return strings.Compare(a.ID, b.ID) })
 		mean, rbar := 0.0, 1.0
-		if len(skills) > 0 {
-			var corrections, retentions float64
-			for _, s := range skills {
-				corrections += ms.correction(s.ID)
-				if !trial {
-					retentions += retentionOf(rs, s.ID)
-				}
-			}
-			j := float64(len(skills))
-			mean = float64(corrections / j)
+		if j > 0 {
+			mean = float64(corrections / float64(j))
 			if !trial {
-				rbar = float64(retentions / j)
+				rbar = float64(retentions / float64(j))
 			}
 		}
 		c := guess(it.task.Slots)
@@ -260,21 +300,24 @@ func (ms *ModuleState) answers(e Evidence, items []item, g *Graph, rs []skillRet
 			slots:   it.task.Slots,
 			verdict: it.verdict,
 			helped:  helped(e, it),
-			skills:  skills,
+			shares:  shares,
+			j:       j,
 			p:       p,
 			w:       retentionWeight(c, sigma, rbar, p1, p),
 		})
 	}
-	return out
+	return out, rs
 }
 
-// moves gathers the evidence's answers by skill, in the order of skill IDs, each with its
-// retention from rs.
+// moves gathers the evidence's answers by skill after the transfer, in the order of skill IDs,
+// each with its retention from rs: a skill gets k/J of an answer's step, and counts the answer
+// once however many of the item's skills went to it.
 func moves(answers []answer, rs []skillRetention) []skillMove {
 	var out []skillMove
 	for _, a := range answers {
-		j := float64(len(a.skills))
-		for _, s := range a.skills {
+		j := float64(a.j)
+		for _, sh := range a.shares {
+			s := sh.skill
 			i, ok := slices.BinarySearchFunc(out, s.ID, func(m skillMove, id string) int { return strings.Compare(m.skill.ID, id) })
 			if !ok {
 				out = slices.Insert(out, i, skillMove{skill: s, retention: retentionOf(rs, s.ID)})
@@ -287,7 +330,8 @@ func moves(answers []answer, rs []skillRetention) []skillMove {
 					m.unaided++
 				}
 			}
-			m.pull += float64(a.w * (a.outcome() - a.p) / j)
+			// k = 1 multiplies exactly, so without a merge the bits are those of w · (S − P) / J.
+			m.pull += float64(a.w * (a.outcome() - a.p) * float64(sh.k) / j)
 		}
 	}
 	return out
@@ -307,8 +351,7 @@ func (ms *ModuleState) move(e Evidence, items []item, g *Graph, trial bool) bool
 		return false
 	}
 	at := e.PracticeTime
-	rs := ms.retentions(e, items, g, at)
-	answers := ms.answers(e, items, g, rs, trial)
+	answers, rs := ms.answers(e, items, g, trial)
 	if len(answers) == 0 {
 		return false
 	}
@@ -358,7 +401,7 @@ func (ms *ModuleState) move(e Evidence, items []item, g *Graph, trial bool) bool
 		sk.LastPractice = max(sk.LastPractice, at)
 		ms.judge(sk, m, e.Task.Band.Place)
 	}
-	ms.countTraps(e.Traps, at)
+	ms.countTraps(e.Traps, g, at)
 	return true
 }
 
@@ -386,21 +429,28 @@ func (ms *ModuleState) judge(sk *SkillState, m skillMove, taskPlace int32) {
 }
 
 // countTraps counts the traps the program found in the evidence, once each per piece of evidence
-// however many items showed it (docs/architecture.md, section 3.3): a trap goes to those of its
-// skills that have a state after the step, with the number of pieces of evidence it was found in
-// and the practice time of the latest; with no such skill, to the module. A trap gives no skill a
-// state of its own: a skill has one only once it is practised.
-func (ms *ModuleState) countTraps(traps []FoundTrap, at int64) {
+// however many items showed it (docs/architecture.md, sections 3.3 and 3.5): its skills go to
+// skills by transfer, as an item's do, and the trap goes to those of them that have a state after
+// the step, each once, with the number of pieces of evidence it was found in and the practice time
+// of the latest; with no such skill, to the module. A trap gives no skill a state of its own: a
+// skill has one only once it is practised.
+func (ms *ModuleState) countTraps(traps []FoundTrap, g *Graph, at int64) {
 	for _, trap := range traps {
-		counted := false
-		for _, id := range trap.Skills {
-			if i, ok := ms.skillIndex(id); ok {
-				ms.Skills[i].Traps = countTrap(ms.Skills[i].Traps, trap.ID, at)
-				counted = true
+		var states []int // the indexes of the skills' states, ascending, each once
+		for _, x := range trap.Skills {
+			for _, s := range transfer(g, x) {
+				if i, ok := ms.skillIndex(s.ID); ok {
+					if k, found := slices.BinarySearch(states, i); !found {
+						states = slices.Insert(states, k, i)
+					}
+				}
 			}
 		}
-		if !counted {
+		if len(states) == 0 {
 			ms.Traps = countTrap(ms.Traps, trap.ID, at)
+		}
+		for _, i := range states {
+			ms.Skills[i].Traps = countTrap(ms.Skills[i].Traps, trap.ID, at)
 		}
 	}
 }

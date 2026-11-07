@@ -131,10 +131,36 @@ func mixedLog() []lm.Evidence {
 	return append(log, ai, waiting)
 }
 
+// transferGraphs is the workbook at its third version: version 2 split addition into carry and
+// place, and version 3 merged carry into counting and renamed subtraction, retired tally with no
+// replacement and still teaches place in no task. The graph names each retired skill's
+// replacements in this version, so addition goes to counting and place in one step.
+func transferGraphs(t *testing.T) lm.Graphs {
+	return versionGraphs(t, []string{skill("counting"), skill("place"), skill("subtraction2")}, []string{skill("place")}, nil,
+		lm.RetiredSkill{ID: skill("addition"), ReplacedBy: []string{skill("counting"), skill("place")}},
+		lm.RetiredSkill{ID: skill("carry"), ReplacedBy: []string{skill("counting")}},
+		lm.RetiredSkill{ID: skill("subtraction"), ReplacedBy: []string{skill("subtraction2")}},
+		lm.RetiredSkill{ID: skill("tally")},
+	)
+}
+
+// transferLog3 is a log of the workbook across its three versions, recomputed by the third: pages
+// of version 1, of version 2 with the parts of addition side by side, and of version 3, with a
+// skill retired without a replacement and one the graph does not know.
+func transferLog3() []lm.Evidence {
+	s := skill
+	return transferLog(
+		[]string{s("addition")}, []string{s("addition"), s("subtraction")}, []string{s("subtraction")},
+		[]string{s("carry"), s("place")}, []string{s("carry")}, []string{s("tally")},
+		[]string{s("counting"), s("subtraction2")}, []string{s("unknown"), s("counting")}, []string{s("place")},
+	)
+}
+
 var goldenJournals = []goldenJournal{
 	{"olympiad", "a learner of grade 3 in olympiad maths: the trial series, mastery held, lost and set again after a break of 60 days", foldGraphs, olympiadLog},
 	{"workbook", "pages of the workbook with two primary skills, J = 2, a hint, a shown solution, help and traps", foldGraphs, workbookLog},
 	{"mixed", "the two interleaved, with a module without a current version, evidence with no answer and a task tagged by AI", foldGraphs, mixedLog},
+	{"transfer", "the workbook across three versions, by the third: a split, a merge, a rename, a skill retired with [] and one unknown", transferGraphs, transferLog3},
 }
 
 func TestGoldenFold(t *testing.T) {
@@ -191,6 +217,15 @@ func TestGoldenFold(t *testing.T) {
 			}
 			if j.name == "olympiad" && !(mastered && lost) {
 				t.Errorf("the log never masters a skill and loses it: mastered %v, lost %v", mastered, lost)
+			}
+			if j.name == "transfer" {
+				var skills []string
+				for _, sk := range s.Modules[0].Skills {
+					skills = append(skills, strings.TrimPrefix(sk.Skill, workbook+"/skill/"))
+				}
+				if fmt.Sprint(skills) != "[counting place subtraction2]" || !skillOf(t, s, skill("counting")).Mastered || skillOf(t, s, skill("place")).Mastered {
+					t.Errorf("the transfer gives skills %v; want counting mastered, place not, and subtraction2", skills)
+				}
 			}
 		})
 	}
