@@ -243,67 +243,86 @@ func retentionOf(rs []skillRetention, id string) float64 {
 	return rs[i].r
 }
 
+// itemChance is what P of an item of a task comes of, from the module's state at a time — the
+// practice time of evidence, or the time of reading — with the skills its recorded primary skills
+// go to.
+type itemChance struct {
+	shares []share
+	j      int     // J
+	c      float64 // the guessing
+	sigma  float64 // σ(θ + δ̄ − β)
+	rbar   float64 // R̄
+	p1, p  float64 // P at R̄ = 1, and P
+}
+
+// chanceOf works out P of an item from the state: P = c + (1 − c) · R̄ · σ(θ + δ̄ − β), δ̄ and R̄
+// the mean δ and R of its J recorded skills, in the order of their IDs — 0 and 1 with none — where
+// δ and R of a recorded skill are the means over the skills it goes to, and R of each skill at the
+// time is worked out once into rs. With no transfer each of those means is of one value, and
+// exact, so the bits are those of a step without the transfer. In the trial series P is without
+// retention, R̄ = 1. The step and Readout.Task both read P by it, so that reading gives the P the
+// step would take of evidence at the time of reading.
+func (ms *ModuleState) chanceOf(t Task, ti TaskItem, g *Graph, rs *[]skillRetention, at int64, trial bool) itemChance {
+	var out itemChance
+	var corrections, retentions float64
+	for _, x := range sortedCopy(itemSkills(t, ti)) {
+		to := transfer(g, x)
+		if len(to) == 0 {
+			continue
+		}
+		out.j++
+		var correction, retention float64
+		for _, s := range to {
+			correction += ms.correction(s.ID)
+			if r := ms.retention(rs, s.ID, at); !trial {
+				retention += r
+			}
+			i, ok := slices.BinarySearchFunc(out.shares, s.ID, func(sh share, id string) int { return strings.Compare(sh.skill.ID, id) })
+			if !ok {
+				out.shares = slices.Insert(out.shares, i, share{skill: s})
+			}
+			out.shares[i].k++
+		}
+		parts := float64(len(to))
+		corrections += float64(correction / parts)
+		if !trial {
+			retentions += float64(retention / parts)
+		}
+	}
+	mean := 0.0
+	out.rbar = 1
+	if out.j > 0 {
+		mean = float64(corrections / float64(out.j))
+		if !trial {
+			out.rbar = float64(retentions / float64(out.j))
+		}
+	}
+	out.c = guess(ti.Slots)
+	out.sigma = detmath.Sigmoid(ms.Level + mean - beta(t.Band.Place, t.Difficulty))
+	out.p1, out.p = chance(out.c, out.sigma, 1), chance(out.c, out.sigma, out.rbar)
+	return out
+}
+
 // answers reads the answers of the evidence, items by place, each with its P from the state
-// before it: P = c + (1 − c) · R̄ · σ(θ + δ̄ − β), δ̄ and R̄ the mean δ and R of its J recorded
-// skills, in the order of their IDs — 0 and 1 with none — where δ and R of a recorded skill are the
-// means over the skills it goes to, and R of each skill is the same for every item that names it.
-// With no transfer each of those means is of one value, and exact, so the bits are those of a step
-// without the transfer. In the trial series P is without retention, R̄ = 1, and so w = 1. It gives
-// with them R of every skill they move, for the stability, in the order of IDs.
+// before it, by chanceOf, and its weight w; in the trial series w = 1. It gives with them R of
+// every skill they move, for the stability, in the order of IDs: R of each skill is the same for
+// every item that names it.
 func (ms *ModuleState) answers(e Evidence, items []item, g *Graph, trial bool) ([]answer, []skillRetention) {
-	t := e.Task
-	b := beta(t.Band.Place, t.Difficulty)
 	var out []answer
 	var rs []skillRetention
 	for _, it := range items {
 		if !it.answered {
 			continue
 		}
-		var shares []share
-		var corrections, retentions float64
-		j := 0
-		for _, x := range sortedCopy(itemSkills(t, it.task)) {
-			to := transfer(g, x)
-			if len(to) == 0 {
-				continue
-			}
-			j++
-			var correction, retention float64
-			for _, s := range to {
-				correction += ms.correction(s.ID)
-				if r := ms.retention(&rs, s.ID, e.PracticeTime); !trial {
-					retention += r
-				}
-				i, ok := slices.BinarySearchFunc(shares, s.ID, func(sh share, id string) int { return strings.Compare(sh.skill.ID, id) })
-				if !ok {
-					shares = slices.Insert(shares, i, share{skill: s})
-				}
-				shares[i].k++
-			}
-			parts := float64(len(to))
-			corrections += float64(correction / parts)
-			if !trial {
-				retentions += float64(retention / parts)
-			}
-		}
-		mean, rbar := 0.0, 1.0
-		if j > 0 {
-			mean = float64(corrections / float64(j))
-			if !trial {
-				rbar = float64(retentions / float64(j))
-			}
-		}
-		c := guess(it.task.Slots)
-		sigma := detmath.Sigmoid(ms.Level + mean - b)
-		p1, p := chance(c, sigma, 1), chance(c, sigma, rbar)
+		ic := ms.chanceOf(e.Task, it.task, g, &rs, e.PracticeTime, trial)
 		out = append(out, answer{
 			slots:   it.task.Slots,
 			verdict: it.verdict,
 			helped:  helped(e, it),
-			shares:  shares,
-			j:       j,
-			p:       p,
-			w:       retentionWeight(c, sigma, rbar, p1, p),
+			shares:  ic.shares,
+			j:       ic.j,
+			p:       ic.p,
+			w:       retentionWeight(ic.c, ic.sigma, ic.rbar, ic.p1, ic.p),
 		})
 	}
 	return out, rs
@@ -342,7 +361,13 @@ func moves(answers []answer, rs []skillRetention) []skillMove {
 // it. Evidence with no answer moves nothing, nor does evidence that weighs nothing by its
 // provenance, and step reports whether it moved anything.
 func (ms *ModuleState) step(e Evidence, items []item, g *Graph) bool {
-	return ms.move(e, items, g, ms.AnswerWeight < trialWeight-weightTolerance)
+	return ms.move(e, items, g, ms.inTrial())
+}
+
+// inTrial tells whether the module is in its trial series: the weight of its answers is below 5,
+// within ε (docs/architecture.md, section 3.5).
+func (ms *ModuleState) inTrial() bool {
+	return ms.AnswerWeight < trialWeight-weightTolerance
 }
 
 // move is the step, with the trial series or without it as trial says.
@@ -377,7 +402,8 @@ func (ms *ModuleState) move(e Evidence, items []item, g *Graph, trial bool) bool
 		ms.Level += float64(levelStep(ms.AnswerWeight) * u * pull)
 	}
 	ms.AnswerWeight += float64(float64(len(answers)) * u)
-	if trial && ms.AnswerWeight >= trialWeight-weightTolerance {
+	ms.LastInTrial = trial
+	if trial && !ms.inTrial() {
 		ms.Trial = nil
 	}
 

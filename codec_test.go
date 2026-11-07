@@ -292,7 +292,7 @@ func randomState(r *rand.Rand) lm.State {
 	s := lm.State{Kind: lm.StateKind}
 	for _, id := range randomIDs(r, "module") {
 		m := lm.ModuleState{Module: id, Level: randomFloat(r), AnswerWeight: randomFloat(r), StartBand: randomBand(r),
-			Traps: randomTraps(r)}
+			Traps: randomTraps(r), LastInTrial: r.IntN(2) == 0}
 		for range r.IntN(4) {
 			m.Trial = append(m.Trial, lm.TrialAnswer{BandPlace: r.Int32N(6) + 1, Difficulty: r.Int32N(5) + 1,
 				Slots: randomSlots(r), Verdict: lm.Verdict(r.Int32N(4)), Weight: randomFloat(r)})
@@ -761,6 +761,7 @@ func TestStrictValues(t *testing.T) {
 		"a kind past this version's": func(e *lm.Evidence) { e.Kind = lm.EvidenceKind + 1 },
 		"a task ID of no UTF-8":      func(e *lm.Evidence) { e.Task.ID = "x\xff" },
 		"a skill of no UTF-8":        func(e *lm.Evidence) { e.Task.Primary = []string{"\xc3"} },
+		"a start band of no UTF-8":   func(e *lm.Evidence) { e.StartBand.ID = "\xff" },
 		"a rung without its flag":    func(e *lm.Evidence) { e.Outcome.HasRung = false },
 		"a fact without its flag":    func(e *lm.Evidence) { e.SolutionSeenBefore, e.HasSolutionSeenFact = true, false },
 		"options without their flag": func(e *lm.Evidence) { e.Task.Items[0].Slots[0].HasOptions = false },

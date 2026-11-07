@@ -211,6 +211,7 @@ func writeState(w *wire.Writer, s State) {
 			for _, sk := range skills {
 				w.Message(7, func(w *wire.Writer) { writeSkill(w, sk) })
 			}
+			w.Bool(8, m.LastInTrial)
 		})
 	}
 }
