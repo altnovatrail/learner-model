@@ -64,6 +64,7 @@ func olympiadLog() []lm.Evidence {
 		add(topic("a"), 2, 3, true)
 	}
 	add(topic("a"), 2, 4, false)
+	log[len(log)-1].Traps = []lm.FoundTrap{{ID: olympiad + "/trap/order", Skills: []string{topic("a")}, ItemPlaces: []int32{1}}}
 	add(topic("a"), 2, 5, false)
 	at += 60 * 86400 // a summer break: retention falls, and the next right answers raise τ much
 	for range 4 {
@@ -74,7 +75,8 @@ func olympiadLog() []lm.Evidence {
 }
 
 // workbookLog is pages of the workbook: two primary skills on every item, J = 2, an item that
-// names its own skill, one with a rubric, items with no answer and a failed page.
+// names its own skill, one with a rubric, items with no answer and a failed page; a page after a
+// hint, one with the solution shown, one with the technique on request, and traps found.
 func workbookLog() []lm.Evidence {
 	both := []string{skill("addition"), skill("subtraction")}
 	var log []lm.Evidence
@@ -83,17 +85,36 @@ func workbookLog() []lm.Evidence {
 		e.Task.Items[0].OwnSkills, e.Task.Items[0].Primary = true, []string{skill("addition")}
 		e.Task.Items[1].OwnSkills, e.Task.Items[1].Primary = true, []string{skill("essay")}
 		e.Items[p.items-1].HasFirstVerdict, e.Items[p.items-1].FirstVerdict, e.Items[p.items-1].Submitted = false, 0, false
+		switch i {
+		case 2: // a page after a hint: the items first answered after the rung are with help
+			e.Outcome = lm.Outcome{Kind: lm.OutcomeAfterHint, Rung: 1, HasRung: true}
+			for k := 3; k < p.items-1; k++ { // the first wrong answer, item 3, came before them
+				e.Items[k].WrongBeforeFirst = 1
+			}
+		case 5: // the solution shown: the item never submitted is not solved
+			e.Outcome = lm.Outcome{Kind: lm.OutcomeSolutionShown}
+		case 7: // the technique on request: a page all right that masters nothing
+			e.TechniqueOnRequest = true
+		}
+		if p.right < p.items-1 {
+			e.Traps = []lm.FoundTrap{
+				{ID: workbook + "/trap/borrow", Skills: []string{skill("subtraction")}, ItemPlaces: []int32{int32(p.items - 1)}},
+				{ID: workbook + "/trap/loose", ItemPlaces: []int32{int32(p.right + 1)}},
+			}
+		}
 		log = append(log, e)
 	}
 	return log
 }
 
-// mixedLog interleaves the two, with evidence of a module that has no current version and
-// evidence with no answer.
+// mixedLog interleaves the two, with evidence of a module that has no current version, evidence
+// with no answer and a task whose skill tags the AI gave, which weighs nothing.
 func mixedLog() []lm.Evidence {
 	o, w := olympiadLog(), workbookLog()
 	waiting := choiceAnswer(topic("a"), 1, 3, true, ladderBand(1), 1762041600)
 	waiting.Task.ID = "example/waiting/task/x"
+	ai := page(4, 4, []string{skill("addition")}, 1762041602)
+	ai.Task.SkillTagsProvenance = lm.ProvenanceAI // a task from paper the AI tagged: it weighs nothing
 	none := page(3, 3, []string{skill("addition")}, 1762041601)
 	for i := range none.Items {
 		none.Items[i].HasFirstVerdict, none.Items[i].FirstVerdict = false, 0
@@ -107,13 +128,13 @@ func mixedLog() []lm.Evidence {
 			log = append(log, o[i])
 		}
 	}
-	return append(log, waiting)
+	return append(log, ai, waiting)
 }
 
 var goldenJournals = []goldenJournal{
 	{"olympiad", "a learner of grade 3 in olympiad maths: the trial series, mastery held, lost and set again after a break of 60 days", foldGraphs, olympiadLog},
-	{"workbook", "pages of the workbook with two primary skills, J = 2", foldGraphs, workbookLog},
-	{"mixed", "the two interleaved, with a module without a current version and evidence with no answer", foldGraphs, mixedLog},
+	{"workbook", "pages of the workbook with two primary skills, J = 2, a hint, a shown solution, help and traps", foldGraphs, workbookLog},
+	{"mixed", "the two interleaved, with a module without a current version, evidence with no answer and a task tagged by AI", foldGraphs, mixedLog},
 }
 
 func TestGoldenFold(t *testing.T) {

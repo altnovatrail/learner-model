@@ -20,7 +20,9 @@ import (
 //
 // The step reads only the graph of the evidence's module. A module whose entry says it has no
 // current version moves nothing: its evidence waits in the log. Evidence with no answer moves
-// nothing either, and gives a module no state.
+// nothing either, and gives a module no state; nor does evidence whose key or skill tags came from
+// AI, or whose provenance is not given or one this version does not know (docs/architecture.md,
+// section 3.3).
 //
 // It refuses, with ErrInvalid:
 //   - a state of a kind outside 1 to StateKind, unless it is the zero State, one not in its
@@ -29,7 +31,8 @@ import (
 //   - evidence of a kind below 1, evidence EncodeEvidence would refuse but for a later kind, and
 //     evidence whose task ID names no module, whose task is not of a difficulty from 1 to 5, or
 //     whose task band or start band is at a place below 1;
-//   - a choice without its number of options or with fewer than two, and an item with an answer
+//   - a choice without its number of options or with fewer than two, an item with reasons of
+//     submissions that was never submitted, and an item with an answer, in evidence that weighs,
 //     and no slot;
 //   - a module with no entry in g, and a graph whose module is not its entry's or whose lists are
 //     not in the order NewGraph gives.
@@ -138,7 +141,7 @@ func checkInputState(s State) error {
 			if err := checkChoices(a.Slots); err != nil {
 				return err
 			}
-			if !isAnswer(TaskItem{Slots: a.Slots}, ItemAnswer{FirstVerdict: a.Verdict, HasFirstVerdict: true}) || len(a.Slots) == 0 {
+			if !knownChecks(a.Slots) || (a.Verdict != VerdictCorrect && a.Verdict != VerdictNotYet) || len(a.Slots) == 0 {
 				return invalid(what + " with no answer the step reads")
 			}
 			if !(a.Weight > 0) {
@@ -174,7 +177,11 @@ func checkInput(e Evidence, g Graphs, checked map[string]bool) (input, error) {
 		if err := checkChoices(it.task.Slots); err != nil {
 			return input{}, err
 		}
-		if len(it.task.Slots) == 0 && isAnswer(it.task, it.answer) {
+		if !it.answer.Submitted && len(it.answer.Unverdicted) > 0 {
+			return input{}, invalid("item " + itoa(it.task.Place) + " of task " + t.ID + " has reasons of submissions and was never submitted")
+		}
+		// Evidence that weighs nothing is never read, so its answers need no slot.
+		if it.answered && len(it.task.Slots) == 0 && weighs(t) {
 			return input{}, invalid("item " + itoa(it.task.Place) + " of task " + t.ID + " has an answer and no slot")
 		}
 	}

@@ -20,14 +20,19 @@ import (
 // 1/J of its step, and a failure is fewer than half of a skill's answers right. Forgetting (R04,
 // T17): P carries the mean retention R̄ of the item's skills, each answer moves θ and δ with its
 // weight w, and a skill's stability τ changes once per piece of evidence, by the share of its
-// answers right. Help, outcomes, provenance and traps (R06) and the transfer by retired_skills
-// (R08) come with T18 and T19: until then every right answer is unaided, and a primary skill that
-// is not a skill of the graph with a verdict gets nothing.
+// answers right. The evidence read whole (R06, T18): the outcome, where a shown solution makes an
+// empty item "not solved"; help, which masters nothing; the provenance of the key and the skill
+// tags, by which evidence weighs 1 or nothing; and the traps the program found, counted at their
+// skills or at the module. The transfer by retired_skills (R08) comes with T19: until then a
+// primary skill that is not a skill of the graph with a verdict gets nothing.
 
-// item is an item of the task with what happened to it in the attempt.
+// item is an item of the task with what happened to it in the attempt, and the answer it gives by
+// answerOf, worked out once for the checks of input and the step alike.
 type item struct {
-	task   TaskItem
-	answer ItemAnswer
+	task     TaskItem
+	answer   ItemAnswer
+	verdict  Verdict
+	answered bool
 }
 
 // pairItems pairs the items of the evidence's task with its answers, by place. The evidence has
@@ -39,7 +44,9 @@ func pairItems(e Evidence) []item {
 	slices.SortFunc(answers, func(a, b ItemAnswer) int { return cmp.Compare(a.Place, b.Place) })
 	items := make([]item, 0, len(tasks))
 	for i, t := range tasks {
-		items = append(items, item{task: t, answer: answers[i]})
+		it := item{task: t, answer: answers[i]}
+		it.verdict, it.answered = answerOf(e, it)
+		items = append(items, it)
 	}
 	return items
 }
@@ -52,6 +59,7 @@ type answer struct {
 	skills []Skill
 	p      float64 // P, with the retention of the skills
 	w      float64 // the weight of retention, w; 1 without forgetting
+	helped bool    // given with help: it masters nothing
 }
 
 func (a answer) outcome() float64 {
@@ -67,6 +75,7 @@ type skillMove struct {
 	retention float64 // R of the skill at the evidence's practice time, from its state before it
 	answers   int     // N_s, the answers where it is a primary skill
 	correct   int     // the right ones among them
+	unaided   int     // the right ones among them given without help
 	pull      float64 // Σ w · (S − P) / J over them
 }
 
@@ -78,18 +87,76 @@ func itemSkills(t Task, item TaskItem) []string {
 	return t.Primary
 }
 
-// isAnswer tells whether an item gives an answer: a first verdict right or not yet, and every
-// slot of a kind this version knows (docs/architecture.md, section 3.5).
-func isAnswer(item TaskItem, a ItemAnswer) bool {
-	if !a.HasFirstVerdict || (a.FirstVerdict != VerdictCorrect && a.FirstVerdict != VerdictNotYet) {
-		return false
-	}
-	for _, s := range item.Slots {
+// knownChecks tells whether every slot is of a kind of check this version knows: an item with
+// another gives no answer (docs/architecture.md, section 3.5).
+func knownChecks(slots []Slot) bool {
+	for _, s := range slots {
 		if s.Check < CheckKindNumber || s.Check > CheckKindPredicate {
 			return false
 		}
 	}
 	return true
+}
+
+// answerOf gives the answer an item gives, by the outcome of the attempt (docs/architecture.md,
+// section 3.3): its first verdict, right or not yet; or, when the solution was shown, "not
+// solved" — not yet, S = 0 — for an item without one that was not submitted or only blank. An
+// item that had only another "unreadable" or "unchecked" gives none: neither is a mistake. Nor
+// does an item with a verdict or a kind of check this version does not know, and an unknown
+// outcome reads as "unchecked": the verdicts before it count, and it weighs nothing.
+func answerOf(e Evidence, it item) (Verdict, bool) {
+	if !knownChecks(it.task.Slots) {
+		return VerdictUnspecified, false
+	}
+	a := it.answer
+	if a.HasFirstVerdict {
+		if a.FirstVerdict == VerdictCorrect || a.FirstVerdict == VerdictNotYet {
+			return a.FirstVerdict, true
+		}
+		return VerdictUnspecified, false
+	}
+	if e.Outcome.Kind != OutcomeSolutionShown {
+		return VerdictUnspecified, false
+	}
+	if !a.Submitted {
+		return VerdictNotYet, true
+	}
+	if len(a.Unverdicted) == 0 {
+		return VerdictUnspecified, false
+	}
+	for _, r := range a.Unverdicted {
+		if r != UnverdictedUnreadableBlank {
+			return VerdictUnspecified, false
+		}
+	}
+	return VerdictNotYet, true
+}
+
+// helped tells whether an item's answer was given with help (docs/architecture.md, section 3.3):
+// a rung of the ladder before its first verdict — a wrong answer earlier in the attempt —, the
+// technique on request anywhere in the attempt, the solution of this task sent to the device
+// before, or a sketch. The technique on the step and "explain again" are no help. An answer with
+// help moves the step, the counts and τ as it is, but masters nothing.
+func helped(e Evidence, it item) bool {
+	// The codec keeps a count of wrong answers only beside a first verdict, and the solution seen
+	// only beside its fact.
+	return it.answer.WrongBeforeFirst > 0 || e.TechniqueOnRequest || e.SolutionSeenBefore ||
+		e.Outcome.Kind == OutcomeWithSketch
+}
+
+// weighs tells whether the evidence weighs anything by where its key and skill tags came from
+// (docs/architecture.md, section 3.3; concepts 9.4 of spec): both from the author, the solver or an
+// adult — not from AI. A key or tags from AI weigh 0, and so does a provenance not given or one
+// this version does not know: such evidence moves nothing, as evidence with no answer does. An
+// adult's key needs a band and a difficulty on the module's scale too, and evidence always has
+// them.
+func weighs(t Task) bool {
+	return trusted(t.KeyProvenance) && trusted(t.SkillTagsProvenance)
+}
+
+// trusted tells whether a provenance is one that weighs: the author, the solver or an adult.
+func trusted(p Provenance) bool {
+	return p == ProvenanceAuthor || p == ProvenanceSolver || p == ProvenanceAdult
 }
 
 // graphSkill finds a skill of the graph by its ID.
@@ -120,10 +187,11 @@ type skillRetention struct {
 }
 
 // retentions gives R of each skill the answers name, once a skill and in the order of IDs.
-func (ms *ModuleState) retentions(t Task, items []item, g *Graph, at int64) []skillRetention {
+func (ms *ModuleState) retentions(e Evidence, items []item, g *Graph, at int64) []skillRetention {
+	t := e.Task
 	var out []skillRetention
 	for _, it := range items {
-		if !isAnswer(it.task, it.answer) {
+		if !it.answered {
 			continue
 		}
 		for _, id := range itemSkills(t, it.task) {
@@ -155,11 +223,12 @@ func retentionOf(rs []skillRetention, id string) float64 {
 // before it: P = c + (1 − c) · R̄ · σ(θ + δ̄ − β), δ̄ and R̄ the mean δ and R of its J skills — 0
 // and 1 with none — with R of each skill from rs, the same for every item that names it. In the
 // trial series P is without retention, R̄ = 1, and so w = 1.
-func (ms *ModuleState) answers(t Task, items []item, g *Graph, rs []skillRetention, trial bool) []answer {
+func (ms *ModuleState) answers(e Evidence, items []item, g *Graph, rs []skillRetention, trial bool) []answer {
+	t := e.Task
 	b := beta(t.Band.Place, t.Difficulty)
 	var out []answer
 	for _, it := range items {
-		if !isAnswer(it.task, it.answer) {
+		if !it.answered {
 			continue
 		}
 		var skills []Skill
@@ -189,7 +258,8 @@ func (ms *ModuleState) answers(t Task, items []item, g *Graph, rs []skillRetenti
 		p1, p := chance(c, sigma, 1), chance(c, sigma, rbar)
 		out = append(out, answer{
 			slots:   it.task.Slots,
-			verdict: it.answer.FirstVerdict,
+			verdict: it.verdict,
+			helped:  helped(e, it),
 			skills:  skills,
 			p:       p,
 			w:       retentionWeight(c, sigma, rbar, p1, p),
@@ -213,6 +283,9 @@ func moves(answers []answer, rs []skillRetention) []skillMove {
 			m.answers++
 			if a.verdict == VerdictCorrect {
 				m.correct++
+				if !a.helped {
+					m.unaided++
+				}
 			}
 			m.pull += float64(a.w * (a.outcome() - a.p) / j)
 		}
@@ -222,16 +295,20 @@ func moves(answers []answer, rs []skillRetention) []skillMove {
 
 // step moves the module's state by one piece of evidence, against the graph of the module's
 // current version: the trial series while the weight of answers is below 5, the step of Elo after
-// it. Evidence with no answer moves nothing, and step reports whether it had one.
+// it. Evidence with no answer moves nothing, nor does evidence that weighs nothing by its
+// provenance, and step reports whether it moved anything.
 func (ms *ModuleState) step(e Evidence, items []item, g *Graph) bool {
 	return ms.move(e, items, g, ms.AnswerWeight < trialWeight-weightTolerance)
 }
 
 // move is the step, with the trial series or without it as trial says.
 func (ms *ModuleState) move(e Evidence, items []item, g *Graph, trial bool) bool {
+	if !weighs(e.Task) {
+		return false
+	}
 	at := e.PracticeTime
-	rs := ms.retentions(e.Task, items, g, at)
-	answers := ms.answers(e.Task, items, g, rs, trial)
+	rs := ms.retentions(e, items, g, at)
+	answers := ms.answers(e, items, g, rs, trial)
 	if len(answers) == 0 {
 		return false
 	}
@@ -281,13 +358,13 @@ func (ms *ModuleState) move(e Evidence, items []item, g *Graph, trial bool) bool
 		sk.LastPractice = max(sk.LastPractice, at)
 		ms.judge(sk, m, e.Task.Band.Place)
 	}
+	ms.countTraps(e.Traps, at)
 	return true
 }
 
 // judge counts a failure or sets the mastery after the evidence, by θ, δ, n and m after it. A
-// failure takes the mastery away at the second in a row; evidence without one — which has a right
-// answer, since at least half are — masters the skill once m ≥ 5, at a band above the one it is
-// held at.
+// failure takes the mastery away at the second in a row; evidence without one, where the skill has
+// a right answer given without help, masters it once m ≥ 5, at a band above the one it is held at.
 func (ms *ModuleState) judge(sk *SkillState, m skillMove, taskPlace int32) {
 	if 2*m.correct < m.answers {
 		if sk.FailuresInARow < math.MaxInt32 {
@@ -299,11 +376,45 @@ func (ms *ModuleState) judge(sk *SkillState, m skillMove, taskPlace int32) {
 		return
 	}
 	sk.FailuresInARow = 0
-	if sk.AnswerWeight < masteryWeight-weightTolerance {
+	if m.unaided == 0 || sk.AnswerWeight < masteryWeight-weightTolerance {
 		return
 	}
 	lambda := cautiousLevel(ms.Level, sk.Correction, ms.AnswerWeight, sk.AnswerWeight)
 	if p, ok := masteryBand(m.skill.BandsTaught, taskPlace, lambda); ok && (!sk.Mastered || p > sk.MasteryBand) {
 		sk.Mastered, sk.MasteryBand = true, p
 	}
+}
+
+// countTraps counts the traps the program found in the evidence, once each per piece of evidence
+// however many items showed it (docs/architecture.md, section 3.3): a trap goes to those of its
+// skills that have a state after the step, with the number of pieces of evidence it was found in
+// and the practice time of the latest; with no such skill, to the module. A trap gives no skill a
+// state of its own: a skill has one only once it is practised.
+func (ms *ModuleState) countTraps(traps []FoundTrap, at int64) {
+	for _, trap := range traps {
+		counted := false
+		for _, id := range trap.Skills {
+			if i, ok := ms.skillIndex(id); ok {
+				ms.Skills[i].Traps = countTrap(ms.Skills[i].Traps, trap.ID, at)
+				counted = true
+			}
+		}
+		if !counted {
+			ms.Traps = countTrap(ms.Traps, trap.ID, at)
+		}
+	}
+}
+
+// countTrap counts one more piece of evidence of a trap in a list ordered by ID: a time that came
+// back winds the latest back no more than it does a skill's practice.
+func countTrap(traps []TrapCount, id string, at int64) []TrapCount {
+	i, ok := slices.BinarySearchFunc(traps, id, func(t TrapCount, id string) int { return strings.Compare(t.ID, id) })
+	if !ok {
+		return slices.Insert(traps, i, TrapCount{ID: id, Count: 1, Last: at})
+	}
+	if traps[i].Count < math.MaxInt64 {
+		traps[i].Count++
+	}
+	traps[i].Last = max(traps[i].Last, at)
+	return traps
 }

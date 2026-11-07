@@ -3,6 +3,7 @@ package learnermodel_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math"
 	"math/rand/v2"
 	"strings"
@@ -124,10 +125,16 @@ func journalEvidence(t *testing.T, r *rand.Rand, w world, n int, at int64) lm.Ev
 		switch v := r.IntN(20); {
 		case v < 9:
 			a.FirstVerdict, a.HasFirstVerdict = lm.VerdictCorrect, true
+			a.WrongBeforeFirst = int32(r.IntN(3) / 2) // now and then a rung before it
 		case v < 16:
 			a.FirstVerdict, a.HasFirstVerdict = lm.VerdictNotYet, true
-		case v < 19:
+		case v < 18:
 			a.Submitted = false
+		case v < 19:
+			reasons := []lm.UnverdictedReason{lm.UnverdictedUnreadableBlank, lm.UnverdictedUnreadableOther, lm.UnverdictedUnchecked}
+			for range 1 + r.IntN(2) {
+				a.Unverdicted = append(a.Unverdicted, reasons[r.IntN(len(reasons))])
+			}
 		default:
 			a.FirstVerdict, a.HasFirstVerdict = 7, true // a verdict of a later version
 		}
@@ -135,8 +142,28 @@ func journalEvidence(t *testing.T, r *rand.Rand, w world, n int, at int64) lm.Ev
 	}
 	// Items out of their order: the step reads them by place.
 	r.Shuffle(len(task.Items), func(i, j int) { task.Items[i], task.Items[j] = task.Items[j], task.Items[i] })
-	return lm.Evidence{Kind: lm.EvidenceKind, Task: task, StartBand: start, PracticeTime: at,
-		Outcome: lm.Outcome{Kind: lm.OutcomeFirstSubmission}, Items: answers}
+	e := lm.Evidence{Kind: lm.EvidenceKind, Task: task, StartBand: start, PracticeTime: at, Items: answers}
+	outcomes := []lm.OutcomeKind{lm.OutcomeFirstSubmission, lm.OutcomeFirstSubmission, lm.OutcomeAfterHint,
+		lm.OutcomeSolutionShown, lm.OutcomeSolutionShown, lm.OutcomeLeftUnfinished, lm.OutcomeUnchecked, lm.OutcomeWithSketch, 9}
+	e.Outcome.Kind = outcomes[r.IntN(len(outcomes))]
+	if e.Outcome.Kind == lm.OutcomeAfterHint {
+		e.Outcome.Rung, e.Outcome.HasRung = int32(1+r.IntN(3)), true
+	}
+	e.TechniqueOnRequest = r.IntN(8) == 0
+	e.TechniqueOnStep = r.IntN(4) == 0
+	e.HasSolutionSeenFact = true
+	e.SolutionSeenBefore = r.IntN(8) == 0
+	if r.IntN(10) == 0 {
+		provenances := []lm.Provenance{lm.ProvenanceUnspecified, lm.ProvenanceSolver, lm.ProvenanceAdult, lm.ProvenanceAI, 9}
+		e.Task.KeyProvenance = provenances[r.IntN(len(provenances))]
+		e.Task.SkillTagsProvenance = provenances[r.IntN(len(provenances))]
+	}
+	for i := range r.IntN(3) {
+		trap := lm.FoundTrap{ID: m.id + "/trap/t" + itoa(i), ItemPlaces: []int32{int32(1 + r.IntN(items))}}
+		trap.Skills = pick(r, m.skills, r.IntN(3))
+		e.Traps = append(e.Traps, trap)
+	}
+	return e
 }
 
 func encodeState(t *testing.T, s lm.State) []byte {
@@ -534,5 +561,182 @@ func TestForgettingTrial(t *testing.T) {
 	a, b := skillOf(t, soon, add[0]), skillOf(t, late, add[0])
 	if !(b.Stability > a.Stability && a.Stability > 1) || b.LastPractice != 30*86400 {
 		t.Errorf("τ in the trial series: %v after a minute, %v after a month", a.Stability, b.Stability)
+	}
+}
+
+// ready is a learner whose next right answer without help masters addition at band 1.
+func ready(t *testing.T) lm.State {
+	t.Helper()
+	return lm.State{Kind: lm.StateKind, Modules: []lm.ModuleState{{
+		Module: workbook, Level: 3, AnswerWeight: 50, StartBand: lm.BandRef{Place: 1, ID: "grade-2"},
+		Skills: []lm.SkillState{{Skill: skill("addition"), Correction: 1, AnswerWeight: 20, EvidenceCount: 10,
+			LastPractice: 100, Stability: 1}},
+	}}}
+}
+
+// Help (docs/architecture.md, section 3.3): an answer with help moves the step, the counts and τ
+// as it is, but masters nothing; the technique on the step and "explain again" are no help.
+func TestHelp(t *testing.T) {
+	g := workbookGraphs(t)
+	add := skill("addition")
+	cases := []struct {
+		name     string
+		change   func(*lm.Evidence)
+		mastered bool
+	}{
+		{"no help", func(*lm.Evidence) {}, true},
+		{"a rung after the wrong answer before one right item, the other without", func(e *lm.Evidence) {
+			e.Outcome = lm.Outcome{Kind: lm.OutcomeAfterHint, Rung: 1, HasRung: true}
+			e.Items[0].WrongBeforeFirst = 1
+		}, true},
+		{"a rung before both right items", func(e *lm.Evidence) {
+			e.Outcome = lm.Outcome{Kind: lm.OutcomeAfterHint, Rung: 2, HasRung: true}
+			e.Items[0].WrongBeforeFirst, e.Items[1].WrongBeforeFirst = 1, 1
+		}, false},
+		{"the technique on request", func(e *lm.Evidence) { e.TechniqueOnRequest = true }, false},
+		{"the solution seen before", func(e *lm.Evidence) { e.SolutionSeenBefore, e.HasSolutionSeenFact = true, true }, false},
+		{"a sketch", func(e *lm.Evidence) { e.Outcome = lm.Outcome{Kind: lm.OutcomeWithSketch} }, false},
+		{"the technique on the step", func(e *lm.Evidence) { e.TechniqueOnStep = true }, true},
+		{"explain again", func(e *lm.Evidence) { e.ExplainAgainCount = 3 }, true},
+	}
+	var plain lm.SkillState
+	for i, c := range cases {
+		e := page(3, 2, []string{add}, 100) // two right and, answered first, one not yet
+		c.change(&e)
+		s := mustAppend(t, ready(t), e, g)
+		sk := skillOf(t, s, add)
+		if sk.Mastered != c.mastered {
+			t.Errorf("%s: mastered %v, want %v", c.name, sk.Mastered, c.mastered)
+		}
+		if i == 0 {
+			plain = sk
+		} else if sk.Correction != plain.Correction || sk.AnswerWeight != plain.AnswerWeight || sk.Stability != plain.Stability {
+			t.Errorf("%s: help moved the step: %+v, want %+v", c.name, sk, plain)
+		}
+	}
+}
+
+// The outcomes (docs/architecture.md, section 3.3): a shown solution makes an item not submitted
+// or only blank "not solved", S = 0; another "unreadable" or "unchecked" gives nothing; left
+// unfinished, unchecked and an outcome of a later version read only the verdicts there were.
+func TestOutcomes(t *testing.T) {
+	g := workbookGraphs(t)
+	add := skill("addition")
+	e := page(6, 1, []string{add}, 100)
+	e.Items[1] = lm.ItemAnswer{Place: 2}
+	e.Items[2] = lm.ItemAnswer{Place: 3, Submitted: true, Unverdicted: []lm.UnverdictedReason{lm.UnverdictedUnreadableBlank, lm.UnverdictedUnreadableBlank}}
+	e.Items[3] = lm.ItemAnswer{Place: 4, Submitted: true, Unverdicted: []lm.UnverdictedReason{lm.UnverdictedUnreadableBlank, lm.UnverdictedUnreadableOther}}
+	e.Items[4] = lm.ItemAnswer{Place: 5, Submitted: true, Unverdicted: []lm.UnverdictedReason{lm.UnverdictedUnchecked}}
+	e.Items[5] = lm.ItemAnswer{Place: 6, Submitted: true} // submitted, with neither a verdict nor a reason: nothing
+	for _, c := range []struct {
+		outcome  lm.OutcomeKind
+		answers  float64 // N · u
+		failures int32
+	}{
+		{lm.OutcomeSolutionShown, float64(3 * float64(3.0/5)), 1}, // one right, two not solved
+		{lm.OutcomeLeftUnfinished, 1, 0},
+		{lm.OutcomeUnchecked, 1, 0},
+		{9, 1, 0},
+	} {
+		e.Outcome = lm.Outcome{Kind: c.outcome}
+		before := ready(t)
+		s := mustAppend(t, before, e, g)
+		sk := skillOf(t, s, add)
+		if math.Abs(s.Modules[0].AnswerWeight-50-c.answers) > 1e-12 || sk.FailuresInARow != c.failures {
+			t.Errorf("outcome %d: n grew by %v and failures are %d, want %v and %d",
+				c.outcome, s.Modules[0].AnswerWeight-50, sk.FailuresInARow, c.answers, c.failures)
+		}
+	}
+	// A "not solved" item is an answer, and an answer needs a slot.
+	e.Outcome = lm.Outcome{Kind: lm.OutcomeSolutionShown}
+	e.Task.Items[1].Slots = nil
+	if _, _, err := lm.Append(ready(t), e, g); !errors.Is(err, lm.ErrInvalid) {
+		t.Errorf("a not solved item with no slot: %v, want ErrInvalid", err)
+	}
+}
+
+// The provenance (docs/architecture.md, section 3.3; concepts 9.4 of spec): a key and skill tags from
+// the author, the solver or an adult weigh 1 — an adult's key counts when the skills are not from AI;
+// a key or tags from AI, a provenance not given and one of a later version weigh 0, and such
+// evidence moves nothing, nor gives a module a state.
+func TestProvenance(t *testing.T) {
+	g := workbookGraphs(t)
+	add := []string{skill("addition")}
+	for _, c := range []struct {
+		key, tags lm.Provenance
+		weighs    bool
+	}{
+		{lm.ProvenanceAuthor, lm.ProvenanceAuthor, true},
+		{lm.ProvenanceSolver, lm.ProvenanceAuthor, true},
+		{lm.ProvenanceAdult, lm.ProvenanceAuthor, true},
+		{lm.ProvenanceAI, lm.ProvenanceAuthor, false},
+		{lm.ProvenanceAdult, lm.ProvenanceAI, false},
+		{lm.ProvenanceUnspecified, lm.ProvenanceAuthor, false},
+		{lm.ProvenanceAuthor, lm.ProvenanceUnspecified, false},
+		{9, lm.ProvenanceAuthor, false},
+		{lm.ProvenanceAuthor, lm.ProvenanceSolver, true},
+		{lm.ProvenanceAdult, lm.ProvenanceAdult, true},
+		{lm.ProvenanceAI, lm.ProvenanceAI, false},
+		{lm.ProvenanceAuthor, 9, false},
+	} {
+		e := page(3, 2, add, 200)
+		e.Task.KeyProvenance, e.Task.SkillTagsProvenance = c.key, c.tags
+		e.Traps = []lm.FoundTrap{{ID: workbook + "/trap/t", Skills: add, ItemPlaces: []int32{3}}}
+		moved := !sameState(t, mustAppend(t, ready(t), e, g), ready(t))
+		created := len(mustAppend(t, lm.State{}, e, g).Modules) > 0
+		if moved != c.weighs || created != c.weighs {
+			t.Errorf("key %d, tags %d: moved %v, gave a module a state %v; want %v", c.key, c.tags, moved, created, c.weighs)
+		}
+	}
+}
+
+// The traps (docs/architecture.md, section 3.3): a trap found goes to its skills that have a state,
+// once per piece of evidence, with the time of the latest; with none such, to the module.
+func TestTraps(t *testing.T) {
+	g := workbookGraphs(t)
+	add, sub := skill("addition"), skill("subtraction")
+	trap := func(name string, skills ...string) lm.FoundTrap {
+		return lm.FoundTrap{ID: workbook + "/trap/" + name, Skills: skills, ItemPlaces: []int32{1, 2}}
+	}
+	e := page(2, 0, []string{add}, 500)
+	e.Traps = []lm.FoundTrap{
+		trap("borrow", add, skill("essay")),
+		trap("loose"),
+		trap("other", sub), // subtraction has no state: the trap is the module's
+	}
+	s := mustAppend(t, ready(t), e, g)
+	// The same traps again, at a time that came back.
+	e.PracticeTime = 300
+	s = mustAppend(t, s, e, g)
+	sk := skillOf(t, s, add)
+	want := []lm.TrapCount{{ID: workbook + "/trap/borrow", Count: 2, Last: 500}}
+	if fmt.Sprint(sk.Traps) != fmt.Sprint(want) {
+		t.Errorf("the traps of addition: %+v, want %+v", sk.Traps, want)
+	}
+	wantModule := []lm.TrapCount{{ID: workbook + "/trap/loose", Count: 2, Last: 500}, {ID: workbook + "/trap/other", Count: 2, Last: 500}}
+	if fmt.Sprint(s.Modules[0].Traps) != fmt.Sprint(wantModule) {
+		t.Errorf("the traps of the module: %+v, want %+v", s.Modules[0].Traps, wantModule)
+	}
+	if len(s.Modules[0].Skills) != 1 {
+		t.Errorf("a trap gave a skill a state: %+v", s.Modules[0].Skills)
+	}
+}
+
+// Reasons of submissions on an item never submitted are no evidence api writes; and evidence that
+// weighs nothing needs no slot at its answers, since it is never read.
+func TestAppendRefusesItems(t *testing.T) {
+	g := workbookGraphs(t)
+	e := page(2, 1, []string{skill("addition")}, 100)
+	e.Items[1] = lm.ItemAnswer{Place: 2, Unverdicted: []lm.UnverdictedReason{lm.UnverdictedUnreadableBlank}}
+	if _, _, err := lm.Append(ready(t), e, g); !errors.Is(err, lm.ErrInvalid) {
+		t.Errorf("reasons on an item never submitted: %v, want ErrInvalid", err)
+	}
+	ai := page(2, 1, []string{skill("addition")}, 100)
+	ai.Outcome = lm.Outcome{Kind: lm.OutcomeSolutionShown}
+	ai.Items[1] = lm.ItemAnswer{Place: 2}
+	ai.Task.Items[1].Slots = nil
+	ai.Task.SkillTagsProvenance = lm.ProvenanceAI
+	if s, _, err := lm.Append(ready(t), ai, g); err != nil || !sameState(t, s, ready(t)) {
+		t.Errorf("evidence that weighs nothing, with a not solved item and no slot: %v", err)
 	}
 }
