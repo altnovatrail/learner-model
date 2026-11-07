@@ -125,6 +125,52 @@ fma-diff:
     done
     exit "$status"
 
+# The schema of the evidence and the state, by buf of the container (R10; docs/architecture.md,
+# section 3.7): buf lint by buf.yaml; buf breaking, category FILE, against the latest tag v* of
+# this repository, and before the first tag nothing to compare with; and buf convert of each
+# golden run of bytes of the codec, testdata/wire/*.binpb, to JSON by the schema, which must be
+# the JSON beside it, and of that JSON back to the same bytes. So the codec and the schema say the
+# same. The JSON is written anew with `just proto-json`, after LEARNERMODEL_UPDATE=1 go test.
+# Check the schema with buf, and the golden bytes of the codec against it.
+ci-proto:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    buf lint
+    latest="$(git -c versionsort.suffix=- tag --list 'v*' --sort=-v:refname | head -n 1)"
+    if [ -n "$latest" ]; then
+        buf breaking --against ".git#tag=$latest"
+    else
+        echo "ci-proto: no tag v* yet: buf breaking has nothing to compare with" >&2
+    fi
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "$tmp"' EXIT
+    for pair in evidence:Evidence state:State; do
+        name="${pair%%:*}" type="novatrail.learnermodel.v1.${pair##*:}"
+        buf convert proto --type "$type" --from "testdata/wire/$name.binpb#format=binpb" \
+            --to "$tmp/$name.json#format=json,use_proto_names=true"
+        if ! cmp -s "$tmp/$name.json" "testdata/wire/$name.json"; then
+            echo "ci-proto: buf reads testdata/wire/$name.binpb otherwise than testdata/wire/$name.json says:" >&2
+            diff <(cat "$tmp/$name.json"; echo) <(cat "testdata/wire/$name.json"; echo) >&2 || true
+            exit 1
+        fi
+        buf convert proto --type "$type" --from "testdata/wire/$name.json#format=json" --to "$tmp/$name.binpb#format=binpb"
+        if ! cmp -s "$tmp/$name.binpb" "testdata/wire/$name.binpb"; then
+            echo "ci-proto: buf writes testdata/wire/$name.json as other bytes than the codec's" >&2
+            exit 1
+        fi
+        echo "ci-proto: $name: the codec and the schema agree" >&2
+    done
+
+# Write the JSON of the golden bytes of the codec anew, by the schema.
+proto-json:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for pair in evidence:Evidence state:State; do
+        name="${pair%%:*}"
+        buf convert proto --type "novatrail.learnermodel.v1.${pair##*:}" --from "testdata/wire/$name.binpb#format=binpb" \
+            --to "testdata/wire/$name.json#format=json,use_proto_names=true"
+    done
+
 # Fail on a known vulnerability in code this module reaches.
 ci-vuln:
     go run {{ GOVULNCHECK }} ./...

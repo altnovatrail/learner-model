@@ -61,3 +61,25 @@ jobs:
           docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp \
               --volume "$PWD:/work" --workdir /work \
               toolchain just ci-test
+
+  # The schema of the evidence and the state, by buf of the toolchain stage (R10;
+  # docs/architecture.md, section 3.7): lint, breaking against the latest tag v*, which is why the
+  # checkout takes the tags, and the golden bytes of the codec converted to JSON and back.
+  proto:
+    name: Proto
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Toolchain image
+        run: docker build --target toolchain --tag toolchain - < .devcontainer/Dockerfile
+
+      - name: ci-proto
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp \
+              --volume "$PWD:/work" --workdir /work \
+              toolchain just ci-proto
