@@ -46,7 +46,7 @@ func foldGraphs(t *testing.T) lm.Graphs {
 }
 
 // olympiadLog is a learner of grade 3 in olympiad maths: the trial series, a mastery, a slip that
-// holds it, a second that takes it away, and a mastery again.
+// holds it, a second that takes it away, and after a break of 60 days a mastery again.
 func olympiadLog() []lm.Evidence {
 	start := ladderBand(2)
 	var log []lm.Evidence
@@ -65,6 +65,7 @@ func olympiadLog() []lm.Evidence {
 	}
 	add(topic("a"), 2, 4, false)
 	add(topic("a"), 2, 5, false)
+	at += 60 * 86400 // a summer break: retention falls, and the next right answers raise τ much
 	for range 4 {
 		add(topic("a"), 2, 2, true)
 	}
@@ -110,7 +111,7 @@ func mixedLog() []lm.Evidence {
 }
 
 var goldenJournals = []goldenJournal{
-	{"olympiad", "a learner of grade 3 in olympiad maths: the trial series, mastery held, lost and set again", foldGraphs, olympiadLog},
+	{"olympiad", "a learner of grade 3 in olympiad maths: the trial series, mastery held, lost and set again after a break of 60 days", foldGraphs, olympiadLog},
 	{"workbook", "pages of the workbook with two primary skills, J = 2", foldGraphs, workbookLog},
 	{"mixed", "the two interleaved, with a module without a current version and evidence with no answer", foldGraphs, mixedLog},
 }
