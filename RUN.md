@@ -262,8 +262,8 @@
   - прочие долги таблицы 4 — не закрываются: Д5–Д7 — числа модели, их меняют кандидаты через гейт `sim` (R12; R103 spec), а первого тега `sim` нет; Д8, Д9 и Д11 — их условия не наступили; Д10 и Д12 ждут `spec`: в v0.9.9 нет ни qemu и среды WASI в контейнере, ни эпика E7 с gopls в заготовке — `repo-template/` и `.devcontainer/` не менялись с v0.9.5;
   - `.github` v0.1.21 — последний релиз, 706f406; общие workflow — на нём; `same-bits: true`; `.github/coderules.json`; `ci-test` — только прогон с покрытием; `rules_test.go`, `testdata/coderules` и `testdata/fma` удалены; что и почему — R18;
   - проверки в контейнере на amd64 — R18, «Проверено»; `just -f spec/justfile docs-check-repo` — ok;
-  - CI pull request — CI_RESULT;
-  - ruleset `main` — RULESET_RESULT;
+  - CI pull request #33 на e59e036 — все проверки зелёные, и четыре новые: «Go / targets» — 1 мин 22 с, «Go / fma-diff» — 1 мин 19 с, «Go / arm64» — 2 мин 8 с, «Go / rules» — 37 с; `codecov/patch` — «Coverage not affected»;
+  - ruleset `main` — шаг автора: заменить «Go arm64» на «Go / targets», «Go / fma-diff», «Go / arm64» и «Go / rules» с `integration_id` 15368 (R18). Исполнителю правку ruleset запретил классификатор режима auto как обход CI, и мерж ждёт её;
   - `/code-review high`, один круг, — 10 находок, исправлены все:
     - R18 называл ruleset уже поправленным, а в теле задачи стояли заготовки — ruleset правится до мержа, а итоги CI, ruleset и ревью записаны здесь;
     - Д10 и Д11 вели к рецептам и «Go / test», которых больше нет, — теперь к «Go / targets» и к строке для `.github`;
