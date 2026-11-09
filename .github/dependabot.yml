@@ -20,8 +20,9 @@ updates:
   # .github). go.mod requires none — the code takes Go's standard library alone (R09 in
   # docs/decisions.md) — so it has nothing to raise. Go itself, in the
   # Dockerfile, and the tools the recipes run by `go run` at an exact version are not among them:
-  # those are raised by hand. Neither is .devcontainer/gopls/, the lock file of gopls: its version
-  # goes up together with GOPLS_VERSION in the Dockerfile, by hand (R14 in docs/decisions.md).
+  # those are raised by hand. Neither is .devcontainer/gopls/, the lock file of gopls: it is spec's,
+  # from the go kind of its template, and goes up with GOPLS_VERSION in the Dockerfile only by a
+  # move to a newer tag of spec (R19 in docs/decisions.md).
   - package-ecosystem: gomod
     directory: /
     schedule:
