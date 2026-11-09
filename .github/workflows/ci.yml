@@ -74,3 +74,57 @@ jobs:
           docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp \
               --volume "$PWD:/work" --workdir /work \
               toolchain just ci-release
+
+  # The gate of sim: every change to the model after its baseline, v0.1.0, passes the bench (R12;
+  # R103 spec). sim comes from git by the tag and the SHA of its commit below, not as a release
+  # file, and neither Dependabot nor a shared workflow raises them: this repository's session does,
+  # by the order of releases of R103 spec (R15, R20). Its own recipe, `just gate`, builds the bench
+  # on this checkout in place of learner-model's commit in gate.json, through a go.work it writes in
+  # a temporary folder and never commits, with engine at the commit gate.json names, and holds the
+  # numbers to their bands — red when one leaves them, for the better or the worse — in the
+  # toolchain stage of sim's devcontainer of the same tag. The release waits for this job too: it
+  # follows a green CI on main.
+  gate:
+    name: Gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      SIM_TAG: v0.1.0
+      SIM_COMMIT: 09e5a84f8a26fedcf5c8996bf81bf29c616917a2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: lm
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: altnovatrail/sim
+          ref: ${{ env.SIM_COMMIT }}
+          persist-credentials: false
+          path: sim
+
+      # The tag names the commit: a tag moved by mistake stops here, as sim's recipe stops a library
+      # whose tag is not on the commit gate.json names. An annotated tag points at it through ^{}.
+      - name: sim tag
+        run: |
+          tags="$(git ls-remote https://github.com/altnovatrail/sim "refs/tags/$SIM_TAG" "refs/tags/$SIM_TAG^{}")"
+          tagged="$(printf '%s\n' "$tags" | awk -v ref="refs/tags/$SIM_TAG^{}" '$2 == ref { print $1 }')"
+          if [ -z "$tagged" ]; then
+              tagged="$(printf '%s\n' "$tags" | awk '{ print $1 }')"
+          fi
+          if [ "$tagged" != "$SIM_COMMIT" ]; then
+              echo "sim $SIM_TAG is on ${tagged:-no commit}, and this workflow names $SIM_COMMIT" >&2
+              exit 1
+          fi
+
+      - name: Toolchain image of sim
+        run: docker build --target toolchain --tag sim-toolchain - < sim/.devcontainer/Dockerfile
+
+      - name: gate
+        run: |
+          set -o pipefail
+          docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp \
+              --env GATE_LEARNER_MODEL=/work/lm \
+              --volume "$PWD:/work" --workdir /work/sim \
+              sim-toolchain just gate | tee -a "$GITHUB_STEP_SUMMARY"
