@@ -10,7 +10,7 @@ import (
 // Changing one is a new version, and only through sim's bench.
 const (
 	// bandStep is how far a band of a module's scale stands above the one before it.
-	bandStep = 2.5
+	bandStep = 3
 	// startSpread is σ₀, the spread of the trial series around the starting point, and
 	// startSpread2 its square.
 	startSpread  = 2.5
