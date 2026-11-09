@@ -251,6 +251,13 @@ func checkGraph(module string, g Graph) error {
 		if err := ascending("bands skill "+s.ID+" is taught at", s.BandsTaught, cmp.Compare[int32]); err != nil {
 			return invalid(err.Error())
 		}
+		// A band it is taught at is a band of the graph: NewGraph derives them from its tasks, and a
+		// graph with no bands, which a module with no tasks may have, teaches at none.
+		for _, p := range s.BandsTaught {
+			if p < 1 || int(p) > len(g.Bands) {
+				return invalid("skill " + s.ID + " taught at band place " + itoa(p) + ", which the graph of " + module + " does not have")
+			}
+		}
 	}
 	if err := ascending("retired skills of the graph of "+module, g.Retired, func(a, b RetiredSkill) int { return strings.Compare(a.ID, b.ID) }); err != nil {
 		return invalid(err.Error())

@@ -40,7 +40,8 @@ type SkillReadout struct {
 type ModuleReadout struct {
 	Module string
 	// HasEvidence is false for a module of the engine with no evidence yet, whose StartBand is
-	// then the starting point by the learner's grade.
+	// then the starting point by the learner's grade, or the zero BandRef when the module's
+	// current version has no bands.
 	HasEvidence bool
 	StartBand   BandRef
 	// TrialOver tells whether the module's trial series is over, and LastInTrial whether the last
@@ -65,7 +66,9 @@ const (
 )
 
 // AnchorReason is why an anchor skill has its status: for AnchorHasNot, not mastered or no
-// evidence; for AnchorUnknown, no one teaches it or only skills without a verdict do.
+// evidence; for AnchorUnknown, no one teaches it or only skills that may not be mastered do —
+// without a verdict, or with no band they are taught at, as in a module with no tasks —, which
+// AnchorReasonNoVerdictTeacher names.
 type AnchorReason int32
 
 const (
@@ -135,18 +138,19 @@ const anchorPrefix = "core."
 //
 // Modules are the modules of the state and of the engine. A module with a state gives its start
 // band, the two flags of the trial series and its skills; a module of the engine with no state
-// and a current version gives the starting point by the grade, BandByGrade; one with neither is
-// left out. Anchors are the anchor skills a graph of a module of the engine names as a
-// prerequisite or a skill it teaches, each with its status (docs/architecture.md, section 3.4):
-// held, when a skill that teaches it is mastered in any of the modules with a current version;
-// otherwise not held, when a skill of the engine's modules that may be mastered teaches it — a
-// skill with a verdict and a band it is taught at —, not mastered when one of them has answers,
-// no evidence otherwise; and unknown otherwise: no one teaches it, or only skills without a
-// verdict do. A module with no current version gives no graph, so its mastery is not seen.
+// and a current version gives the starting point by the grade, BandByGrade, or none when that
+// version has no bands, as a module with no tasks may have none; one with neither is left out.
+// Anchors are the anchor skills a graph of a module of the engine names as a prerequisite or a
+// skill it teaches, each with its status (docs/architecture.md, section 3.4): held, when a skill
+// that teaches it is mastered in any of the modules with a current version; otherwise not held,
+// when a skill of the engine's modules that may be mastered teaches it — a skill with a verdict
+// and a band it is taught at —, not mastered when one of them has answers, no evidence
+// otherwise; and unknown otherwise: no one teaches it, or only skills that may not be mastered
+// do. A module with no current version gives no graph, so its mastery is not seen.
 //
 // It refuses, with ErrInvalid, a state Append would refuse, a module of the engine twice or not
 // named by the full ID of a module, a module with no entry in g, a graph Append would refuse, and
-// bands BandByGrade would.
+// bands, other than none, that BandByGrade would refuse.
 func Read(s State, g Graphs, at int64, grade Grade, engineModules []string) (Readout, error) {
 	if err := checkInputState(s); err != nil {
 		return Readout{}, err
@@ -190,7 +194,8 @@ func Read(s State, g Graphs, at int64, grade Grade, engineModules []string) (Rea
 // It refuses, with ErrInvalid, a task the codec would refuse, one whose ID names no module, one
 // not of a difficulty from 1 to 5 or at a band place below 1, a choice without its number of
 // options or with fewer than two, a module with no entry in the graphs or with no current
-// version, a graph Append would refuse, and bands BandByGrade would.
+// version, a graph Append would refuse, bands BandByGrade would, and a module with no state whose
+// current version has no bands: a task of it would have none to be in.
 func (r Readout) Task(t Task) (TaskReadout, error) {
 	if _, err := checkTaskContent(t); err != nil {
 		return TaskReadout{}, err
@@ -226,9 +231,12 @@ func (r Readout) Task(t Task) (TaskReadout, error) {
 	if i, ok := r.state.moduleIndex(module); ok {
 		ms = r.state.Modules[i]
 	} else {
-		start, err := BandByGrade(r.grade, mg.Graph.Bands)
+		start, ok, err := startingPoint(r.grade, mg.Graph.Bands)
 		if err != nil {
 			return TaskReadout{}, err
+		}
+		if !ok {
+			return TaskReadout{}, invalid("task " + t.ID + " of module " + module + ", whose current version has no bands")
 		}
 		ms = newModule(module, start)
 	}
@@ -302,7 +310,9 @@ func (m moduleRead) readout(at int64, grade Grade) (ModuleReadout, bool, error) 
 		if g == nil {
 			return ModuleReadout{}, false, nil
 		}
-		start, err := BandByGrade(grade, g.Bands)
+		// With no place to start at, the engine still gets the module's reading, for its lessons
+		// and anchor skills.
+		start, _, err := startingPoint(grade, g.Bands)
 		if err != nil {
 			return ModuleReadout{}, false, err
 		}
@@ -441,4 +451,18 @@ func anchorOf(anchor string, mods []moduleRead, at int64) AnchorReadout {
 func isModuleID(id string) bool {
 	publisher, name, ok := strings.Cut(id, "/")
 	return ok && publisher != "" && name != "" && !strings.Contains(name, "/")
+}
+
+// startingPoint gives where a module with no state starts for a learner of a grade, BandByGrade,
+// and false, with the zero BandRef, when the module's current version has no bands: a module with
+// no tasks may have none (the format's section 11), and then no place to start at either.
+func startingPoint(grade Grade, bands []Band) (BandRef, bool, error) {
+	if len(bands) == 0 {
+		return BandRef{}, false, nil
+	}
+	start, err := BandByGrade(grade, bands)
+	if err != nil {
+		return BandRef{}, false, err
+	}
+	return start, true, nil
 }

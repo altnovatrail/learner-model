@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/rand/v2"
 	"slices"
+	"strings"
 	"testing"
 
 	lm "github.com/altnovatrail/learner-model"
@@ -158,6 +159,44 @@ func TestAnchors(t *testing.T) {
 	r = mustRead(t, lm.State{}, gone, 0, grade3, olympiad, school)
 	if len(r.Modules) != 1 || r.Modules[0].Module != olympiad {
 		t.Errorf("a module of the engine with neither a state nor a current version: %+v", r.Modules)
+	}
+}
+
+// A module of the engine with no tasks may have no bands (the format's section 11): read with no
+// state, it gives no starting point rather than an error, so that the engine still gets its
+// reading, and its skills still teach their anchors (Д15 in RUN.md).
+func TestReadModuleWithNoBands(t *testing.T) {
+	const lessons = "example/lessons"
+	spoken := "core.spoken-numbers"
+	lg, err := lm.NewGraph(lessons, nil, []lm.Skill{
+		{ID: lessons + "/skill/counting-aloud", Assessability: lm.AssessabilityVerdict, Teaches: []string{spoken}},
+	}, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g := anchorGraphs(t)
+	g[lessons] = lm.ModuleGraph{Graph: lg, Current: true}
+	for _, grade := range []lm.Grade{{Value: 3, Known: true}, {}} {
+		r := mustRead(t, lm.State{}, g, 0, grade, olympiad, lessons)
+		if len(r.Modules) != 2 || r.Modules[0].Module != lessons || r.Modules[1].Module != olympiad {
+			t.Fatalf("grade %+v: the modules read: %+v", grade, r.Modules)
+		}
+		if m := r.Modules[0]; m.HasEvidence || m.StartBand != (lm.BandRef{}) || m.TrialOver || m.LastInTrial ||
+			len(m.Skills) != 0 || len(m.Traps) != 0 {
+			t.Errorf("grade %+v: the module with no bands: %+v", grade, m)
+		}
+		if m := r.Modules[1]; m.HasEvidence || m.StartBand.Place < 1 {
+			t.Errorf("grade %+v: the module beside it: %+v", grade, m)
+		}
+		a := anchorOf(t, r, spoken)
+		wantAnchor(t, "a teacher with no band", a, lm.AnchorUnknown, lm.AnchorReasonNoVerdictTeacher)
+		if len(a.Teachers) != 1 || a.Teachers[0].HighestBand != (lm.BandRef{}) || a.Teachers[0].Practised {
+			t.Errorf("grade %+v: the teacher with no band: %+v", grade, a.Teachers)
+		}
+		if _, err := r.Task(lm.Task{ID: lessons + "/task/x", Difficulty: 3, Band: lm.BandRef{Place: 1}}); !errors.Is(err, lm.ErrInvalid) ||
+			!strings.Contains(err.Error(), "has no bands") {
+			t.Errorf("grade %+v: a candidate of the module with no bands: %v", grade, err)
+		}
 	}
 }
 
@@ -342,8 +381,11 @@ func TestReadRefuses(t *testing.T) {
 		{"a module of the state with no entry", schoolState(true), lm.Graphs{olympiad: g[olympiad]}, nil},
 		{"a graph out of order", lm.State{}, unordered, []string{school}},
 		{"a module in the series whose last evidence was not in it", trialWithout, g, nil},
-		{"a module with no bands", lm.State{}, lm.Graphs{"example/empty": {Graph: lm.Graph{Module: "example/empty"}, Current: true}},
-			[]string{"example/empty"}},
+		{"a module whose band is out of its place", lm.State{}, lm.Graphs{"example/empty": {Graph: lm.Graph{Module: "example/empty",
+			Bands: []lm.Band{{Place: 2, ID: "band-2"}}}, Current: true}}, []string{"example/empty"}},
+		{"a skill taught at a band the graph has not", lm.State{}, lm.Graphs{"example/empty": {Graph: lm.Graph{Module: "example/empty",
+			Skills: []lm.Skill{{ID: "example/empty/skill/a", Assessability: lm.AssessabilityVerdict, BandsTaught: []int32{1}}}},
+			Current: true}}, []string{"example/empty"}},
 	}
 	for _, c := range cases {
 		if _, err := lm.Read(c.s, c.g, 0, lm.Grade{}, c.engine); !errors.Is(err, lm.ErrInvalid) {
@@ -375,6 +417,9 @@ func TestReadRefuses(t *testing.T) {
 		{"the zero Readout", lm.Readout{}, candidate(topic("a"))},
 		{"a graph out of order, of a module Read did not read", mustRead(t, lm.State{}, unordered, 0, lm.Grade{}),
 			lm.Task{ID: school + "/task/d", Difficulty: 3, Band: lm.BandRef{Place: 1, ID: "grade-3"}}},
+		{"a band out of its place, of a module Read did not read", mustRead(t, lm.State{}, lm.Graphs{"example/odd": {Graph: lm.Graph{
+			Module: "example/odd", Bands: []lm.Band{{Place: 2, ID: "band-2"}}}, Current: true}}, 0, lm.Grade{}),
+			lm.Task{ID: "example/odd/task/x", Difficulty: 3, Band: lm.BandRef{Place: 1}}},
 	}
 	for _, c := range tasks {
 		if _, err := c.r.Task(c.task); !errors.Is(err, lm.ErrInvalid) {
