@@ -18,49 +18,33 @@ concurrency:
 jobs:
   secrets:
     name: Secrets
-    uses: altnovatrail/.github/.github/workflows/secrets.yml@89d3ceee0b9977b3334488a4133d084d76474e0d # v0.1.15
+    uses: altnovatrail/.github/.github/workflows/secrets.yml@706f4067a66c91b0442033f82a7924eeb8b60497 # v0.1.21
 
   # A pull request's commits are what it checks; a push to main has been checked as one.
   dco:
     name: DCO
     if: github.event_name == 'pull_request'
-    uses: altnovatrail/.github/.github/workflows/dco.yml@89d3ceee0b9977b3334488a4133d084d76474e0d # v0.1.15
+    uses: altnovatrail/.github/.github/workflows/dco.yml@706f4067a66c91b0442033f82a7924eeb8b60497 # v0.1.21
 
   documents:
     name: Documents
-    uses: altnovatrail/.github/.github/workflows/documents.yml@89d3ceee0b9977b3334488a4133d084d76474e0d # v0.1.15
+    uses: altnovatrail/.github/.github/workflows/documents.yml@706f4067a66c91b0442033f82a7924eeb8b60497 # v0.1.21
 
   # The repository's Go code, by its own ci- recipes in its toolchain stage, and the coverage of
-  # its tests, which the shared workflow sends to Codecov (R16 .github). id-token: write is for its
-  # coverage job alone, which asks for an OIDC token: a called workflow can only lower what this
-  # job gives it.
+  # its tests, which the shared workflow sends to Codecov (R16 .github). same-bits holds the bits
+  # the same on every build: the tests on the targets, the comparison of the assembler with fusion
+  # and without it, ci-test and the targets on arm64, and the rules of code by .github's tool with
+  # the lists of .github/coderules.json — "Go / targets", "Go / fma-diff", "Go / arm64" and
+  # "Go / rules" (R09; R107 spec). id-token: write is for its coverage job alone, which asks for an
+  # OIDC token: a called workflow can only lower what this job gives it.
   go:
     name: Go
     permissions:
       contents: read
       id-token: write
-    uses: altnovatrail/.github/.github/workflows/go.yml@89d3ceee0b9977b3334488a4133d084d76474e0d # v0.1.15
-
-  # The same ci-test on arm64 hardware, where the compiler fuses and math.Exp has assembler of its
-  # own (R09; docs/architecture.md, section 3.6): the same toolchain stage, run as go.yml runs it.
-  # The shared go.yml runs on ubuntu-24.04 alone. The coverage this run writes is not sent.
-  go-arm64:
-    name: Go arm64
-    runs-on: ubuntu-24.04-arm
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Toolchain image
-        run: docker build --target toolchain --tag toolchain - < .devcontainer/Dockerfile
-
-      - name: ci-test
-        run: |
-          docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp \
-              --volume "$PWD:/work" --workdir /work \
-              toolchain just ci-test
+    uses: altnovatrail/.github/.github/workflows/go.yml@706f4067a66c91b0442033f82a7924eeb8b60497 # v0.1.21
+    with:
+      same-bits: true
 
   # The schema of the evidence and the state, by buf of the toolchain stage (R10;
   # docs/architecture.md, section 3.7): lint, breaking against the latest tag v*, which is why the

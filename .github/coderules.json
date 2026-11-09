@@ -1,0 +1,11 @@
+{
+  "code-imports": [
+    "cmp", "encoding/binary", "errors", "math", "slices", "strconv", "strings", "unicode/utf8"
+  ],
+  "test-imports": [
+    "bytes", "crypto/sha256", "fmt", "math/rand/v2", "os", "path/filepath", "runtime", "testing"
+  ],
+  "test-math": ["Exp", "Log"],
+  "requires": [],
+  "nested-modules": [".devcontainer/gopls"]
+}
