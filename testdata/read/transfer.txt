@@ -1,43 +1,43 @@
 # the workbook across three versions, by the third: a split, a merge, a rename, a skill retired with [] and one unknown
 read at=1765152000 grade=3/true engine=example/workbook
 module example/workbook evidence=true start=1/grade-2 trial-over=true last-in-trial=false
-  skill example/workbook/skill/counting count=6 last=1764460800 estimate=40106b6dcc4a7de1(4.10491) uncertainty=3fdefe7e46fb98de(0.484283) retention=3fef383ddab41c26(0.975615) trap=example/workbook/trap/borrow:3:1763856000 mastered=1/grade-2 cautious=3fee385e5f6dca09(0.944381) review=1775574110
-  skill example/workbook/skill/place count=4 last=1765152000 estimate=4010439a2c484a17(4.06602) uncertainty=3fe07d85601364e9(0.515322) retention=3ff0000000000000(1) trap=example/workbook/trap/borrow:2:1765152000
-  skill example/workbook/skill/subtraction2 count=3 last=1763856000 estimate=4010379756f2a267(4.05429) uncertainty=3fe11e110564c440(0.53492) retention=3fecf5cacf7fb28a(0.905004) trap=example/workbook/trap/borrow:2:1763856000 mastered=1/grade-2 cautious=3febf3d6cbb37afb(0.873516) review=1768568155
+  skill example/workbook/skill/counting count=6 last=1764460800 estimate=40107f749720be47(4.12447) uncertainty=3fdefe7e46fb98de(0.484283) retention=3feebe2cfbe38cdb(0.960715) trap=example/workbook/trap/borrow:3:1763856000 mastered=1/grade-2 cautious=3fedc6efefc93037(0.930534) review=1771219281
+  skill example/workbook/skill/place count=4 last=1765152000 estimate=4010550efe421c83(4.08307) uncertainty=3fe07d85601364e9(0.515322) retention=3ff0000000000000(1) trap=example/workbook/trap/borrow:2:1765152000
+  skill example/workbook/skill/subtraction2 count=3 last=1763856000 estimate=40103f9c081c2b34(4.06212) uncertainty=3fe11e110564c440(0.53492) retention=3feb495d694bf2d8(0.852706) trap=example/workbook/trap/borrow:2:1763856000 mastered=1/grade-2 cautious=3fea58260617a280(0.82326) review=1766633506
 task example/workbook/task/page
-  item 1 p=3fec66dc2838f592(0.887556)
-  item 2 p=3fec66dc2838f592(0.887556)
-  item 3 p=3fec66dc2838f592(0.887556)
-  item 4 p=3fec66dc2838f592(0.887556)
-  item 5 p=3fec66dc2838f592(0.887556)
-  item 6 p=3fec66dc2838f592(0.887556)
-  item 7 p=3fec66dc2838f592(0.887556)
-  item 8 p=3fec66dc2838f592(0.887556)
+  item 1 p=3fec74b4918bb284(0.889246)
+  item 2 p=3fec74b4918bb284(0.889246)
+  item 3 p=3fec74b4918bb284(0.889246)
+  item 4 p=3fec74b4918bb284(0.889246)
+  item 5 p=3fec74b4918bb284(0.889246)
+  item 6 p=3fec74b4918bb284(0.889246)
+  item 7 p=3fec74b4918bb284(0.889246)
+  item 8 p=3fec74b4918bb284(0.889246)
 read at=1765238400 grade=3/true engine=example/workbook
 module example/workbook evidence=true start=1/grade-2 trial-over=true last-in-trial=false
-  skill example/workbook/skill/counting count=6 last=1764460800 estimate=40106b6dcc4a7de1(4.10491) uncertainty=3fdefe7e46fb98de(0.484283) retention=3fef20492da0a8e2(0.972691) trap=example/workbook/trap/borrow:3:1763856000 mastered=1/grade-2 cautious=3fee212e090d4428(0.94155) review=1775574110
-  skill example/workbook/skill/place count=4 last=1765152000 estimate=4010439a2c484a17(4.06602) uncertainty=3fe07d85601364e9(0.515322) retention=3fefd9110ebfc9f6(0.995247) trap=example/workbook/trap/borrow:2:1765152000
-  skill example/workbook/skill/subtraction2 count=3 last=1763856000 estimate=4010379756f2a267(4.05429) uncertainty=3fe11e110564c440(0.53492) retention=3fecc9788e635dc5(0.899594) trap=example/workbook/trap/borrow:2:1763856000 mastered=1/grade-2 cautious=3febc90f51c54674(0.868293) review=1768568155
+  skill example/workbook/skill/counting count=6 last=1764460800 estimate=40107f749720be47(4.12447) uncertainty=3fdefe7e46fb98de(0.484283) retention=3fee988f01835ffa(0.956123) trap=example/workbook/trap/borrow:3:1763856000 mastered=1/grade-2 cautious=3feda2807b0846bf(0.926087) review=1771219281
+  skill example/workbook/skill/place count=4 last=1765152000 estimate=4010550efe421c83(4.08307) uncertainty=3fe07d85601364e9(0.515322) retention=3fefbb10ef4644e7(0.991585) trap=example/workbook/trap/borrow:2:1765152000
+  skill example/workbook/skill/subtraction2 count=3 last=1763856000 estimate=40103f9c081c2b34(4.06212) uncertainty=3fe11e110564c440(0.53492) retention=3feb0aad52b2ed61(0.845053) trap=example/workbook/trap/borrow:2:1763856000 mastered=1/grade-2 cautious=3fea1ba01a586623(0.815872) review=1766633506
 task example/workbook/task/page
-  item 1 p=3fec444defa41f09(0.883338)
-  item 2 p=3fec444defa41f09(0.883338)
-  item 3 p=3fec444defa41f09(0.883338)
-  item 4 p=3fec444defa41f09(0.883338)
-  item 5 p=3fec444defa41f09(0.883338)
-  item 6 p=3fec444defa41f09(0.883338)
-  item 7 p=3fec444defa41f09(0.883338)
-  item 8 p=3fec444defa41f09(0.883338)
+  item 1 p=3fec3767fb524740(0.881763)
+  item 2 p=3fec3767fb524740(0.881763)
+  item 3 p=3fec3767fb524740(0.881763)
+  item 4 p=3fec3767fb524740(0.881763)
+  item 5 p=3fec3767fb524740(0.881763)
+  item 6 p=3fec3767fb524740(0.881763)
+  item 7 p=3fec3767fb524740(0.881763)
+  item 8 p=3fec3767fb524740(0.881763)
 read at=1770336000 grade=0/false engine=
 module example/workbook evidence=true start=1/grade-2 trial-over=true last-in-trial=false
-  skill example/workbook/skill/counting count=6 last=1764460800 estimate=40106b6dcc4a7de1(4.10491) uncertainty=3fdefe7e46fb98de(0.484283) retention=3feac1feb5ecf7c9(0.836181) trap=example/workbook/trap/borrow:3:1763856000 mastered=1/grade-2 cautious=3fe9e6b0f31d40cf(0.809411) review=1775574110
-  skill example/workbook/skill/place count=4 last=1765152000 estimate=4010439a2c484a17(4.06602) uncertainty=3fe07d85601364e9(0.515322) retention=3fe980c6a1c5dc70(0.79697) trap=example/workbook/trap/borrow:2:1765152000
-  skill example/workbook/skill/subtraction2 count=3 last=1763856000 estimate=4010379756f2a267(4.05429) uncertainty=3fe11e110564c440(0.53492) retention=3fe60e9cba940764(0.689284) trap=example/workbook/trap/borrow:2:1763856000 mastered=1/grade-2 cautious=3fe54a254ff0217d(0.665301) review=1768568155
+  skill example/workbook/skill/counting count=6 last=1764460800 estimate=40107f749720be47(4.12447) uncertainty=3fdefe7e46fb98de(0.484283) retention=3fe879bb648f1785(0.76486) trap=example/workbook/trap/borrow:3:1763856000 mastered=1/grade-2 cautious=3fe7b4e581443bf1(0.740832) review=1771219281
+  skill example/workbook/skill/place count=4 last=1765152000 estimate=4010550efe421c83(4.08307) uncertainty=3fe07d85601364e9(0.515322) retention=3fe6801341869180(0.703134) trap=example/workbook/trap/borrow:2:1765152000
+  skill example/workbook/skill/subtraction2 count=3 last=1763856000 estimate=40103f9c081c2b34(4.06212) uncertainty=3fe11e110564c440(0.53492) retention=3fe2de0fc82e04a8(0.589607) trap=example/workbook/trap/borrow:2:1763856000 mastered=1/grade-2 cautious=3fe237458299ab33(0.569247) review=1766633506
 task example/workbook/task/page
-  item 1 p=3fe6a2a7bc14bd1d(0.707355)
-  item 2 p=3fe6a2a7bc14bd1d(0.707355)
-  item 3 p=3fe6a2a7bc14bd1d(0.707355)
-  item 4 p=3fe6a2a7bc14bd1d(0.707355)
-  item 5 p=3fe6a2a7bc14bd1d(0.707355)
-  item 6 p=3fe6a2a7bc14bd1d(0.707355)
-  item 7 p=3fe6a2a7bc14bd1d(0.707355)
-  item 8 p=3fe6a2a7bc14bd1d(0.707355)
+  item 1 p=3fe4022015e628ce(0.625259)
+  item 2 p=3fe4022015e628ce(0.625259)
+  item 3 p=3fe4022015e628ce(0.625259)
+  item 4 p=3fe4022015e628ce(0.625259)
+  item 5 p=3fe4022015e628ce(0.625259)
+  item 6 p=3fe4022015e628ce(0.625259)
+  item 7 p=3fe4022015e628ce(0.625259)
+  item 8 p=3fe4022015e628ce(0.625259)

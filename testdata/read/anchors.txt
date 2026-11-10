@@ -1,53 +1,53 @@
 # a learner of grade 3 in olympiad maths and school maths, where division with remainder is mastered
 read at=1762570800 grade=3/true engine=example/olympiad,example/school
 module example/olympiad evidence=true start=2/3-4 trial-over=false last-in-trial=true
-  skill example/olympiad/skill/a count=3 last=1762052400 estimate=40060c1b18a42d8c(2.75591) uncertainty=3ffedec74404d3b7(1.92939) retention=3fe50bae2b0471e9(0.657676)
+  skill example/olympiad/skill/a count=3 last=1762052400 estimate=40060c1b18a42d8c(2.75591) uncertainty=3ffedec74404d3b7(1.92939) retention=3fe4e8a91e401a30(0.653401)
 module example/school evidence=true start=1/grade-3 trial-over=true last-in-trial=false
-  skill example/school/skill/division count=6 last=1762570800 estimate=400b05d974219d85(3.37786) uncertainty=3fe6fef601a43882(0.718623) retention=3ff0000000000000(1) mastered=1/grade-3 cautious=3feda3a8b21e8675(0.926228) review=1764433628
+  skill example/school/skill/division count=6 last=1762570800 estimate=400b1b1639d8abd3(3.38823) uncertainty=3fe6fef601a43882(0.718623) retention=3ff0000000000000(1) mastered=1/grade-3 cautious=3feda9701e0b3320(0.926933) review=1763785664
 anchor core.division-with-remainder status=1 reason=0
-  teacher example/school/skill/division highest=1/grade-3 estimate=400b05d974219d85(3.37786) retention=3ff0000000000000(1) mastered=true band=1/grade-3 review=1764433628
+  teacher example/school/skill/division highest=1/grade-3 estimate=400b1b1639d8abd3(3.38823) retention=3ff0000000000000(1) mastered=true band=1/grade-3 review=1763785664
 anchor core.fractions-of-a-whole status=3 reason=4
   teacher example/school/skill/essay highest=0/
   teacher example/school/skill/fractions highest=0/
 anchor core.nobody-teaches status=3 reason=3
 anchor core.only-school-names status=1 reason=0
-  teacher example/school/skill/division highest=1/grade-3 estimate=400b05d974219d85(3.37786) retention=3ff0000000000000(1) mastered=true band=1/grade-3 review=1764433628
+  teacher example/school/skill/division highest=1/grade-3 estimate=400b1b1639d8abd3(3.38823) retention=3ff0000000000000(1) mastered=true band=1/grade-3 review=1763785664
 task example/school/task/page
-  item 1 p=3fed48b02a5a5708(0.915123)
-  item 2 p=3fed48b02a5a5708(0.915123)
-  item 3 p=3fed48b02a5a5708(0.915123)
-  item 4 p=3fed48b02a5a5708(0.915123)
+  item 1 p=3fed4f4211831e6f(0.915925)
+  item 2 p=3fed4f4211831e6f(0.915925)
+  item 3 p=3fed4f4211831e6f(0.915925)
+  item 4 p=3fed4f4211831e6f(0.915925)
 task example/olympiad/task/x
   item 1 p=3fe4d43617cb4d08(0.650905)
 read at=1762657200 grade=3/true engine=example/olympiad,example/school
 module example/olympiad evidence=true start=2/3-4 trial-over=false last-in-trial=true
-  skill example/olympiad/skill/a count=3 last=1762052400 estimate=40060c1b18a42d8c(2.75591) uncertainty=3ffedec74404d3b7(1.92939) retention=3fe41da93a83284a(0.628621)
+  skill example/olympiad/skill/a count=3 last=1762052400 estimate=40060c1b18a42d8c(2.75591) uncertainty=3ffedec74404d3b7(1.92939) retention=3fe3fa01bab23c92(0.624268)
 module example/school evidence=true start=1/grade-3 trial-over=true last-in-trial=false
-  skill example/school/skill/division count=6 last=1762570800 estimate=400b05d974219d85(3.37786) uncertainty=3fe6fef601a43882(0.718623) retention=3fef854d916bd72a(0.985022) mastered=1/grade-3 cautious=3fed32037a3144a7(0.912355) review=1764433628
+  skill example/school/skill/division count=6 last=1762570800 estimate=400b1b1639d8abd3(3.38823) uncertainty=3fe6fef601a43882(0.718623) retention=3fef456302e1ef41(0.97722) mastered=1/grade-3 cautious=3fecfc75bdba82c4(0.905818) review=1763785664
 anchor core.division-with-remainder status=1 reason=0
-  teacher example/school/skill/division highest=1/grade-3 estimate=400b05d974219d85(3.37786) retention=3fef854d916bd72a(0.985022) mastered=true band=1/grade-3 review=1764433628
+  teacher example/school/skill/division highest=1/grade-3 estimate=400b1b1639d8abd3(3.38823) retention=3fef456302e1ef41(0.97722) mastered=true band=1/grade-3 review=1763785664
 anchor core.fractions-of-a-whole status=3 reason=4
   teacher example/school/skill/essay highest=0/
   teacher example/school/skill/fractions highest=0/
 anchor core.nobody-teaches status=3 reason=3
 anchor core.only-school-names status=1 reason=0
-  teacher example/school/skill/division highest=1/grade-3 estimate=400b05d974219d85(3.37786) retention=3fef854d916bd72a(0.985022) mastered=true band=1/grade-3 review=1764433628
+  teacher example/school/skill/division highest=1/grade-3 estimate=400b1b1639d8abd3(3.38823) retention=3fef456302e1ef41(0.97722) mastered=true band=1/grade-3 review=1763785664
 task example/school/task/page
-  item 1 p=3fecd867c1337fe7(0.901417)
-  item 2 p=3fecd867c1337fe7(0.901417)
-  item 3 p=3fecd867c1337fe7(0.901417)
-  item 4 p=3fecd867c1337fe7(0.901417)
+  item 1 p=3feca455974512f0(0.89506)
+  item 2 p=3feca455974512f0(0.89506)
+  item 3 p=3feca455974512f0(0.89506)
+  item 4 p=3feca455974512f0(0.89506)
 task example/olympiad/task/x
   item 1 p=3fe4d43617cb4d08(0.650905)
 read at=1767754800 grade=0/false engine=
 module example/olympiad evidence=true start=2/3-4 trial-over=false last-in-trial=true
-  skill example/olympiad/skill/a count=3 last=1762052400 estimate=40060c1b18a42d8c(2.75591) uncertainty=3ffedec74404d3b7(1.92939) retention=3fd04aca5f337255(0.254565)
+  skill example/olympiad/skill/a count=3 last=1762052400 estimate=40060c1b18a42d8c(2.75591) uncertainty=3ffedec74404d3b7(1.92939) retention=3fd01e64602d76a4(0.251855)
 module example/school evidence=true start=1/grade-3 trial-over=true last-in-trial=false
-  skill example/school/skill/division count=6 last=1762570800 estimate=400b05d974219d85(3.37786) uncertainty=3fe6fef601a43882(0.718623) retention=3fe2fe5305d0d093(0.593545) mastered=1/grade-3 cautious=3fe1979ed5178741(0.549758) review=1764433628
+  skill example/school/skill/division count=6 last=1762570800 estimate=400b1b1639d8abd3(3.38823) uncertainty=3fe6fef601a43882(0.718623) retention=3fe059f5f052b0bc(0.510982) mastered=1/grade-3 cautious=3fde50368dbdfb3d(0.473646) review=1763785664
 task example/school/task/page
-  item 1 p=3fe161a007fe5ec0(0.543167)
-  item 2 p=3fe161a007fe5ec0(0.543167)
-  item 3 p=3fe161a007fe5ec0(0.543167)
-  item 4 p=3fe161a007fe5ec0(0.543167)
+  item 1 p=3fddf40d76e48cea(0.468021)
+  item 2 p=3fddf40d76e48cea(0.468021)
+  item 3 p=3fddf40d76e48cea(0.468021)
+  item 4 p=3fddf40d76e48cea(0.468021)
 task example/olympiad/task/x
   item 1 p=3fe4d43617cb4d08(0.650905)
