@@ -88,8 +88,9 @@ func goldenInputs(f function) [][]float64 {
 			in = append(in, []float64{uniform(r, 0.5, 2)})
 		}
 	case "pow":
-		// The rule of τ of docs/architecture.md, section 3.3: (1 + g · (1 − R))^S̄ with g = 15 and
-		// (1/2)^(1 − S̄), with S̄ within [0, 1]; and the exact branches and the edges.
+		// The rule of τ of docs/architecture.md, section 3.3: (1 + g · (1 − R))^S̄ with g up to 15, a base
+		// within [1, 16], and b^(1 − S̄) with b = 1/2, with S̄ within [0, 1]; and the exact
+		// branches and the edges.
 		for _, a := range []float64{0.5, 1, 1.5, 2.5, 16, 0x1p-1022, math.MaxFloat64, 0, -1, nan} {
 			for _, s := range []float64{0, 1, 0.5, -1, 2, math.Inf(1), math.Inf(-1), nan} {
 				in = append(in, []float64{a, s})

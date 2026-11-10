@@ -1,21 +1,21 @@
 # a learner of grade 3 in olympiad maths: the trial series, mastery held, lost and set again after a break of 60 days
 read at=1767290400 grade=3/true engine=example/olympiad,example/workbook
 module example/olympiad evidence=true start=2/3-4 trial-over=true last-in-trial=false
-  skill example/olympiad/skill/a count=15 last=1767286800 estimate=400e9589a698c25a(3.82302) uncertainty=3fe14941c0e26b6d(0.540192) retention=3feffcc32af76bce(0.999605) trap=example/olympiad/trap/order:1:1762084800 mastered=1/1-2 cautious=3fee97b47081a50c(0.956019) review=1770794377
-  skill example/olympiad/skill/b count=3 last=1767290400 estimate=400e33fdf9261bd4(3.77539) uncertainty=3fe47778c6df96ce(0.639584) retention=3ff0000000000000(1)
+  skill example/olympiad/skill/a count=15 last=1767286800 estimate=400e96ad57dd6f86(3.82357) uncertainty=3fe14941c0e26b6d(0.540192) retention=3feffb5567f131c0(0.99943) trap=example/olympiad/trap/order:1:1762084800 mastered=1/1-2 cautious=3fee96873e284b0b(0.955875) review=1769720058
+  skill example/olympiad/skill/b count=3 last=1767290400 estimate=400e364886ebe42e(3.77651) uncertainty=3fe47778c6df96ce(0.639584) retention=3ff0000000000000(1)
 module example/workbook evidence=false start=2/grade-3 trial-over=false last-in-trial=false
 task example/olympiad/task/x
-  item 1 p=3fe1c4bbac0f8a02(0.555265)
+  item 1 p=3fe1c68b1336523c(0.555486)
 read at=1767376800 grade=3/true engine=example/olympiad,example/workbook
 module example/olympiad evidence=true start=2/3-4 trial-over=true last-in-trial=false
-  skill example/olympiad/skill/a count=15 last=1767286800 estimate=400e9589a698c25a(3.82302) uncertainty=3fe14941c0e26b6d(0.540192) retention=3fefb03162e7374e(0.990258) trap=example/olympiad/trap/order:1:1762084800 mastered=1/1-2 cautious=3fee4e795c8903ee(0.947079) review=1770794377
-  skill example/olympiad/skill/b count=3 last=1767290400 estimate=400e33fdf9261bd4(3.77539) uncertainty=3fe47778c6df96ce(0.639584) retention=3feccccccccccccc(0.9)
+  skill example/olympiad/skill/a count=15 last=1767286800 estimate=400e96ad57dd6f86(3.82357) uncertainty=3fe14941c0e26b6d(0.540192) retention=3fef8dadd6526441(0.986045) trap=example/olympiad/trap/order:1:1762084800 mastered=1/1-2 cautious=3fee2da70998e247(0.943073) review=1769720058
+  skill example/olympiad/skill/b count=3 last=1767290400 estimate=400e364886ebe42e(3.77651) uncertainty=3fe47778c6df96ce(0.639584) retention=3feccccccccccccc(0.9)
 module example/workbook evidence=false start=2/grade-3 trial-over=false last-in-trial=false
 task example/olympiad/task/x
-  item 1 p=3fe0a1b3251839a5(0.519739)
+  item 1 p=3fe0a35435218774(0.519938)
 read at=1772474400 grade=0/false engine=
 module example/olympiad evidence=true start=2/3-4 trial-over=true last-in-trial=false
-  skill example/olympiad/skill/a count=15 last=1767286800 estimate=400e9589a698c25a(3.82302) uncertainty=3fe14941c0e26b6d(0.540192) retention=3fe5e0562b1ec10a(0.683635) trap=example/olympiad/trap/order:1:1762084800 mastered=1/1-2 cautious=3fe4ec24a354415e(0.653826) review=1770794377
-  skill example/olympiad/skill/b count=3 last=1767290400 estimate=400e33fdf9261bd4(3.77539) uncertainty=3fe47778c6df96ce(0.639584) retention=3fd07bec832b5f68(0.257564)
+  skill example/olympiad/skill/a count=15 last=1767286800 estimate=400e96ad57dd6f86(3.82357) uncertainty=3fe14941c0e26b6d(0.540192) retention=3fe3aee675284316(0.6151) trap=example/olympiad/trap/order:1:1762084800 mastered=1/1-2 cautious=3fe2d34ddbf05741(0.588294) review=1769720058
+  skill example/olympiad/skill/b count=3 last=1767290400 estimate=400e364886ebe42e(3.77651) uncertainty=3fe47778c6df96ce(0.639584) retention=3fd07bec832b5f68(0.257564)
 task example/olympiad/task/x
-  item 1 p=3fd2a7fe0db39838(0.291503)
+  item 1 p=3fd2a8ecc3dc7da7(0.29156)

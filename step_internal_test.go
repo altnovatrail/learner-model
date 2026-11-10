@@ -161,12 +161,12 @@ func TestForgettingExample(t *testing.T) {
 	}
 	near1("the review after τ = 10", days(reviewDate(q, 10, 0), 0), 12.9)
 
-	// Back after a day and right: R(1; 1) = 0.9, τ = 2.5, and the next review in 3.2 days.
+	// Back after a day and right: R(1; 1) = 0.9, τ = 2, and the next review in 2.6 days.
 	r := retentionAt(SkillState{LastPractice: 0, Stability: 1}, day)
 	nearTo(t, "R(1; 1)", r, 0.9)
 	tau := stabilityAfter(1, r, 1)
-	nearTo(t, "τ after a right answer at R = 0.9", tau, 2.5)
-	near1("the review after it", days(reviewDate(q, tau, day), day), 3.2)
+	nearTo(t, "τ after a right answer at R = 0.9", tau, 2)
+	near1("the review after it", days(reviewDate(q, tau, day), day), 2.6)
 
 	// Back after a summer break of 60 days at τ = 10, on difficulty 3 of `3-4` with five options.
 	r = retentionAt(SkillState{LastPractice: 0, Stability: 10}, 60*day)
@@ -179,7 +179,7 @@ func TestForgettingExample(t *testing.T) {
 	near3("w", w, 0.246)
 	near3("the move of a right answer", float64(w*(1-p)), 0.085)
 	near3("the move of a wrong one", float64(w*(0-p)), -0.161)
-	near1("τ after a right answer", stabilityAfter(10, r, 1), 63.3)
+	near1("τ after a right answer", stabilityAfter(10, r, 1), 45.5)
 	nearTo(t, "τ after a wrong one", stabilityAfter(10, r, 0), 5)
 
 	// Within a lesson R stays near 1: two minutes after an answer at τ = 1.
@@ -225,14 +225,15 @@ func TestForgettingEdges(t *testing.T) {
 	// The stability: S̄ = 1 is τ · (1 + g · (1 − R)) to the bit, S̄ = 0 halves it down to τ₀, and a
 	// page right but for some grows it less.
 	r := 0.9 // a variable, so that 1 − r is the float the code takes, not an exact constant
-	if got, want := stabilityAfter(3, r, 1), float64(3*(1+float64(15*(1-r)))); got != want {
+	if got, want := stabilityAfter(3, r, 1), float64(3*(1+float64(10*(1-r)))); got != want {
 		t.Errorf("τ after right answers = %v, want %v", got, want)
 	}
 	if stabilityAfter(3, 0.9, 0) != 1.5 || stabilityAfter(1.5, 0.9, 0) != 1 {
 		t.Errorf("τ after wrong answers")
 	}
-	nearTo(t, "τ after 8 of 10 at R = 0.9", stabilityAfter(1, 0.9, 0.8), 1.8119)
-	nearTo(t, "τ after half at R = 0.9", stabilityAfter(1, 0.9, 0.5), 1.1180)
+	nearTo(t, "τ after 8 of 10 at R = 0.9", stabilityAfter(1, 0.9, 0.8), 1.5157)
+	// At R = 0.9 half a page leaves τ at τ₀ or below, which the floor hides; R = 0.6 shows it.
+	nearTo(t, "τ after half at R = 0.6", stabilityAfter(1, 0.6, 0.5), 1.5811)
 	if got := stabilityAfter(math.MaxFloat64, 0, 1); got != math.MaxFloat64 {
 		t.Errorf("τ past the largest float = %v", got)
 	}

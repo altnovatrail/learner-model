@@ -564,8 +564,8 @@ func TestForgettingPage(t *testing.T) {
 	}
 	near3("θ", m.Level, 0.528)
 	near3("δ", sk.Correction, 0.580)
-	if math.Abs(sk.Stability-1.81) > 0.005 { // printed to two decimals
-		t.Errorf("τ = %.6f, want 1.81", sk.Stability)
+	if math.Abs(sk.Stability-1.52) > 0.005 { // printed to two decimals
+		t.Errorf("τ = %.6f, want 1.52", sk.Stability)
 	}
 	if math.Abs(m.AnswerWeight-22.5) > 1e-12 || math.Abs(sk.AnswerWeight-10.5) > 1e-12 {
 		t.Errorf("n %v and m %v, want 22.5 and 10.5", m.AnswerWeight, sk.AnswerWeight)
