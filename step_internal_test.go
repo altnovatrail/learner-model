@@ -180,7 +180,7 @@ func TestForgettingExample(t *testing.T) {
 	near3("the move of a right answer", float64(w*(1-p)), 0.085)
 	near3("the move of a wrong one", float64(w*(0-p)), -0.161)
 	near1("τ after a right answer", stabilityAfter(10, r, 1), 63.3)
-	nearTo(t, "τ after a wrong one", stabilityAfter(10, r, 0), 5)
+	nearTo(t, "τ after a wrong one", stabilityAfter(10, r, 0), 3.5)
 
 	// Within a lesson R stays near 1: two minutes after an answer at τ = 1.
 	nearTo(t, "R after two minutes", retentionAt(SkillState{Stability: 1}, 120), 0.99984)
@@ -222,17 +222,22 @@ func TestForgettingEdges(t *testing.T) {
 		t.Errorf("w at the smallest σ = %v", w)
 	}
 
-	// The stability: S̄ = 1 is τ · (1 + g · (1 − R)) to the bit, S̄ = 0 halves it down to τ₀, and a
-	// page right but for some grows it less.
+	// The stability: S̄ = 1 is τ · (1 + g · (1 − R)) to the bit, S̄ = 0 cuts it to τ · 0.35 down to τ₀,
+	// and a page right but for some grows it less.
 	r := 0.9 // a variable, so that 1 − r is the float the code takes, not an exact constant
 	if got, want := stabilityAfter(3, r, 1), float64(3*(1+float64(15*(1-r)))); got != want {
 		t.Errorf("τ after right answers = %v, want %v", got, want)
 	}
-	if stabilityAfter(3, 0.9, 0) != 1.5 || stabilityAfter(1.5, 0.9, 0) != 1 {
+	cutBy := 0.35 // a variable, so that 3 · 0.35 is the float the code takes
+	if stabilityAfter(3, 0.9, 0) != float64(3*cutBy) || stabilityAfter(1.5, 0.9, 0) != 1 {
 		t.Errorf("τ after wrong answers")
 	}
-	nearTo(t, "τ after 8 of 10 at R = 0.9", stabilityAfter(1, 0.9, 0.8), 1.8119)
-	nearTo(t, "τ after half at R = 0.9", stabilityAfter(1, 0.9, 0.5), 1.1180)
+	nearTo(t, "τ after 8 of 10 at R = 0.9", stabilityAfter(1, 0.9, 0.8), 1.6872)
+	// At R = 0.9 half a page leaves τ at τ₀ or below, which the floor hides; R = 0.6 shows it.
+	nearTo(t, "τ after half at R = 0.6", stabilityAfter(1, 0.6, 0.5), 1.5652)
+	if stabilityAfter(1, 0.9, 0.5) != 1 {
+		t.Errorf("half a page at R = 0.9 is not held at τ₀")
+	}
 	if got := stabilityAfter(math.MaxFloat64, 0, 1); got != math.MaxFloat64 {
 		t.Errorf("τ past the largest float = %v", got)
 	}

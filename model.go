@@ -58,6 +58,8 @@ const (
 	// stabilityFloor is τ₀, in days: the stability of a skill after its first answer, the least it
 	// falls to, and the least pause before a review date.
 	stabilityFloor = 1.0
+	// stabilityCut is b: a wrong answer multiplies τ by it, down to τ₀.
+	stabilityCut = 0.35
 	// stabilityGrowth is g: a right answer at retention R multiplies τ by 1 + g · (1 − R).
 	stabilityGrowth = 15.0
 	// secondsPerDay turns a pause in whole seconds into days; time knows no calendar.
@@ -111,15 +113,15 @@ func retentionWeight(c, sigma, rbar, p1, p float64) float64 {
 }
 
 // stabilityAfter is τ after a piece of evidence in which share of the skill's answers are right,
-// at retention r: max(τ₀, τ · (1 + g · (1 − r))^S̄ · (1/2)^(1 − S̄)) (docs/architecture.md, section
+// at retention r: max(τ₀, τ · (1 + g · (1 − r))^S̄ · b^(1 − S̄)) (docs/architecture.md, section
 // 3.3). At S̄ = 1 and 0 the powers are 1 and their bases exactly, so it is the rule of section 3.2:
-// τ · (1 + g · (1 − r)) after right answers and max(τ₀, τ / 2) after wrong ones. It is kept below
+// τ · (1 + g · (1 − r)) after right answers and max(τ₀, b · τ) after wrong ones. It is kept below
 // the largest float, which no real pause comes near, so that no infinity comes out of a state
 // whatever it holds.
 func stabilityAfter(tau, r, share float64) float64 {
 	grow := detmath.Pow(1+float64(stabilityGrowth*(1-r)), share)
-	halve := detmath.Pow(0.5, 1-share)
-	return max(stabilityFloor, min(float64(tau*grow*halve), math.MaxFloat64))
+	cut := detmath.Pow(stabilityCut, 1-share)
+	return max(stabilityFloor, min(float64(tau*grow*cut), math.MaxFloat64))
 }
 
 // masteryChance is q = σ(λ − shift), the cautious chance of the middle task of the band a skill is
