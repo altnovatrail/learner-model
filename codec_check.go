@@ -35,6 +35,9 @@ func checkEvidenceContent(e Evidence) error {
 	if !e.HasSolutionSeenFact && e.SolutionSeenBefore {
 		return invalid("SolutionSeenBefore without HasSolutionSeenFact")
 	}
+	if e.Kind < leadingQuestionKind && e.LeadingQuestionOnRequest {
+		return invalid("LeadingQuestionOnRequest in evidence of kind " + itoa(e.Kind))
+	}
 	answerPlaces := make([]int32, 0, len(e.Items))
 	for _, a := range e.Items {
 		if err := checkAnswer(a); err != nil {

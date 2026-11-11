@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -19,12 +20,15 @@ import (
 // writes the files anew from the logs below, and they change only with the version of
 // learner-model.
 
-// goldenJournal is a log of a golden file with the graphs it is folded against.
+// goldenJournal is a log of a golden file with the graphs it is folded against, and the kind its
+// evidence is written in: 1 for the logs that kind 1 wrote, kept as api keeps them, and 0 for a
+// log that names the kind of each piece itself.
 type goldenJournal struct {
 	name   string
 	note   string
 	graphs func(*testing.T) lm.Graphs
 	log    func() []lm.Evidence
+	kind   int32
 }
 
 func mergeGraphs(gs ...lm.Graphs) lm.Graphs {
@@ -157,10 +161,48 @@ func transferLog3() []lm.Evidence {
 }
 
 var goldenJournals = []goldenJournal{
-	{"olympiad", "a learner of grade 3 in olympiad maths: the trial series, mastery held, lost and set again after a break of 60 days", foldGraphs, olympiadLog},
-	{"workbook", "pages of the workbook with two primary skills, J = 2, a hint, a shown solution, help and traps", foldGraphs, workbookLog},
-	{"mixed", "the two interleaved, with a module without a current version, evidence with no answer and a task tagged by AI", foldGraphs, mixedLog},
-	{"transfer", "the workbook across three versions, by the third: a split, a merge, a rename, a skill retired with [] and one unknown", transferGraphs, transferLog3},
+	{"olympiad", "a learner of grade 3 in olympiad maths: the trial series, mastery held, lost and set again after a break of 60 days", foldGraphs, olympiadLog, 1},
+	{"workbook", "pages of the workbook with two primary skills, J = 2, a hint, a shown solution, help and traps", foldGraphs, workbookLog, 1},
+	{"mixed", "the two interleaved, with a module without a current version, evidence with no answer and a task tagged by AI", foldGraphs, mixedLog, 1},
+	{"transfer", "the workbook across three versions, by the third: a split, a merge, a rename, a skill retired with [] and one unknown", transferGraphs, transferLog3, 1},
+	{"format04", "pages of kind 1, then of kind 2 in format 0.4: checks of the kind time, a trap of the 12-hour clock, and the leading question on request, which masters nothing", foldGraphs, format04Log, 0},
+}
+
+// format04Log is pages of the workbook of kind 1, as api kept them before format 0.4, then pages of
+// kind 2: one of times of day with the trap of the 12-hour clock, one with a number and a time in
+// each item, and hard pages of times all right: two, then one after the leading question, which
+// masters nothing, and the same page without it, which masters addition.
+func format04Log() []lm.Evidence {
+	add := []string{skill("addition")}
+	at := int64(1762041600)
+	var log []lm.Evidence
+	next := func(e lm.Evidence, kind int32) {
+		e.Kind = kind
+		log = append(log, e)
+	}
+	for i, right := range []int{8, 9, 10} {
+		next(page(10, right, add, at+int64(86400*i)), 1)
+	}
+	times := page(10, 8, add, at+3*86400)
+	for i := range times.Task.Items {
+		times.Task.Items[i].Slots = []lm.Slot{{Check: lm.CheckKindTime}}
+	}
+	times.Traps = []lm.FoundTrap{{ID: workbook + "/trap/twelve-hours-off", Skills: add, ItemPlaces: []int32{9, 10}}}
+	next(times, 2)
+	both := page(10, 9, add, at+4*86400)
+	for i := range both.Task.Items {
+		both.Task.Items[i].Slots = []lm.Slot{{Check: lm.CheckKindNumber}, {Check: lm.CheckKindTime}}
+	}
+	next(both, 2)
+	for i, leading := range []bool{false, false, true, false} {
+		e := hard(page(12, 12, add, at+int64(86400*(5+i))))
+		for k := range e.Task.Items {
+			e.Task.Items[k].Slots = []lm.Slot{{Check: lm.CheckKindTime}}
+		}
+		e.LeadingQuestionOnRequest = leading
+		next(e, 2)
+	}
+	return log
 }
 
 func TestGoldenFold(t *testing.T) {
@@ -169,7 +211,7 @@ func TestGoldenFold(t *testing.T) {
 			g := j.graphs(t)
 			path := filepath.Join("testdata", "fold", j.name+".txt")
 			if os.Getenv(updateEnv) == "1" {
-				writeGoldenFold(t, path, j.note, j.log(), g)
+				writeGoldenFold(t, path, j, g)
 			}
 			raw, err := os.ReadFile(path)
 			if err != nil {
@@ -218,6 +260,35 @@ func TestGoldenFold(t *testing.T) {
 			if j.name == "olympiad" && !(mastered && lost) {
 				t.Errorf("the log never masters a skill and loses it: mastered %v, lost %v", mastered, lost)
 			}
+			if j.name == "format04" {
+				// The page after the leading question moves the skill as the page without it does,
+				// but only the page without it masters.
+				before, err := lm.Recompute(log[:len(log)-1], g)
+				if err != nil {
+					t.Fatal(err)
+				}
+				sk := skillOf(t, s, skill("addition"))
+				if !log[len(log)-2].LeadingQuestionOnRequest || skillOf(t, before, skill("addition")).Mastered || !sk.Mastered {
+					t.Errorf("addition is mastered after the leading question %v, at the end %v; want only at the end",
+						skillOf(t, before, skill("addition")).Mastered, sk.Mastered)
+				}
+				// The control: the same log without the leading question masters at that page, and moves
+				// the skill to the same bits.
+				control := slices.Clone(log[:len(log)-1])
+				control[len(control)-1].LeadingQuestionOnRequest = false
+				without, err := lm.Recompute(control, g)
+				if err != nil {
+					t.Fatal(err)
+				}
+				a, b := skillOf(t, before, skill("addition")), skillOf(t, without, skill("addition"))
+				if !b.Mastered || a.Correction != b.Correction || a.AnswerWeight != b.AnswerWeight || a.Stability != b.Stability ||
+					a.EvidenceCount != b.EvidenceCount {
+					t.Errorf("without the leading question the skill is %+v; with it %+v: want it mastered, and moved alike", b, a)
+				}
+				if len(sk.Traps) != 1 || sk.Traps[0].ID != workbook+"/trap/twelve-hours-off" {
+					t.Errorf("addition has the traps %v; want the trap of the 12-hour clock", sk.Traps)
+				}
+			}
 			if j.name == "transfer" {
 				var skills []string
 				for _, sk := range s.Modules[0].Skills {
@@ -231,12 +302,15 @@ func TestGoldenFold(t *testing.T) {
 	}
 }
 
-func writeGoldenFold(t *testing.T, path, note string, log []lm.Evidence, g lm.Graphs) {
+func writeGoldenFold(t *testing.T, path string, j goldenJournal, g lm.Graphs) {
 	t.Helper()
 	var out strings.Builder
-	fmt.Fprintf(&out, "# %s\n", note)
+	fmt.Fprintf(&out, "# %s\n", j.note)
 	var s lm.State
-	for _, e := range log {
+	for _, e := range j.log() {
+		if j.kind != 0 {
+			e.Kind = j.kind
+		}
 		b, err := lm.EncodeEvidence(e)
 		if err != nil {
 			t.Fatal(err)

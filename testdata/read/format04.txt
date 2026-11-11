@@ -1,0 +1,51 @@
+# pages of kind 1, then of kind 2 in format 0.4: checks of the kind time, a trap of the 12-hour clock, and the leading question on request, which masters nothing
+read at=1762732800 grade=3/true engine=example/olympiad,example/workbook
+module example/olympiad evidence=false start=2/3-4 trial-over=false last-in-trial=false
+module example/workbook evidence=true start=1/grade-2 trial-over=true last-in-trial=false
+  skill example/workbook/skill/addition count=9 last=1762732800 estimate=4003016f1e25564d(2.3757) uncertainty=3fdbdd082a2676b4(0.435366) retention=3ff0000000000000(1) trap=example/workbook/trap/twelve-hours-off:1:1762300800 mastered=1/grade-2 cautious=3feb1f83f4191867(0.847597) review=1764513495
+task example/workbook/task/page
+  item 1 p=3fe2f8826e25acb5(0.592836)
+  item 2 p=3fe2f8826e25acb5(0.592836)
+  item 3 p=3fe2f8826e25acb5(0.592836)
+  item 4 p=3fe2f8826e25acb5(0.592836)
+  item 5 p=3fe2f8826e25acb5(0.592836)
+  item 6 p=3fe2f8826e25acb5(0.592836)
+  item 7 p=3fe2f8826e25acb5(0.592836)
+  item 8 p=3fe2f8826e25acb5(0.592836)
+  item 9 p=3fe2f8826e25acb5(0.592836)
+  item 10 p=3fe2f8826e25acb5(0.592836)
+  item 11 p=3fe2f8826e25acb5(0.592836)
+  item 12 p=3fe2f8826e25acb5(0.592836)
+read at=1762819200 grade=3/true engine=example/olympiad,example/workbook
+module example/olympiad evidence=false start=2/3-4 trial-over=false last-in-trial=false
+module example/workbook evidence=true start=1/grade-2 trial-over=true last-in-trial=false
+  skill example/workbook/skill/addition count=9 last=1762732800 estimate=4003016f1e25564d(2.3757) uncertainty=3fdbdd082a2676b4(0.435366) retention=3fefb37212c0736d(0.990655) trap=example/workbook/trap/twelve-hours-off:1:1762300800 mastered=1/grade-2 cautious=3feadea0cec0aac4(0.839676) review=1764513495
+task example/workbook/task/page
+  item 1 p=3fe2cb2014bb2b4e(0.587296)
+  item 2 p=3fe2cb2014bb2b4e(0.587296)
+  item 3 p=3fe2cb2014bb2b4e(0.587296)
+  item 4 p=3fe2cb2014bb2b4e(0.587296)
+  item 5 p=3fe2cb2014bb2b4e(0.587296)
+  item 6 p=3fe2cb2014bb2b4e(0.587296)
+  item 7 p=3fe2cb2014bb2b4e(0.587296)
+  item 8 p=3fe2cb2014bb2b4e(0.587296)
+  item 9 p=3fe2cb2014bb2b4e(0.587296)
+  item 10 p=3fe2cb2014bb2b4e(0.587296)
+  item 11 p=3fe2cb2014bb2b4e(0.587296)
+  item 12 p=3fe2cb2014bb2b4e(0.587296)
+read at=1767916800 grade=0/false engine=
+module example/workbook evidence=true start=1/grade-2 trial-over=true last-in-trial=false
+  skill example/workbook/skill/addition count=9 last=1762732800 estimate=4003016f1e25564d(2.3757) uncertainty=3fdbdd082a2676b4(0.435366) retention=3fe5e37228bf6c1b(0.684014) trap=example/workbook/trap/twelve-hours-off:1:1762300800 mastered=1/grade-2 cautious=3fe28d76eb0bc450(0.579769) review=1764513495
+task example/workbook/task/page
+  item 1 p=3fd9f3d845fdb6d2(0.405508)
+  item 2 p=3fd9f3d845fdb6d2(0.405508)
+  item 3 p=3fd9f3d845fdb6d2(0.405508)
+  item 4 p=3fd9f3d845fdb6d2(0.405508)
+  item 5 p=3fd9f3d845fdb6d2(0.405508)
+  item 6 p=3fd9f3d845fdb6d2(0.405508)
+  item 7 p=3fd9f3d845fdb6d2(0.405508)
+  item 8 p=3fd9f3d845fdb6d2(0.405508)
+  item 9 p=3fd9f3d845fdb6d2(0.405508)
+  item 10 p=3fd9f3d845fdb6d2(0.405508)
+  item 11 p=3fd9f3d845fdb6d2(0.405508)
+  item 12 p=3fd9f3d845fdb6d2(0.405508)

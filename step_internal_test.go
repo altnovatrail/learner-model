@@ -115,7 +115,8 @@ func TestModelNumbers(t *testing.T) {
 			t.Errorf("an attempt of %d answers weighs %v, want %v", n, got, want)
 		}
 	}
-	// The guessing of an item: a choice of three is 1/3, two of them 1/9, a number beside one 0.
+	// The guessing of an item: a choice of three is 1/3, two of them 1/9, a number or a time beside
+	// one 0.
 	choice3 := Slot{Check: CheckKindChoice, Options: 3, HasOptions: true}
 	for _, c := range []struct {
 		slots []Slot
@@ -124,6 +125,8 @@ func TestModelNumbers(t *testing.T) {
 		{[]Slot{choice3}, float64(1.0 / 3)},
 		{[]Slot{choice3, choice3}, float64(1.0 / 9)},
 		{[]Slot{choice3, {Check: CheckKindNumber}}, 0},
+		{[]Slot{choice3, {Check: CheckKindTime}}, 0},
+		{[]Slot{{Check: CheckKindTime}}, 0},
 	} {
 		if got := guess(c.slots); math.Abs(got-c.want) > 1e-15 {
 			t.Errorf("guess(%+v) = %v, want %v", c.slots, got, c.want)

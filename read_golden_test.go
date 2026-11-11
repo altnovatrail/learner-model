@@ -39,7 +39,7 @@ func anchorsLog() []lm.Evidence {
 
 func init() {
 	goldenJournals = append(goldenJournals, goldenJournal{"anchors",
-		"a learner of grade 3 in olympiad maths and school maths, where division with remainder is mastered", anchorGraphs, anchorsLog})
+		"a learner of grade 3 in olympiad maths and school maths, where division with remainder is mastered", anchorGraphs, anchorsLog, 1})
 }
 
 // goldenLog reads the evidence of a golden file of the fold.

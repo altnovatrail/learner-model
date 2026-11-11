@@ -332,6 +332,15 @@ func TestReadTask(t *testing.T) {
 	}
 	near3(t, "P at the starting point", items[0].Probability, 0.6)
 
+	// A time of format 0.4 has a verdict and no guessing: P = σ(0) = 0.5 at the starting point.
+	times := candidate(topic("a"))
+	times.Items[0].Slots = []lm.Slot{{Check: lm.CheckKindTime}}
+	if got := taskP(t, r, times); len(got) != 1 || !got[0].HasVerdict {
+		t.Errorf("an item of a time: %+v", got)
+	} else {
+		near3(t, "P of a time at the starting point", got[0].Probability, 0.5)
+	}
+
 	// In the trial series P is without retention, however long ago the skill was practised; past
 	// it, retention lowers P.
 	trial := mastered(0)

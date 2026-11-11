@@ -302,13 +302,26 @@ func readEvidence(b []byte) (Evidence, error) {
 			})
 		case 19:
 			return element(&e.Traps, readFoundTrap)
+		case 20:
+			return boolField(n, seen, &e.LeadingQuestionOnRequest)
 		}
 		return nil
 	})
 	if err != nil {
 		return Evidence{}, err
 	}
-	return e, seen.require("evidence", 1, 2, 3, 4, 5, 6, 9, 10, 11, 13, 14, 15, 16)
+	if err := seen.require("evidence", 1, 2, 3, 4, 5, 6, 9, 10, 11, 13, 14, 15, 16); err != nil {
+		return e, err
+	}
+	// Kind 2 adds field 20, which every kind from it writes and kind 1 does not. A kind below 1 is
+	// refused for its kind, by canonicalEvidence.
+	if e.Kind >= leadingQuestionKind {
+		return e, seen.require("evidence of kind "+itoa(e.Kind), 20)
+	}
+	if e.Kind >= 1 && seen.has(20) {
+		return e, errors.New("evidence of kind " + itoa(e.Kind) + " with field 20")
+	}
+	return e, nil
 }
 
 func readItem(b []byte) (TaskItem, ItemAnswer, error) {

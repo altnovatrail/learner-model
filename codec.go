@@ -17,15 +17,17 @@ import (
 //
 // The reader is strict, as only this writer writes: it skips a field it does not know by its wire
 // type and keeps an enum value it does not know as its number, and it refuses bytes cut short, a
-// field of a wrong wire type or written twice, a field every kind writes that is missing, a value
-// whose flag of presence is missing, a string that is no UTF-8, elements of a repeated field out
-// of their canonical order or twice, and NaN and the infinities. What it accepts, the writer gives
-// back as the same bytes, but for the fields it does not know.
+// field of a wrong wire type or written twice, a field its kind writes that is missing, field 20
+// in evidence of kind 1, which does not write it, a value whose flag of presence is missing, a
+// string that is no UTF-8, elements of a repeated field out of their canonical order or twice,
+// and NaN and the infinities. What it accepts, the writer gives back as the same bytes, but for
+// the fields it does not know.
 
 // EncodeEvidence gives the bytes of e. It refuses, with ErrInvalid: a kind outside 1 to
 // EvidenceKind; a string that is no UTF-8; a duplicate place, skill or trap; items of the task and
-// answers whose places do not match one for one; and a value set without its flag of presence —
-// a rung without HasRung, say.
+// answers whose places do not match one for one; a value set without its flag of presence — a
+// rung without HasRung, say; and a leading question on request in evidence of kind 1, which does
+// not record it.
 func EncodeEvidence(e Evidence) ([]byte, error) {
 	if err := checkEvidence(e); err != nil {
 		return nil, err
@@ -153,6 +155,10 @@ func writeEvidence(w *wire.Writer, e Evidence) {
 			writeStrings(w, 2, trap.Skills)
 			w.PackedInt64(3, widen(sortedCopy(trap.ItemPlaces)))
 		})
+	}
+	// Kind 2 adds field 20, and kind 1 does not record it: its bytes stay as they were written.
+	if e.Kind >= leadingQuestionKind {
+		w.Bool(20, e.LeadingQuestionOnRequest)
 	}
 }
 

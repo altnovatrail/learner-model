@@ -127,7 +127,7 @@ func transfer(g *Graph, id string) []Skill {
 // another gives no answer (docs/architecture.md, section 3.5).
 func knownChecks(slots []Slot) bool {
 	for _, s := range slots {
-		if s.Check < CheckKindNumber || s.Check > CheckKindPredicate {
+		if s.Check < CheckKindNumber || s.Check > CheckKindTime {
 			return false
 		}
 	}
@@ -170,14 +170,14 @@ func answerOf(e Evidence, it item) (Verdict, bool) {
 
 // helped tells whether an item's answer was given with help (docs/architecture.md, section 3.3):
 // a rung of the ladder before its first verdict — a wrong answer earlier in the attempt —, the
-// technique on request anywhere in the attempt, the solution of this task sent to the device
-// before, or a sketch. The technique on the step and "explain again" are no help. An answer with
-// help moves the step, the counts and τ as it is, but masters nothing.
+// technique or the leading question on request anywhere in the attempt, the solution of this task
+// sent to the device before, or a sketch. The technique on the step and "explain again" are no
+// help. An answer with help moves the step, the counts and τ as it is, but masters nothing.
 func helped(e Evidence, it item) bool {
 	// The codec keeps a count of wrong answers only beside a first verdict, and the solution seen
 	// only beside its fact.
-	return it.answer.WrongBeforeFirst > 0 || e.TechniqueOnRequest || e.SolutionSeenBefore ||
-		e.Outcome.Kind == OutcomeWithSketch
+	return it.answer.WrongBeforeFirst > 0 || e.TechniqueOnRequest || e.LeadingQuestionOnRequest ||
+		e.SolutionSeenBefore || e.Outcome.Kind == OutcomeWithSketch
 }
 
 // weighs tells whether the evidence weighs anything by where its key and skill tags came from
