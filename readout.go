@@ -109,9 +109,20 @@ type Readout struct {
 
 	state   State
 	graphs  Graphs
-	checked []string // the modules whose current graphs Read checked, by ID
+	checked []checkedModule // the modules whose current graphs Read checked, by ID
 	at      int64
 	grade   Grade
+}
+
+// checkedModule is a module whose current graph Read checked, with what Task reads of it the same
+// for every candidate: where it starts when it has no state, and R at t₀ of each skill of the
+// graph with a verdict, by ID, as the step works it out — of the skill's state, or 1 for a skill
+// with none. Task only reads them, so that it may be called while another call runs.
+type checkedModule struct {
+	id         string
+	start      BandRef
+	hasStart   bool
+	retentions []skillRetention
 }
 
 // ItemProbability is the probability of a right answer to an item of a candidate task at t₀:
@@ -177,6 +188,11 @@ func Read(s State, g Graphs, at int64, grade Grade, engineModules []string) (Rea
 		if ok {
 			r.Modules = append(r.Modules, mr)
 		}
+		// A module with no state and a current version starts where its reading said: the same
+		// call, which cannot refuse here, as readout has just made it.
+		if c, read := r.checkedModule(m.id); read && m.state == nil {
+			c.start, c.hasStart, _ = startingPoint(grade, m.graph.Graph.Bands)
+		}
 	}
 	r.Anchors = anchors(mods, at)
 	return r, nil
@@ -196,19 +212,31 @@ func Read(s State, g Graphs, at int64, grade Grade, engineModules []string) (Rea
 // options or with fewer than two, a module with no entry in the graphs or with no current
 // version, a graph Append would refuse, bands BandByGrade would, and a module with no state whose
 // current version has no bands: a task of it would have none to be in.
+//
+// It copies nothing it need not: tags and items already in their order are read as they are, and
+// R at t₀ and the start of a module Read has read come from Read (docs/architecture.md, section
+// 3.7; R29).
 func (r Readout) Task(t Task) (TaskReadout, error) {
-	if _, err := checkTaskContent(t); err != nil {
+	if err := checkTaskTags(t); err != nil {
 		return TaskReadout{}, err
+	}
+	items := t.Items
+	if !slices.IsSortedFunc(items, byPlace) {
+		items = slices.Clone(items)
+		slices.SortFunc(items, byPlace)
+	}
+	for i := 1; i < len(items); i++ {
+		if items[i].Place == items[i-1].Place {
+			return TaskReadout{}, invalid("item place twice")
+		}
 	}
 	module, ok := moduleOf(t.ID)
 	if !ok {
 		return TaskReadout{}, invalid("task " + shownBytes(t.ID) + " names no module")
 	}
-	if err := checkTaskPoint("task "+t.ID, t.Band.Place, t.Difficulty); err != nil {
+	if err := checkTaskPoint("task ", t.ID, t.Band.Place, t.Difficulty); err != nil {
 		return TaskReadout{}, err
 	}
-	items := slices.Clone(t.Items)
-	slices.SortFunc(items, func(a, b TaskItem) int { return cmp.Compare(a.Place, b.Place) })
 	for _, it := range items {
 		if err := checkChoices(it.Slots); err != nil {
 			return TaskReadout{}, err
@@ -222,7 +250,8 @@ func (r Readout) Task(t Task) (TaskReadout, error) {
 		return TaskReadout{}, invalid("module " + module + " of task " + t.ID + " has no current version")
 	}
 	// Read has checked the graphs of its modules; a candidate of another module is checked here.
-	if _, checked := slices.BinarySearch(r.checked, module); !checked {
+	c, read := r.checkedModule(module)
+	if !read {
 		if err := checkGraph(module, mg.Graph); err != nil {
 			return TaskReadout{}, err
 		}
@@ -231,9 +260,15 @@ func (r Readout) Task(t Task) (TaskReadout, error) {
 	if i, ok := r.state.moduleIndex(module); ok {
 		ms = r.state.Modules[i]
 	} else {
-		start, ok, err := startingPoint(r.grade, mg.Graph.Bands)
-		if err != nil {
-			return TaskReadout{}, err
+		var start BandRef
+		var ok bool
+		if read {
+			start, ok = c.start, c.hasStart
+		} else {
+			var err error
+			if start, ok, err = startingPoint(r.grade, mg.Graph.Bands); err != nil {
+				return TaskReadout{}, err
+			}
 		}
 		if !ok {
 			return TaskReadout{}, invalid("task " + t.ID + " of module " + module + ", whose current version has no bands")
@@ -241,17 +276,34 @@ func (r Readout) Task(t Task) (TaskReadout, error) {
 		ms = newModule(module, start)
 	}
 	trial := ms.inTrial()
+	// Every skill transfer gives is one of the graph with a verdict, so that R of each is found
+	// and none is inserted; were one, the clipped slice would be copied, never written.
 	var rs []skillRetention
+	if read {
+		rs = slices.Clip(c.retentions)
+	}
 	out := TaskReadout{Items: make([]ItemProbability, 0, len(items))}
 	for _, it := range items {
 		ip := ItemProbability{Place: it.Place}
 		if len(it.Slots) > 0 && knownChecks(it.Slots) {
 			ip.HasVerdict = true
-			ip.Probability = ms.chanceOf(t, it, &mg.Graph, &rs, r.at, trial).p
+			ip.Probability = ms.chanceOf(t, it, &mg.Graph, &rs, nil, r.at, trial).p
 		}
 		out.Items = append(out.Items, ip)
 	}
 	return out, nil
+}
+
+// byPlace orders the items of a task by their place.
+func byPlace(a, b TaskItem) int { return cmp.Compare(a.Place, b.Place) }
+
+// checkedModule finds a module whose current graph Read checked, by ID.
+func (r *Readout) checkedModule(id string) (*checkedModule, bool) {
+	i, ok := slices.BinarySearchFunc(r.checked, id, func(c checkedModule, id string) int { return strings.Compare(c.id, id) })
+	if !ok {
+		return nil, false
+	}
+	return &r.checked[i], true
 }
 
 // moduleRead is a module reading reads: its entry in the graphs, its state, if it has one, and
@@ -286,20 +338,36 @@ func (r *Readout) readModules(engine []string) ([]moduleRead, error) {
 		if !ok {
 			return nil, invalid("module " + id + " has no entry in the graphs")
 		}
+		m := moduleRead{id: id, graph: mg}
+		if i, ok := r.state.moduleIndex(id); ok {
+			m.state = &r.state.Modules[i]
+		}
 		if mg.Current {
 			if err := checkGraph(id, mg.Graph); err != nil {
 				return nil, err
 			}
-			r.checked = append(r.checked, id)
-		}
-		m := moduleRead{id: id, graph: mg}
-		if i, ok := r.state.moduleIndex(id); ok {
-			m.state = &r.state.Modules[i]
+			ms := m.state
+			if ms == nil {
+				ms = &ModuleState{}
+			}
+			r.checked = append(r.checked, checkedModule{id: id, retentions: ms.retentions(&mg.Graph, r.at)})
 		}
 		_, m.engine = slices.BinarySearch(engine, id)
 		mods = append(mods, m)
 	}
 	return mods, nil
+}
+
+// retentions gives R at a time of each skill of a graph with a verdict, by ID, by retention, as the
+// step works it out: of the skill's state, or 1 for a skill with none.
+func (ms *ModuleState) retentions(g *Graph, at int64) []skillRetention {
+	rs := make([]skillRetention, 0, len(g.Skills))
+	for _, s := range g.Skills {
+		if s.Assessability == AssessabilityVerdict {
+			ms.retention(&rs, s.ID, at)
+		}
+	}
+	return rs
 }
 
 // readout gives what reading gives of a module, and false for a module with neither a state nor

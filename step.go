@@ -102,11 +102,12 @@ func itemSkills(t Task, item TaskItem) []string {
 // 3.5), by ID: the skill itself, when it is a skill of the graph with a verdict; the replacements
 // with a verdict of a retired skill, which the graph names among its own skills, so that a chain
 // of retirements is one step already; and none for a skill that now has a rubric or none, and for
-// one the graph does not know — its evidence waits until a version names it.
+// one the graph does not know — its evidence waits until a version names it. The skill itself is
+// the graph's own element, with no copy, so the result is only read.
 func transfer(g *Graph, id string) []Skill {
-	if s, ok := graphSkill(g, id); ok {
-		if s.Assessability == AssessabilityVerdict {
-			return []Skill{s}
+	if i, ok := graphSkillIndex(g, id); ok {
+		if g.Skills[i].Assessability == AssessabilityVerdict {
+			return g.Skills[i : i+1 : i+1]
 		}
 		return nil
 	}
@@ -197,11 +198,16 @@ func trusted(p Provenance) bool {
 
 // graphSkill finds a skill of the graph by its ID.
 func graphSkill(g *Graph, id string) (Skill, bool) {
-	i, ok := slices.BinarySearchFunc(g.Skills, id, func(s Skill, id string) int { return strings.Compare(s.ID, id) })
+	i, ok := graphSkillIndex(g, id)
 	if !ok {
 		return Skill{}, false
 	}
 	return g.Skills[i], true
+}
+
+// graphSkillIndex finds where a skill of the graph stands, by its ID.
+func graphSkillIndex(g *Graph, id string) (int, bool) {
+	return slices.BinarySearchFunc(g.Skills, id, func(s Skill, id string) int { return strings.Compare(s.ID, id) })
 }
 
 // skillIndex finds a skill's state in a module, or where it would stand.
@@ -244,15 +250,13 @@ func retentionOf(rs []skillRetention, id string) float64 {
 }
 
 // itemChance is what P of an item of a task comes of, from the module's state at a time — the
-// practice time of evidence, or the time of reading — with the skills its recorded primary skills
-// go to.
+// practice time of evidence, or the time of reading.
 type itemChance struct {
-	shares []share
-	j      int     // J
-	c      float64 // the guessing
-	sigma  float64 // σ(θ + δ̄ − β)
-	rbar   float64 // R̄
-	p1, p  float64 // P at R̄ = 1, and P
+	j     int     // J
+	c     float64 // the guessing
+	sigma float64 // σ(θ + δ̄ − β)
+	rbar  float64 // R̄
+	p1, p float64 // P at R̄ = 1, and P
 }
 
 // chanceOf works out P of an item from the state: P = c + (1 − c) · R̄ · σ(θ + δ̄ − β), δ̄ and R̄
@@ -261,11 +265,12 @@ type itemChance struct {
 // time is worked out once into rs. With no transfer each of those means is of one value, and
 // exact, so the bits are those of a step without the transfer. In the trial series P is without
 // retention, R̄ = 1. The step and Readout.Task both read P by it, so that reading gives the P the
-// step would take of evidence at the time of reading.
-func (ms *ModuleState) chanceOf(t Task, ti TaskItem, g *Graph, rs *[]skillRetention, at int64, trial bool) itemChance {
+// step would take of evidence at the time of reading. The step gives shares too, and gets the
+// skills the answer moves into them; reading gives nil, and no share is gathered.
+func (ms *ModuleState) chanceOf(t Task, ti TaskItem, g *Graph, rs *[]skillRetention, shares *[]share, at int64, trial bool) itemChance {
 	var out itemChance
 	var corrections, retentions float64
-	for _, x := range sortedCopy(itemSkills(t, ti)) {
+	for _, x := range sortedView(itemSkills(t, ti)) {
 		to := transfer(g, x)
 		if len(to) == 0 {
 			continue
@@ -277,11 +282,13 @@ func (ms *ModuleState) chanceOf(t Task, ti TaskItem, g *Graph, rs *[]skillRetent
 			if r := ms.retention(rs, s.ID, at); !trial {
 				retention += r
 			}
-			i, ok := slices.BinarySearchFunc(out.shares, s.ID, func(sh share, id string) int { return strings.Compare(sh.skill.ID, id) })
-			if !ok {
-				out.shares = slices.Insert(out.shares, i, share{skill: s})
+			if shares != nil {
+				i, ok := slices.BinarySearchFunc(*shares, s.ID, func(sh share, id string) int { return strings.Compare(sh.skill.ID, id) })
+				if !ok {
+					*shares = slices.Insert(*shares, i, share{skill: s})
+				}
+				(*shares)[i].k++
 			}
-			out.shares[i].k++
 		}
 		parts := float64(len(to))
 		corrections += float64(correction / parts)
@@ -314,12 +321,13 @@ func (ms *ModuleState) answers(e Evidence, items []item, g *Graph, trial bool) (
 		if !it.answered {
 			continue
 		}
-		ic := ms.chanceOf(e.Task, it.task, g, &rs, e.PracticeTime, trial)
+		var shares []share
+		ic := ms.chanceOf(e.Task, it.task, g, &rs, &shares, e.PracticeTime, trial)
 		out = append(out, answer{
 			slots:   it.task.Slots,
 			verdict: it.verdict,
 			helped:  helped(e, it),
-			shares:  ic.shares,
+			shares:  shares,
 			j:       ic.j,
 			p:       ic.p,
 			w:       retentionWeight(ic.c, ic.sigma, ic.rbar, ic.p1, ic.p),

@@ -111,13 +111,24 @@ func (s *State) moduleIndex(id string) (int, bool) {
 	return slices.BinarySearchFunc(s.Modules, id, func(m ModuleState, id string) int { return strings.Compare(m.Module, id) })
 }
 
-// moduleOf gives the module of a full ID, `<publisher>/<name>/<kind>/<ID>`: its first two parts.
+// moduleOf gives the module of a full ID, `<publisher>/<name>/<kind>/<ID>`: its first two parts,
+// none of the four empty, and the last the rest of the ID, slashes and all. The module is a part
+// of the ID itself, so that reading a candidate copies nothing.
 func moduleOf(id string) (string, bool) {
-	parts := strings.SplitN(id, "/", 4)
-	if len(parts) < 4 || slices.Contains(parts, "") {
+	publisher := strings.IndexByte(id, '/')
+	if publisher <= 0 {
 		return "", false
 	}
-	return parts[0] + "/" + parts[1], true
+	name := strings.IndexByte(id[publisher+1:], '/')
+	if name <= 0 {
+		return "", false
+	}
+	module := publisher + 1 + name
+	kind := strings.IndexByte(id[module+1:], '/')
+	if kind <= 0 || module+1+kind+1 == len(id) {
+		return "", false
+	}
+	return id[:module], true
 }
 
 // checkInputState checks a state as the step needs it, beside what EncodeState checks: every skill
@@ -152,18 +163,17 @@ func checkInputState(s State) error {
 			}
 		}
 		for _, a := range m.Trial {
-			what := "a trial answer of " + m.Module
-			if err := checkTaskPoint(what, a.BandPlace, a.Difficulty); err != nil {
+			if err := checkTaskPoint("a trial answer of ", m.Module, a.BandPlace, a.Difficulty); err != nil {
 				return err
 			}
 			if err := checkChoices(a.Slots); err != nil {
 				return err
 			}
 			if !knownChecks(a.Slots) || (a.Verdict != VerdictCorrect && a.Verdict != VerdictNotYet) || len(a.Slots) == 0 {
-				return invalid(what + " with no answer the step reads")
+				return invalid("a trial answer of " + m.Module + " with no answer the step reads")
 			}
 			if !(a.Weight > 0) {
-				return invalid(what + " of a weight that is not positive")
+				return invalid("a trial answer of " + m.Module + " of a weight that is not positive")
 			}
 		}
 	}
@@ -184,7 +194,7 @@ func checkInput(e Evidence, g Graphs, checked map[string]bool) (input, error) {
 	if !ok {
 		return input{}, invalid("task " + shownBytes(t.ID) + " names no module")
 	}
-	if err := checkTaskPoint("task "+t.ID, t.Band.Place, t.Difficulty); err != nil {
+	if err := checkTaskPoint("task ", t.ID, t.Band.Place, t.Difficulty); err != nil {
 		return input{}, err
 	}
 	if e.StartBand.Place < 1 {
@@ -218,12 +228,14 @@ func checkInput(e Evidence, g Graphs, checked map[string]bool) (input, error) {
 	return input{module: module, items: items, graph: mg}, nil
 }
 
-func checkTaskPoint(what string, place, difficulty int32) error {
+// checkTaskPoint refuses a point off the module's scale: a band place below 1, or a difficulty
+// other than 1 to 5. It names what it refuses as kind + id, joined only when it refuses.
+func checkTaskPoint(kind, id string, place, difficulty int32) error {
 	if place < 1 {
-		return invalid(what + " in band place " + itoa(place))
+		return invalid(kind + id + " in band place " + itoa(place))
 	}
 	if difficulty < 1 || difficulty > 5 {
-		return invalid(what + " of difficulty " + itoa(difficulty))
+		return invalid(kind + id + " of difficulty " + itoa(difficulty))
 	}
 	return nil
 }
