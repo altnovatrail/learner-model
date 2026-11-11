@@ -5,16 +5,15 @@ import (
 	"slices"
 	"strings"
 	"testing"
-
-	"github.com/altnovatrail/learner-model/detmath"
 )
 
 // The reference of Readout.Task (T40 in RUN.md): Task as v0.1.5 had it, which copied the tags and
 // the items of each candidate, split its ID, and worked out R of its skills at t₀ anew. Its text
-// and that of its helpers are v0.1.5's word for word, but for their names and for one line: which
-// modules Read has checked comes from the field that holds them now. The numbers of the model —
-// guess, beta, chance, retentionAt and detmath — are those of the code, so the reference holds the
-// order of the operations and the checks, and TestTaskIsReference holds Task to it bit for bit.
+// and that of its checks are v0.1.5's word for word, but for their names and for two lines: which
+// modules Read has checked comes from the field that holds them now, and P comes of chanceOf as
+// the step calls it — R worked out anew into an empty list, and the shares gathered —, the very
+// count v0.1.5 made on reading. So TestTaskIsReference holds Task's checks and its R and start,
+// which Read now works out once, to v0.1.5's, and its P to the step's, bit for bit.
 
 // TaskReference is Readout.Task of v0.1.5, for the tests outside the package.
 func (r Readout) TaskReference(t Task) (TaskReadout, error) {
@@ -68,7 +67,9 @@ func (r Readout) TaskReference(t Task) (TaskReadout, error) {
 		ip := ItemProbability{Place: it.Place}
 		if len(it.Slots) > 0 && knownChecks(it.Slots) {
 			ip.HasVerdict = true
-			ip.Probability = ms.chanceOfReference(t, it, &mg.Graph, &rs, r.at, trial).p
+			// P as the step takes it: R worked out anew, and the shares gathered.
+			var shares []share
+			ip.Probability = ms.chanceOf(t, it, &mg.Graph, &rs, &shares, r.at, trial).p
 		}
 		out.Items = append(out.Items, ip)
 	}
@@ -125,70 +126,6 @@ func checkTaskPointReference(what string, place, difficulty int32) error {
 		return invalid(what + " of difficulty " + itoa(difficulty))
 	}
 	return nil
-}
-
-func transferReference(g *Graph, id string) []Skill {
-	if s, ok := graphSkill(g, id); ok {
-		if s.Assessability == AssessabilityVerdict {
-			return []Skill{s}
-		}
-		return nil
-	}
-	i, ok := slices.BinarySearchFunc(g.Retired, id, func(r RetiredSkill, id string) int { return strings.Compare(r.ID, id) })
-	if !ok {
-		return nil
-	}
-	var out []Skill
-	for _, r := range g.Retired[i].ReplacedBy {
-		if s, ok := graphSkill(g, r); ok && s.Assessability == AssessabilityVerdict {
-			out = append(out, s)
-		}
-	}
-	return out
-}
-
-// chanceOfReference is chanceOf of v0.1.5, which gathered the shares into its result: here they
-// stay in a variable of its own, which nothing reads.
-func (ms *ModuleState) chanceOfReference(t Task, ti TaskItem, g *Graph, rs *[]skillRetention, at int64, trial bool) itemChance {
-	var out itemChance
-	var shares []share
-	var corrections, retentions float64
-	for _, x := range sortedCopy(itemSkills(t, ti)) {
-		to := transferReference(g, x)
-		if len(to) == 0 {
-			continue
-		}
-		out.j++
-		var correction, retention float64
-		for _, s := range to {
-			correction += ms.correction(s.ID)
-			if r := ms.retention(rs, s.ID, at); !trial {
-				retention += r
-			}
-			i, ok := slices.BinarySearchFunc(shares, s.ID, func(sh share, id string) int { return strings.Compare(sh.skill.ID, id) })
-			if !ok {
-				shares = slices.Insert(shares, i, share{skill: s})
-			}
-			shares[i].k++
-		}
-		parts := float64(len(to))
-		corrections += float64(correction / parts)
-		if !trial {
-			retentions += float64(retention / parts)
-		}
-	}
-	mean := 0.0
-	out.rbar = 1
-	if out.j > 0 {
-		mean = float64(corrections / float64(out.j))
-		if !trial {
-			out.rbar = float64(retentions / float64(out.j))
-		}
-	}
-	out.c = guess(ti.Slots)
-	out.sigma = detmath.Sigmoid(ms.Level + mean - beta(t.Band.Place, t.Difficulty))
-	out.p1, out.p = chance(out.c, out.sigma, 1), chance(out.c, out.sigma, out.rbar)
-	return out
 }
 
 // moduleOf gives what the split of v0.1.5 gave, on IDs of every shape it tells apart.
