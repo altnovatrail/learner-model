@@ -85,6 +85,7 @@ const (
 	CheckKindFraction
 	CheckKindChoice
 	CheckKindPredicate
+	CheckKindTime
 )
 
 // Slot is an answer slot of an item, as the model needs it for the guessing of the item.

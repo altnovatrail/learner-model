@@ -1,8 +1,13 @@
 package learnermodel
 
 // EvidenceKind is the kind of evidence this version writes. It reads every kind up to it, and a
-// later one too, skipping what it does not know (docs/architecture.md, section 3.5).
-const EvidenceKind = 1
+// later one too, skipping what it does not know (docs/architecture.md, section 3.5). Kind 2 adds
+// LeadingQuestionOnRequest, which kind 1 does not record.
+const EvidenceKind = 2
+
+// leadingQuestionKind is the kind that adds LeadingQuestionOnRequest, field 20: the writer writes
+// it from this kind on, the reader requires it there and refuses it below.
+const leadingQuestionKind = 2
 
 // OutcomeKind is how an attempt ended (concepts 11 of spec). A value this version does not know
 // is kept as its number and weighs nothing.
@@ -81,12 +86,16 @@ type Evidence struct {
 	StartBand BandRef
 	Outcome   Outcome
 	// PracticeTime is the time of the attempt's last action, in whole seconds of Unix time, UTC.
-	PracticeTime        int64
-	TechniqueOnStep     bool
-	TechniqueOnRequest  bool
-	ExplainAgainCount   int32
-	SolutionSeenBefore  bool
-	HasSolutionSeenFact bool // false for a template, whose instances differ
+	PracticeTime       int64
+	TechniqueOnStep    bool
+	TechniqueOnRequest bool
+	// LeadingQuestionOnRequest is whether a hint the learner asked for gave the task's leading
+	// question, which a hint gives only before the first wrong answer. Kind 1 does not record it, and
+	// it is false there.
+	LeadingQuestionOnRequest bool
+	ExplainAgainCount        int32
+	SolutionSeenBefore       bool
+	HasSolutionSeenFact      bool // false for a template, whose instances differ
 	// Items holds what happened to each item; the slots and the item's own skills are in Task.
 	Items []ItemAnswer
 	Traps []FoundTrap // ordered by ID byte by byte

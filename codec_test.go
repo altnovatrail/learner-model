@@ -41,16 +41,17 @@ func goldenEvidence() lm.Evidence {
 			Items: []lm.TaskItem{
 				{Place: 2, OwnSkills: true, Primary: []string{skill("comparison")},
 					Slots: []lm.Slot{{Check: lm.CheckKindChoice, Options: 3, HasOptions: true}}},
-				{Place: 1, Slots: []lm.Slot{{Check: lm.CheckKindNumber}, {Check: lm.CheckKindFraction}}},
+				{Place: 1, Slots: []lm.Slot{{Check: lm.CheckKindNumber}, {Check: lm.CheckKindFraction}, {Check: lm.CheckKindTime}}},
 			},
 		},
-		StartBand:           lm.BandRef{Place: 1, ID: "grade-2"},
-		Outcome:             lm.Outcome{Kind: lm.OutcomeAfterHint, Rung: 1, HasRung: true},
-		PracticeTime:        1762041600,
-		TechniqueOnRequest:  true,
-		ExplainAgainCount:   2,
-		SolutionSeenBefore:  false,
-		HasSolutionSeenFact: true,
+		StartBand:                lm.BandRef{Place: 1, ID: "grade-2"},
+		Outcome:                  lm.Outcome{Kind: lm.OutcomeAfterHint, Rung: 1, HasRung: true},
+		PracticeTime:             1762041600,
+		TechniqueOnRequest:       true,
+		LeadingQuestionOnRequest: true,
+		ExplainAgainCount:        2,
+		SolutionSeenBefore:       false,
+		HasSolutionSeenFact:      true,
 		Items: []lm.ItemAnswer{
 			{Place: 1, Submitted: true, Unverdicted: []lm.UnverdictedReason{lm.UnverdictedUnreadableBlank},
 				FirstVerdict: lm.VerdictNotYet, HasFirstVerdict: true,
@@ -213,7 +214,7 @@ func randomBand(r *rand.Rand) lm.BandRef {
 func randomSlots(r *rand.Rand) []lm.Slot {
 	slots := make([]lm.Slot, r.IntN(3)+1)
 	for i := range slots {
-		slots[i].Check = lm.CheckKind(r.Int32N(6))
+		slots[i].Check = lm.CheckKind(r.Int32N(7)) // 6 is a kind this version does not know
 		if slots[i].Check == lm.CheckKindChoice {
 			slots[i].Options, slots[i].HasOptions = r.Int32N(5)+2, true
 		}
@@ -235,6 +236,11 @@ func randomEvidence(r *rand.Rand) lm.Evidence {
 		TechniqueOnStep:    r.IntN(2) == 0,
 		TechniqueOnRequest: r.IntN(2) == 0,
 		ExplainAgainCount:  r.Int32N(4),
+	}
+	if r.IntN(3) == 0 { // kind 1, as api kept it before format 0.4, which does not record the leading question
+		e.Kind = 1
+	} else {
+		e.LeadingQuestionOnRequest = r.IntN(2) == 0
 	}
 	if e.Outcome.Kind == lm.OutcomeAfterHint {
 		e.Outcome.Rung, e.Outcome.HasRung = r.Int32N(3)+1, true
@@ -539,11 +545,12 @@ func TestEncodeRefuses(t *testing.T) {
 		"an item supporting skill twice": func(e *lm.Evidence) {
 			e.Task.Items[0].Supporting = []string{"core.a", "core.a"}
 		},
-		"an item place twice":     func(e *lm.Evidence) { e.Task.Items[1].Place = 2; e.Items[0].Place = 2 },
-		"places that differ":      func(e *lm.Evidence) { e.Items[0].Place = 9 },
-		"a trap twice":            func(e *lm.Evidence) { e.Traps = append(e.Traps, e.Traps[0]) },
-		"a trap skill twice":      func(e *lm.Evidence) { e.Traps[0].Skills = []string{"x", "x"} },
-		"a trap item place twice": func(e *lm.Evidence) { e.Traps[0].ItemPlaces = []int32{1, 1} },
+		"an item place twice":          func(e *lm.Evidence) { e.Task.Items[1].Place = 2; e.Items[0].Place = 2 },
+		"places that differ":           func(e *lm.Evidence) { e.Items[0].Place = 9 },
+		"a trap twice":                 func(e *lm.Evidence) { e.Traps = append(e.Traps, e.Traps[0]) },
+		"a trap skill twice":           func(e *lm.Evidence) { e.Traps[0].Skills = []string{"x", "x"} },
+		"a trap item place twice":      func(e *lm.Evidence) { e.Traps[0].ItemPlaces = []int32{1, 1} },
+		"a leading question in kind 1": func(e *lm.Evidence) { e.Kind = 1 },
 	} {
 		ev := goldenEvidence()
 		e(&ev)
@@ -793,13 +800,15 @@ func TestStrictValues(t *testing.T) {
 		}
 	}
 	for name, b := range map[string][]byte{
-		"skills out of order":  slices.Concat(evidenceTop(), []byte{0x3a, 0x01, 'a'}),
-		"a skill of no UTF-8":  slices.Concat(evidenceTop(), []byte{0x3a, 0x01, 0xff}),
-		"field 9 without 8":    slices.Concat(evidenceTop(), []byte{0x92, 0x01, 0x08, 0x08, 0x01, 0x10, 0x00, 0x30, 0x00, 0x48, 0x01}),
-		"kind 0":               slices.Concat([]byte{0x08, 0x00}, evidenceTop()[2:]),
-		"items out of order":   slices.Concat(evidenceTop(), item(2), item(1)),
-		"an item place twice":  slices.Concat(evidenceTop(), item(1), item(1)),
-		"two traps, unordered": slices.Concat(evidenceTop(), []byte{0x9a, 0x01, 0x03, 0x0a, 0x01, 'b', 0x9a, 0x01, 0x03, 0x0a, 0x01, 'a'}),
+		"skills out of order":     slices.Concat(evidenceTop(), []byte{0x3a, 0x01, 'a'}),
+		"a skill of no UTF-8":     slices.Concat(evidenceTop(), []byte{0x3a, 0x01, 0xff}),
+		"field 9 without 8":       slices.Concat(evidenceTop(), []byte{0x92, 0x01, 0x08, 0x08, 0x01, 0x10, 0x00, 0x30, 0x00, 0x48, 0x01}),
+		"kind 0":                  slices.Concat([]byte{0x08, 0x00}, evidenceTop()[2:]),
+		"items out of order":      slices.Concat(evidenceTop(), item(2), item(1)),
+		"an item place twice":     slices.Concat(evidenceTop(), item(1), item(1)),
+		"two traps, unordered":    slices.Concat(evidenceTop(), []byte{0x9a, 0x01, 0x03, 0x0a, 0x01, 'b', 0x9a, 0x01, 0x03, 0x0a, 0x01, 'a'}),
+		"kind 2 without field 20": bytes.TrimSuffix(evidenceTop(), leadingField),
+		"kind 1 with field 20":    slices.Concat(kindOneTop(), []byte{0xa0, 0x01, 0x00}),
 	} {
 		if _, err := lm.DecodeEvidence(b); !errors.Is(err, lm.ErrCorrupt) {
 			t.Errorf("evidence with %s: %v, not ErrCorrupt", name, err)
@@ -808,12 +817,33 @@ func TestStrictValues(t *testing.T) {
 	if _, err := lm.DecodeEvidence(slices.Concat(evidenceTop(), item(1), item(2))); err != nil {
 		t.Errorf("two items in order: %v", err)
 	}
+	if !bytes.HasSuffix(evidenceTop(), leadingField) {
+		t.Errorf("the top of kind 2 does not end with field 20 set: %x", evidenceTop())
+	}
+	if e, err := lm.DecodeEvidence(kindOneTop()); err != nil || e.Kind != 1 || e.LeadingQuestionOnRequest {
+		t.Errorf("evidence of kind 1 without field 20 reads as kind %d with a leading question %v: %v", e.Kind, e.LeadingQuestionOnRequest, err)
+	}
 	if _, err := lm.DecodeState([]byte{0x08, 0x00}); !errors.Is(err, lm.ErrCorrupt) {
 		t.Errorf("a state of kind 0: %v, not ErrCorrupt", err)
 	}
 	if _, err := lm.DecodeState([]byte{0x08, 0x05}); err != nil {
 		t.Errorf("a state of a later kind: %v", err)
 	}
+}
+
+// leadingField is field 20 set, the last field kind 2 writes.
+var leadingField = []byte{0xa0, 0x01, 0x01}
+
+// kindOneTop is evidenceTop of kind 1, which writes no field 20.
+func kindOneTop() []byte {
+	e := goldenEvidence()
+	e.Kind, e.LeadingQuestionOnRequest = 1, false
+	e.Task.Items, e.Items, e.Traps = nil, nil, nil
+	b, err := lm.EncodeEvidence(e)
+	if err != nil {
+		panic(err)
+	}
+	return b
 }
 
 // item gives the bytes of field 18 with the least an item carries: its place, no own skills, not

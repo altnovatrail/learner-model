@@ -103,6 +103,8 @@ func randomSlot(r *rand.Rand) lm.Slot {
 		if r.IntN(6) == 0 {
 			return lm.Slot{Check: 9} // a kind of a later version: its item gives no answer
 		}
+	case 6:
+		return lm.Slot{Check: lm.CheckKindTime}
 	}
 	return lm.Slot{Check: lm.CheckKindNumber}
 }
@@ -166,6 +168,11 @@ func journalEvidence(t *testing.T, r *rand.Rand, w world, n int, at int64) lm.Ev
 		e.Outcome.Rung, e.Outcome.HasRung = int32(1+r.IntN(3)), true
 	}
 	e.TechniqueOnRequest = r.IntN(8) == 0
+	if r.IntN(4) == 0 { // kind 1, as api kept it before format 0.4
+		e.Kind = 1
+	} else {
+		e.LeadingQuestionOnRequest = r.IntN(8) == 0
+	}
 	e.TechniqueOnStep = r.IntN(4) == 0
 	e.HasSolutionSeenFact = true
 	e.SolutionSeenBefore = r.IntN(8) == 0
@@ -363,6 +370,7 @@ func TestAppendRefuses(t *testing.T) {
 		graphs lm.Graphs
 	}{
 		{"a kind below 1", func(e *lm.Evidence) { e.Kind = 0 }, g},
+		{"a leading question in kind 1", func(e *lm.Evidence) { e.Kind, e.LeadingQuestionOnRequest = 1, true }, g},
 		{"a primary skill twice", func(e *lm.Evidence) { e.Task.Primary = []string{topic("a"), topic("a")} }, g},
 		{"a task that names no module", func(e *lm.Evidence) { e.Task.ID = "example/olympiad/task" }, g},
 		{"a task ID with an empty part", func(e *lm.Evidence) { e.Task.ID = "example//task/x" }, g},
@@ -416,6 +424,7 @@ func TestAppendRefuses(t *testing.T) {
 		{"a trial choice of no options", func(s *lm.State) { s.Modules[0].Trial[0].Slots[0].Options = 0 }, lm.ErrInvalid},
 		{"a trial answer with no slot", func(s *lm.State) { s.Modules[0].Trial[0].Slots = nil }, lm.ErrInvalid},
 		{"a trial answer of an unknown check", func(s *lm.State) { s.Modules[0].Trial[0].Slots[0] = lm.Slot{Check: 9} }, lm.ErrInvalid},
+		{"a trial answer of a time", func(s *lm.State) { s.Modules[0].Trial[0].Slots[0] = lm.Slot{Check: lm.CheckKindTime} }, nil},
 		{"a trial answer with no verdict", func(s *lm.State) { s.Modules[0].Trial[0].Verdict = 7 }, lm.ErrInvalid},
 		{"a trial answer of weight 0", func(s *lm.State) { s.Modules[0].Trial[0].Weight = 0 }, lm.ErrInvalid},
 		{"trial answers past the series", func(s *lm.State) { s.Modules[0].AnswerWeight = 5 }, lm.ErrInvalid},
@@ -611,7 +620,8 @@ func ready(t *testing.T) lm.State {
 }
 
 // Help (docs/architecture.md, section 3.3): an answer with help moves the step, the counts and τ
-// as it is, but masters nothing; the technique on the step and "explain again" are no help.
+// as it is, but masters nothing; the leading question on request is help, as the technique on
+// request is; the technique on the step and "explain again" are no help.
 func TestHelp(t *testing.T) {
 	g := workbookGraphs(t)
 	add := skill("addition")
@@ -630,6 +640,7 @@ func TestHelp(t *testing.T) {
 			e.Items[0].WrongBeforeFirst, e.Items[1].WrongBeforeFirst = 1, 1
 		}, false},
 		{"the technique on request", func(e *lm.Evidence) { e.TechniqueOnRequest = true }, false},
+		{"the leading question on request", func(e *lm.Evidence) { e.LeadingQuestionOnRequest = true }, false},
 		{"the solution seen before", func(e *lm.Evidence) { e.SolutionSeenBefore, e.HasSolutionSeenFact = true, true }, false},
 		{"a sketch", func(e *lm.Evidence) { e.Outcome = lm.Outcome{Kind: lm.OutcomeWithSketch} }, false},
 		{"the technique on the step", func(e *lm.Evidence) { e.TechniqueOnStep = true }, true},

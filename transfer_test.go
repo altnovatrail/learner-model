@@ -248,6 +248,26 @@ func TestReadKinds(t *testing.T) {
 	if want := mustAppend(t, ready(t), known, g); !bytes.Equal(encodeState(t, got), encodeState(t, want)) {
 		t.Errorf("evidence of a later kind gives\n%+v\nwant\n%+v", got, want)
 	}
+
+	// Kind 1 does not record the leading question, and reads as kind 2 without it: its bytes come
+	// back as they were, without field 20, and give the state kind 2 gives.
+	one := page(4, 2, []string{skill("addition")}, 200)
+	one.Kind = 1
+	b1, err := lm.EncodeEvidence(one)
+	if err != nil {
+		t.Fatal(err)
+	}
+	read, err := lm.DecodeEvidence(b1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again, err := lm.EncodeEvidence(read); err != nil || !bytes.Equal(again, b1) {
+		t.Errorf("evidence of kind 1 comes back as %x, %v; not %x", again, err, b1)
+	}
+	two := page(4, 2, []string{skill("addition")}, 200)
+	if a, b := mustAppend(t, ready(t), read, g), mustAppend(t, ready(t), two, g); !bytes.Equal(encodeState(t, a), encodeState(t, b)) {
+		t.Errorf("evidence of kind 1 gives\n%+v\nand of kind 2\n%+v", a, b)
+	}
 }
 
 // same compares two values by what %+v prints of them, which prints every float exactly.
