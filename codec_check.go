@@ -65,30 +65,41 @@ func checkEvidenceContent(e Evidence) error {
 // checkTaskContent checks the description of a task as the codec needs it — of evidence, or of a
 // candidate task of the engine — and gives the places of its items, ascending, each once.
 func checkTaskContent(t Task) ([]int32, error) {
-	if err := utf8Strings(t.ID, t.Band.ID); err != nil {
-		return nil, err
-	}
-	if err := idList("primary skill", t.Primary); err != nil {
-		return nil, err
-	}
-	if err := idList("supporting skill", t.Supporting); err != nil {
+	if err := checkTaskTags(t); err != nil {
 		return nil, err
 	}
 	places := make([]int32, 0, len(t.Items))
 	for _, item := range t.Items {
-		if err := idList("primary skill of an item", item.Primary); err != nil {
-			return nil, err
-		}
-		if err := idList("supporting skill of an item", item.Supporting); err != nil {
-			return nil, err
-		}
-		if err := checkSlots(item.Slots); err != nil {
-			return nil, err
-		}
 		places = append(places, item.Place)
 	}
 	slices.Sort(places)
 	return places, uniqueSorted("item place", places)
+}
+
+// checkTaskTags is checkTaskContent but for the places of the items: Readout.Task checks those on
+// the items in their order, with no copy of the places.
+func checkTaskTags(t Task) error {
+	if err := utf8Strings(t.ID, t.Band.ID); err != nil {
+		return err
+	}
+	if err := idList("primary skill", t.Primary); err != nil {
+		return err
+	}
+	if err := idList("supporting skill", t.Supporting); err != nil {
+		return err
+	}
+	for _, item := range t.Items {
+		if err := idList("primary skill of an item", item.Primary); err != nil {
+			return err
+		}
+		if err := idList("supporting skill of an item", item.Supporting); err != nil {
+			return err
+		}
+		if err := checkSlots(item.Slots); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func checkAnswer(a ItemAnswer) error {
@@ -178,7 +189,7 @@ func idList(what string, ids []string) error {
 	if err := utf8Strings(ids...); err != nil {
 		return err
 	}
-	return uniqueSorted(what, sortedCopy(ids))
+	return uniqueSorted(what, sortedView(ids))
 }
 
 func utf8Strings(ss ...string) error {

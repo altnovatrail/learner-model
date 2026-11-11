@@ -126,3 +126,12 @@ func sortedCopy[T int32 | string](s []T) []T {
 	slices.Sort(c)
 	return c
 }
+
+// sortedView gives s in sorted order to be read, never written: s itself when it is sorted
+// already, and otherwise a sorted copy, as sortedCopy gives it.
+func sortedView[T int32 | string](s []T) []T {
+	if slices.IsSorted(s) {
+		return s
+	}
+	return sortedCopy(s)
+}
