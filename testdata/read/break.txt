@@ -1,0 +1,21 @@
+# a learner of grade 3 in olympiad maths past 20 answers, back after a break of 30 days: the level forgets, and n falls back to 20
+read at=1764734400 grade=3/true engine=example/olympiad,example/workbook
+module example/olympiad evidence=true start=2/3-4 trial-over=true last-in-trial=false
+  skill example/olympiad/skill/a count=14 last=1764727200 estimate=400fc72e05df6910(3.97226) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3fefc641316b3076(0.992951) mastered=1/1-2 cautious=3feea2cddd699c93(0.957374) review=1765131201
+  skill example/olympiad/skill/b count=14 last=1764734400 estimate=40088901ed7ea7d8(3.0669) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3ff0000000000000(1)
+module example/workbook evidence=false start=2/grade-3 trial-over=false last-in-trial=false
+task example/olympiad/task/x
+  item 1 p=3fdb40e87f509040(0.425837)
+read at=1764820800 grade=3/true engine=example/olympiad,example/workbook
+module example/olympiad evidence=true start=2/3-4 trial-over=true last-in-trial=false
+  skill example/olympiad/skill/a count=14 last=1764727200 estimate=400fc72e05df6910(3.97226) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3fed64b0b280a411(0.918541) mastered=1/1-2 cautious=3fec571496f82ca7(0.88563) review=1765131201
+  skill example/olympiad/skill/b count=14 last=1764734400 estimate=40088901ed7ea7d8(3.0669) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3fefa8655f442fe0(0.989306)
+module example/workbook evidence=false start=2/grade-3 trial-over=false last-in-trial=false
+task example/olympiad/task/x
+  item 1 p=3fdb1956fca48feb(0.423422)
+read at=1769918400 grade=0/false engine=
+module example/olympiad evidence=true start=2/3-4 trial-over=true last-in-trial=false
+  skill example/olympiad/skill/a count=14 last=1764727200 estimate=400fc72e05df6910(3.97226) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3fd30fbfb6871563(0.297836) mastered=1/1-2 cautious=3fd260e84a3f4e8f(0.287165) review=1765131201
+  skill example/olympiad/skill/b count=14 last=1764734400 estimate=40088901ed7ea7d8(3.0669) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3fe514c909be9342(0.658787)
+task example/olympiad/task/x
+  item 1 p=3fd6526258f78c68(0.348778)

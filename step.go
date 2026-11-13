@@ -20,13 +20,14 @@ import (
 // 1/J of its step, and a failure is fewer than half of a skill's answers right. Forgetting (R04,
 // T17): P carries the mean retention R̄ of the item's skills, each answer moves θ and δ with its
 // weight w, and a skill's stability τ changes once per piece of evidence, by the share of its
-// answers right. The evidence read whole (R06, T18): the outcome, where a shown solution makes an
-// empty item "not solved"; help, which masters nothing; the provenance of the key and the skill
-// tags, by which evidence weighs 1 or nothing; and the traps the program found, counted at their
-// skills or at the module. The transfer by retired_skills (R08, T19): each recorded primary skill
-// of an item, and each skill of a trap, goes to the skills transfer gives it by the graph of the
-// module's current version, so that a retired skill's evidence counts in full for each skill that
-// replaced it, and skills merged in one item count once.
+// answers right; after a pause of the module of 14 days its level forgets (R04, T44): n falls back
+// to 20, and the step of θ widens. The evidence read whole (R06, T18): the outcome, where a shown
+// solution makes an empty item "not solved"; help, which masters nothing; the provenance of the key
+// and the skill tags, by which evidence weighs 1 or nothing; and the traps the program found,
+// counted at their skills or at the module. The transfer by retired_skills (R08, T19): each
+// recorded primary skill of an item, and each skill of a trap, goes to the skills transfer gives it
+// by the graph of the module's current version, so that a retired skill's evidence counts in full
+// for each skill that replaced it, and skills merged in one item count once.
 
 // item is an item of the task with what happened to it in the attempt, and the answer it gives by
 // answerOf, worked out once for the checks of input and the step alike.
@@ -388,6 +389,8 @@ func (ms *ModuleState) move(e Evidence, items []item, g *Graph, trial bool) bool
 	if len(answers) == 0 {
 		return false
 	}
+	// The answers read no n, so the level forgets only now: evidence with no answer moves nothing.
+	ms.forgetLevel(at)
 	// The retention of each skill comes from the state before the evidence, as P does.
 	skills := moves(answers, rs)
 	u := seriesWeight(len(answers))
@@ -437,6 +440,24 @@ func (ms *ModuleState) move(e Evidence, items []item, g *Graph, trial bool) bool
 	}
 	ms.countTraps(e.Traps, g, at)
 	return true
+}
+
+// forgetLevel is the forgetting of the module's level (docs/architecture.md, section 3.2): after a
+// pause of the module of at least 14 days, from the latest practice of its skills to the evidence's
+// practice time, the weight of its answers n falls to 20, if it is above, so that the step of θ
+// and v widen. A module with no skill has no practice to count the pause from. In the trial series
+// n is below 5, and so it changes nothing there.
+func (ms *ModuleState) forgetLevel(at int64) {
+	if len(ms.Skills) == 0 {
+		return
+	}
+	last := ms.Skills[0].LastPractice
+	for _, sk := range ms.Skills[1:] {
+		last = max(last, sk.LastPractice)
+	}
+	if pauseDays(at, last) >= levelPause {
+		ms.AnswerWeight = min(ms.AnswerWeight, levelWeight)
+	}
 }
 
 // judge counts a failure or sets the mastery after the evidence, by θ, δ, n and m after it. A

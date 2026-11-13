@@ -166,6 +166,29 @@ var goldenJournals = []goldenJournal{
 	{"mixed", "the two interleaved, with a module without a current version, evidence with no answer and a task tagged by AI", foldGraphs, mixedLog, 1},
 	{"transfer", "the workbook across three versions, by the third: a split, a merge, a rename, a skill retired with [] and one unknown", transferGraphs, transferLog3, 1},
 	{"format04", "pages of kind 1, then of kind 2 in format 0.4: checks of the kind time, a trap of the 12-hour clock, and the leading question on request, which masters nothing", foldGraphs, format04Log, 0},
+	{"break", "a learner of grade 3 in olympiad maths past 20 answers, back after a break of 30 days: the level forgets, and n falls back to 20", foldGraphs, breakLog, 0},
+}
+
+// breakLog is a learner of grade 3 in olympiad maths with 24 answers over two skills, who comes back
+// after a break of 30 days: the pause of the module brings n back to 20 before the first answer
+// after it, and the four answers after the break take it to 24, not 28.
+func breakLog() []lm.Evidence {
+	start := ladderBand(2)
+	var log []lm.Evidence
+	at := int64(1762041600)
+	add := func(skillID string, place, d int32, correct bool) {
+		at += 3600
+		log = append(log, choiceAnswer(skillID, place, d, correct, start, at))
+	}
+	for i := range 24 {
+		add(topic([]string{"a", "b"}[i%2]), 2, int32(2+i%3), i%4 != 3)
+	}
+	at += 30 * 86400
+	add(topic("a"), 2, 3, false)
+	add(topic("a"), 2, 3, true)
+	add(topic("b"), 2, 4, true)
+	add(topic("b"), 3, 2, true)
+	return log
 }
 
 // format04Log is pages of the workbook of kind 1, as api kept them before format 0.4, then pages of
@@ -287,6 +310,12 @@ func TestGoldenFold(t *testing.T) {
 				}
 				if len(sk.Traps) != 1 || sk.Traps[0].ID != workbook+"/trap/twelve-hours-off" {
 					t.Errorf("addition has the traps %v; want the trap of the 12-hour clock", sk.Traps)
+				}
+			}
+			if j.name == "break" {
+				// 24 answers before the break and four after it, and n = 20 + 4.
+				if n := s.Modules[0].AnswerWeight; len(log) != 28 || n != 24 {
+					t.Errorf("after the break n is %v over %d pieces of evidence, want 24 over 28", n, len(log))
 				}
 			}
 			if j.name == "transfer" {

@@ -60,6 +60,12 @@ const (
 	stabilityFloor = 1.0
 	// stabilityGrowth is g: a right answer at retention R multiplies τ by 1 + g · (1 − R).
 	stabilityGrowth = 15.0
+	// levelPause is d₀, in days: after a pause of a module at least this long since the latest
+	// practice of its skills, its level forgets, and the weight of its answers n falls back to
+	// levelWeight, N, so that the step of θ widens. N is at least 5, or the module would fall back
+	// into its trial series.
+	levelPause  = 14.0
+	levelWeight = 20.0
 	// secondsPerDay turns a pause in whole seconds into days; time knows no calendar.
 	secondsPerDay = 86400
 	// maxPauseSeconds is the longest pause, 2⁵³ s, past which a difference of seconds would not
