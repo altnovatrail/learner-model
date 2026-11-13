@@ -30,13 +30,15 @@ Releases come out by themselves: each commit of `main` whose CI has passed and w
 
 ## Documents
 
-The documents are in Russian.
+The documents under `docs/` are in Russian until they are translated into English; the work plan, its debt and the epic archives stay in Russian.
 
-- [docs/architecture.md](docs/architecture.md) — the component: what it does and does not do, its data and links, what was deliberately deferred, and what to build.
+- [docs/architecture.md](docs/architecture.md) — the component: what it does and does not do, its data and links, what was deliberately deferred, and how it is built.
 - [docs/decisions.md](docs/decisions.md) — the decision log: what was decided, why, and what was rejected.
-- [RUN.md](RUN.md) — the work plan, in epics.
+- [docs/sources.md](docs/sources.md) — the external facts the documents rest on, each with its source, its date and its quote.
+- [docs/measurements.md](docs/measurements.md) — the results of measurements.
+- [RUN.md](RUN.md) — the work plan, in epics, and [DEBT.md](DEBT.md) — its technical debt.
 
-The working rules, for people and coding agents alike, are in [CLAUDE.md](CLAUDE.md) and [AGENTS.md](AGENTS.md). The platform's shared vocabulary, formats, contracts and decisions are in [spec](https://github.com/altnovatrail/spec/tree/v0.16.3), checked out here as a git submodule at `v0.15.0`: clone this repository with `git clone --recurse-submodules`.
+The working rules, for people and coding agents alike, are in [CLAUDE.md](CLAUDE.md) and [AGENTS.md](AGENTS.md). The platform's shared vocabulary, formats, contracts and decisions are in [spec](https://github.com/altnovatrail/spec/tree/v0.16.3), checked out here as a git submodule at `v0.16.3`: clone this repository with `git clone --recurse-submodules`.
 
 ## License
 
