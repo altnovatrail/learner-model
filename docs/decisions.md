@@ -4,7 +4,7 @@
 >
 > **Rule:** do not re-propose what was rejected without new facts. If a decision has to change, ask the author and update this file. An entry is never rewritten: an amendment with its date at the end of the entry corrects it, or a new entry replaces it, and the old one stays where it is, marked "Superseded".
 >
-> The repository was set up on 2026-10-19 from the template of `spec` v0.1.0 (R21 spec), moved to `spec` v0.2.9 on 2026-10-20 (R01), to v0.6.3 on 2026-11-02 (R02), to v0.6.6 the same day (R05), to v0.9.3 on 2026-11-06 (R11), to v0.9.5 on 2026-11-07 (R15), to v0.9.9 on 2026-11-08 (R17), to v0.9.16 on 2026-11-09 (R19), to v0.12.0 the same day (R23), to v0.14.0 on 2026-11-11 (R26), to v0.15.0 the same day (R27), and to v0.16.3 on 2026-11-13 (R33). How it comes to differ from the template over time — the tools in the devcontainer, the rules in RUN.md — is recorded here as a decision, as R46 canvas-api recorded the differences from its model. Next number — R36.
+> The repository was set up on 2026-10-19 from the template of `spec` v0.1.0 (R21 spec), moved to `spec` v0.2.9 on 2026-10-20 (R01), to v0.6.3 on 2026-11-02 (R02), to v0.6.6 the same day (R05), to v0.9.3 on 2026-11-06 (R11), to v0.9.5 on 2026-11-07 (R15), to v0.9.9 on 2026-11-08 (R17), to v0.9.16 on 2026-11-09 (R19), to v0.12.0 the same day (R23), to v0.14.0 on 2026-11-11 (R26), to v0.15.0 the same day (R27), and to v0.16.3 on 2026-11-13 (R33). How it comes to differ from the template over time — the tools in the devcontainer, the rules in RUN.md — is recorded here as a decision, as R46 canvas-api recorded the differences from its model. Next number — R38.
 >
 > Here entries are cited as `R03`, in other repositories as `R03 learner-model`. The decisions of `spec` are cited as "R18 spec", MathTrail's decisions as "R37 canvas-api", and in a list as "canvas-api: R37, R38". Each log has its own numbers.
 >
@@ -1417,6 +1417,8 @@ Checked 2026-11-07 in the container: `just ci-lint ci-test ci-proto` green — t
 
   `sim`'s base, paths and bands are now on the commit of `theta`, and `held-out-model-1` is no longer held out: the next round of the model is confirmed on `held-out-model-2` (R46 `sim`). — RUN.md, T45; Д6.
 
+— *Second amendment 2026-11-13 (R37):* the next round that "What the exploration does not decide" speaks of is epic E7, T51–T55 of RUN.md: the base of the division of τ between 0.4 and 0.5 and a growth of τ that slows down with τ, on the base with `theta`.
+
 ## The tag v0.16.3 of `spec`
 
 **R33. `learner-model` stands on `spec` v0.16.3 — the latest release. The tag recorded all six rows «в реестр spec», В38–В43, and they are closed. Beyond them it brings Go 1.27.4 in the stage `toolchain` and the row Д215 in `claudeMdExcludes` — the move takes them — and `spec`'s epic E10, the saving of tokens (R143 spec, R145 spec): new rules of RULES.md, the template with `DEBT.md`, `docs/sources.md` and budgets of documents, and the translation of `docs/` into English. That is row 7.8 of `spec`'s `COORDINATION.md`, a task of its own, not the move: when to take it is a question to the author, В45. The move changes neither code nor schema, and the merge releases the patch `v0.1.7` with the same code and schema — the Dockerfile is in the release's `paths` (the 2026-11-09 amendment to R16).** The author's decision of 2026-11-13 — «перейди на spec последней версии»; a task outside an epic, T47 of RUN.md.
@@ -1498,3 +1500,47 @@ Checked 2026-11-07 in the container: `just ci-lint ci-test ci-proto` green — t
 - CLAUDE.md, README.md and rule 10 of RUN.md say that `docs/` is in English, without "until T50".
 
 Checked (2026-11-13): `just -f spec/justfile translation-check 0f983e1` on the four files — ok before this amendment, which is new text and not a translation, so the check reports its units as not in the original; `translation-anchors` on every Markdown file of the repository, the archives of `docs/plan/` too — no link leads to a renamed heading; the blind reading of `sample` — 15 stretches of about 4 KB, three fresh subagents, 14 differences, each fixed and checked again; `just -f spec/justfile docs-check-repo` — green, with the budgets. — RUN.md, T50.
+
+— *Second amendment 2026-11-13 (R36):* **RUN.md no longer has the section «Задачи вне эпика»: a task outside an epic stands in table 1 of the current epic and goes into its archive like the others; rules 3, 5 and 10 are pointers to RULES.md and CLAUDE.md, and rule 6 points to CLAUDE.md for what `docs-check` checks. When there is no current epic, a task outside an epic still goes to the archive of the last one done, the section «Задачи вне эпика, сделанные после него», as this entry says.** RUN.md was 18,871 bytes instead of 37,869 before E7 was unfolded; the history of its tables went to [plan/E5.md](plan/E5.md), «Из RUN.md».
+
+## A shorter RUN.md
+
+**R36. RUN.md keeps only what is live and what no other file says: the executor's rules, the current epic, the tables 2 and 3, and the bodies of the tasks not yet done. The section «Задачи вне эпика» is gone: a task outside an epic stands in table 1 of the current epic and goes into its archive like the others. Rules that repeat RULES.md or CLAUDE.md are a line with a pointer, and their numbers stay. The history of the tables and the section «Задачи вне эпика» went to the archive of the last epic done word for word, not lost. This is the shape `sim` gave its RUN.md by R47 `sim`.** The author's instructions of 2026-11-13: «почисти файл RUN.md от ненужной для тебя информации чтобы уменьшить потребление токенов», «удали Задачи вне эпика», and, when E7 was unfolded, «как R47 sim» — the answer to whether to bring the cleanup to the shape of R47 `sim`.
+- **What changed** (RUN.md, 37,869 bytes → 18,871 at commit 5d37495, before E7 was unfolded):
+  - the opening — without the paragraph on the epics done and without the repeat of "one task is one session";
+  - rules 3, 5 and 10 — a pointer to RULES.md, Hard rules and How we work; rule 6 — without the list of what `docs-check` checks, which is in CLAUDE.md, Environment; rule 2 — the rules of the parts in `.claude/rules/`; rule 9 — a task outside an epic stands in table 1, and without a current epic goes to the archive of the last one done, as R35 says; the statuses `[-]` and `[?]` stay the author's decision; the block «Ссылки» — gone, as RULES.md, Citations says it;
+  - «Статусы», «Кто», «План» and «Тело задачи» — a line each; «Как устроен план: эпики» — the same rules, shorter; the list of done epics — one line each;
+  - the list of done epics as it was, the opening paragraphs of tables 2–4 — the history of the epics proposed, of the closed rows В1–В48 and of the move of table 4 — and the section «Задачи вне эпика» with the phrases of T48–T50 — to [plan/E5.md](plan/E5.md), «Из RUN.md». Table 3 keeps its next number, В50, which `docs-check` reads.
+
+— *Why so:* every session reads RUN.md whole, at its start, and half of it was history or a copy of the shared rules that CLAUDE.md already loads. The template of `spec` keeps the section «Задачи вне эпика» (R19 spec, R145 spec), but here it held only the finished T48–T50, whose bodies were in the archive already; a task outside an epic loses nothing by standing in table 1. `sim` made the same choice the same day, and one shape in both repositories is cheaper to read than two.
+
+— *Rejected:*
+- keeping the section empty, or creating it with the first task outside an epic — such a task can stand in table 1 like any other;
+- deleting the history without moving it, as the first pass of the cleanup did — the archive of the epic is where it would have gone at the next epic's end, and the decisions cite it;
+- renumbering the rules — the log and CLAUDE.md cite them by number.
+
+— *Consequence:* the second 2026-11-13 amendment to R35. A move to a newer tag of `spec` that brings a new RUN.md of the template reads this entry first. The documents are outside the release's `paths`: the merge releases no tag (R16). — RUN.md; [plan/E5.md](plan/E5.md), «Из RUN.md».
+
+## Epic E7
+
+**R37. Epic E7 is the third round of the model's candidates: the forgetting numbers of R04 on the base with `theta`. First the gate on the latest tag of `sim`, then the exploration at the size of the deciding run on that same tag, the drafts of the candidates, the judgement `model-3` with its confirmation on `held-out-model-2`, and the summary — T51–T55. The tag of `sim` stays the same from T51 to the judgement's choice. Each task is a branch of its own from `main`, which the executor takes to the merge, except the drafts of the candidates.** The author's instruction of 2026-11-13, «разворачивай задачи E7», after the analysis of what E7 is for and whether it can be taken; in the planning — a branch per task, as in E4 and in E5 from T44. The make-up is by the row of E7 in table 2 of RUN.md, which T46 proposed.
+- **What was found** (2026-11-13; `sim` `main` 9c8f782 and `engine` `main`, through `gh api`):
+  - `sim` has done T48: its base is the release `v0.1.8`, commit ab688b2, at the tag `v0.1.14`, and its E5 waits only for its summary. R46 `sim` names the next round of the model — `judgements/model-3/`, confirmed on `held-out-model-2` — but no task of `sim` judges it yet, and table 2 of `sim` holds only E6, the judgement `engine-2`;
+  - `engine` is in its E7, "Lesson consolidation": its T52 waits for a tag of `sim` with the step and the criterion of its T50, and its T53 for a judgement of `sim`. The candidates of `engine`'s second round of the corridor, which `engine-2` judges, do not exist yet;
+  - "Gate" here stands on `sim` `v0.1.13`, commit 7c32016, whose base is the commit of `theta` a063835; `v0.1.14` has the same base on the release;
+  - the growth of τ is τ · (1 + g · (1 − R)) for a right answer and halving for a wrong one (`stabilityAfter`, `model.go`); in FSRS the gain of stability falls with stability (sources 3.1). A growth that depends on τ itself needs no new field: τ is in the state, and the state kind stays 1.
+- **What was decided:**
+  1. the tasks T51–T55: the gate on the latest tag of `sim` (T51); the exploration (T52) — the base of the division of τ between 0.4 and 0.5 and a growth of τ that slows down with τ, alone and with g, measured on the checks that the sets of T43 failed; the drafts (T53), the judgement and the release (T54), the summary (T55) — as T43–T46 of E5;
+  2. no analysis task as T42: R32 already names the cause of the failures of `forget-set` outside `F-` — the growth of τ at g 10, on which the rule of θ does not act;
+  3. a branch per task from `main`, a pull request and a merge that the executor takes to green CI itself (R30, decision 5); the drafts of the candidates are branches from `main` and wait for the judgement, and T54 merges the chosen one, which releases a patch of the line `0.1`;
+  4. the tag of `sim` is held from T51 to the judgement's choice: the numbers of the exploration equal the judgement's on the working learners only on the same tag (R32). Who holds `sim`'s pin first — this round, `engine`'s lesson consolidation or `engine-2` — is the row В50 «в реестр spec».
+
+— *Why so:* the gate before the exploration is the order of E4 and E5 (T36, T41): a red "Gate" on a candidate must mean a shift of the measure, not a new tag. The exploration at the size of the deciding run on the judgement's tag is the lesson of the first round (the 2026-11-10 amendment to R24) and gave the judgement `model-2` number for number (the 2026-11-13 amendment to R32).
+
+— *Rejected:*
+- an analysis task as T42 — the cause is known, and an analysis would add no fact the exploration needs;
+- one branch of the epic, as E5 went until T44 — the author chose a branch per task; the code of the round is only the drafts of T53, and one of them goes into `main`, so the round comes out as one release either way;
+- the exploration on `sim` `v0.1.13`, without T51 — the judgement goes on the latest tag, and a later tag would shift the exploration's numbers;
+- Д5, ρ, τ₀ and the weight of an answer with help in the round — there are no new facts about them (R24, R32).
+
+— *Consequence:* RUN.md — E7 in table 1 with its tasks, the row of E7 has left table 2, and the row В50; [architecture.md](architecture.md), section 2.2, "Deferred"; [DEBT.md](../DEBT.md), Д6; the second 2026-11-13 amendment to R32. The documents are outside the release's `paths`: the merge releases no tag (R16). — R04, R24, R30, R32; R46 `sim`; RUN.md, table 1, В50.
