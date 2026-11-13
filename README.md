@@ -30,7 +30,7 @@ Releases come out by themselves: each commit of `main` whose CI has passed and w
 
 ## Documents
 
-The documents under `docs/` are in Russian until they are translated into English; the work plan, its debt and the epic archives stay in Russian.
+The documents under `docs/` are in English; the work plan, its debt and the epic archives stay in Russian.
 
 - [docs/architecture.md](docs/architecture.md) — the component: what it does and does not do, its data and links, what was deliberately deferred, and how it is built.
 - [docs/decisions.md](docs/decisions.md) — the decision log: what was decided, why, and what was rejected.
