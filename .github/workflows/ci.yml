@@ -89,8 +89,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      SIM_TAG: v0.1.13
-      SIM_COMMIT: 7c3201622165070519a489f7dfd2066dbf06d189
+      SIM_TAG: v0.1.14
+      SIM_COMMIT: 9c8f782189a4d1d8c2fef59d496f324c03e3cb82
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
