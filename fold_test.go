@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand/v2"
+	"slices"
 	"strings"
 	"testing"
 
@@ -606,6 +607,92 @@ func TestForgettingTrial(t *testing.T) {
 	a, b := skillOf(t, soon, add[0]), skillOf(t, late, add[0])
 	if !(b.Stability > a.Stability && a.Stability > 1) || b.LastPractice != 30*86400 {
 		t.Errorf("τ in the trial series: %v after a minute, %v after a month", a.Stability, b.Stability)
+	}
+}
+
+// The forgetting of the level (docs/architecture.md, section 3.2): after a pause of the module of 14
+// days since the latest practice of its skills, n falls to 20 before the step, so that the state
+// after it is the state a learner with n = 20 would have; below 20 n stays. Evidence with no answer
+// and evidence that weighs nothing move nothing after a pause either, and a module with no skill
+// has no pause to count. In the trial series n is below 5, and TestForgettingTrial holds it as it
+// was.
+func TestLevelForgetting(t *testing.T) {
+	const day = 86400
+	g := workbookGraphs(t)
+	add, sub := skill("addition"), skill("subtraction")
+	withWeight := func(s lm.State, n float64) lm.State {
+		s.Modules = slices.Clone(s.Modules) // the module of s stays as it was
+		s.Modules[0].AnswerWeight = n
+		return s
+	}
+	pageAt := func(at int64) lm.Evidence { return page(3, 2, []string{add}, at) } // N · u = 1.8
+	before := ready(t)                                                            // n = 50, addition practised at 100
+	for _, c := range []struct {
+		name   string
+		state  lm.State
+		at     int64
+		forget bool
+	}{
+		{"a pause a second short of 14 days", before, 100 + 14*day - 1, false},
+		{"a pause of 14 days", before, 100 + 14*day, true},
+		{"a pause of 60 days", before, 100 + 60*day, true},
+		{"a time that came back", before, 50, false},
+		{"n below 20", withWeight(ready(t), 15), 100 + 30*day, false},
+	} {
+		got := mustAppend(t, c.state, pageAt(c.at), g)
+		n := c.state.Modules[0].AnswerWeight
+		if c.forget {
+			n = 20
+		}
+		if want := mustAppend(t, withWeight(c.state, n), pageAt(c.at), g); !sameState(t, got, want) ||
+			math.Abs(got.Modules[0].AnswerWeight-n-1.8) > 1e-12 {
+			t.Errorf("%s: n after it %v, want the state of a learner with n = %v before it", c.name, got.Modules[0].AnswerWeight, n)
+		}
+	}
+
+	// The pause is the module's: a skill practised a day before keeps n, though addition waited a
+	// month.
+	recent := ready(t)
+	recent.Modules[0].Skills = append(recent.Modules[0].Skills, lm.SkillState{Skill: sub, AnswerWeight: 3, EvidenceCount: 1,
+		LastPractice: 100 + 29*day, Stability: 1})
+	if s := mustAppend(t, recent, pageAt(100+30*day), g); math.Abs(s.Modules[0].AnswerWeight-51.8) > 1e-12 {
+		t.Errorf("a pause of addition alone: n %v, want 51.8", s.Modules[0].AnswerWeight)
+	}
+
+	// Evidence with no answer, and evidence whose skill tags the AI gave, move nothing after a pause.
+	none := pageAt(100 + 30*day)
+	for i := range none.Items {
+		none.Items[i].HasFirstVerdict, none.Items[i].FirstVerdict = false, 0
+	}
+	ai := pageAt(100 + 30*day)
+	ai.Task.SkillTagsProvenance = lm.ProvenanceAI
+	for name, e := range map[string]lm.Evidence{"no answer": none, "tags from the AI": ai} {
+		if s := mustAppend(t, before, e, g); !sameState(t, s, before) {
+			t.Errorf("evidence with %s after a pause moved the module: n %v", name, s.Modules[0].AnswerWeight)
+		}
+	}
+
+	// J = 0: evidence whose primary skill no graph knows moves θ after a pause and brings n down,
+	// but practises no skill, so the pause still runs from addition: the next evidence a day later
+	// brings n down again.
+	unknown := page(3, 2, []string{skill("unknown")}, 100+30*day)
+	s := mustAppend(t, before, unknown, g)
+	if s.Modules[0].Level == before.Modules[0].Level || math.Abs(s.Modules[0].AnswerWeight-21.8) > 1e-12 ||
+		skillOf(t, s, add).LastPractice != 100 || len(s.Modules[0].Skills) != 1 {
+		t.Errorf("evidence with J = 0 after a pause: θ %v, n %v, addition practised at %d",
+			s.Modules[0].Level, s.Modules[0].AnswerWeight, skillOf(t, s, add).LastPractice)
+	}
+	next := pageAt(100 + 31*day)
+	if got, want := mustAppend(t, s, next, g), mustAppend(t, withWeight(s, 20), next, g); !sameState(t, got, want) {
+		t.Errorf("after evidence with J = 0, n %v; want the pause counted from addition, and n = 20 before the step",
+			got.Modules[0].AnswerWeight)
+	}
+
+	// A module with no skill: the same evidence moves θ, and n grows from 50.
+	bare := ready(t)
+	bare.Modules[0].Skills = nil
+	if s := mustAppend(t, bare, unknown, g); math.Abs(s.Modules[0].AnswerWeight-51.8) > 1e-12 {
+		t.Errorf("a module with no skill after a pause: n %v, want 51.8", s.Modules[0].AnswerWeight)
 	}
 }
 

@@ -2,6 +2,7 @@ package learnermodel
 
 import (
 	"math"
+	"slices"
 	"strconv"
 	"testing"
 
@@ -187,6 +188,86 @@ func TestForgettingExample(t *testing.T) {
 
 	// Within a lesson R stays near 1: two minutes after an answer at τ = 1.
 	nearTo(t, "R after two minutes", retentionAt(SkillState{Stability: 1}, 120), 0.99984)
+}
+
+// The example of docs/architecture.md, section 3.2, with the forgetting of the level: the learner of
+// the example, mastered at `3-4`, comes back to the module after 60 days and answers difficulty 3
+// of `3-4` with five options right. The pause of the module is 60 days, so n falls from 100 to 20
+// before the step: K_θ is 0.1, not its floor of 0.05, and θ moves twice as far, while δ moves as it
+// would without the rule. v widens, and the next review comes sooner. The document prints three
+// decimals, and the review one.
+func TestLevelForgettingExample(t *testing.T) {
+	const day = 86400
+	const module = "example/olympiad"
+	a, b := module+"/skill/a", module+"/skill/b"
+	band := BandRef{Place: 2, ID: "3-4"}
+	g, err := NewGraph(module, []Band{{Place: 1, ID: "1-2"}, {Place: 2, ID: "3-4"}, {Place: 3, ID: "5-6"}},
+		[]Skill{{ID: a, Assessability: AssessabilityVerdict}, {ID: b, Assessability: AssessabilityVerdict}}, nil,
+		[]Task{{ID: module + "/task/a", Band: band, Difficulty: 3, Primary: []string{a}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ms := ModuleState{Module: module, Level: 4, AnswerWeight: 100, StartBand: band,
+		Skills: []SkillState{{Skill: a, Correction: 0.5, AnswerWeight: 20, EvidenceCount: 20, LastPractice: 0, Stability: 10,
+			Mastered: true, MasteryBand: 2}}}
+	e := Evidence{
+		Kind: EvidenceKind,
+		Task: Task{ID: module + "/task/x", Band: band, Difficulty: 3, Primary: []string{a},
+			KeyProvenance: ProvenanceAuthor, SkillTagsProvenance: ProvenanceAuthor,
+			Items: []TaskItem{{Place: 1, Slots: []Slot{{Check: CheckKindChoice, Options: 5, HasOptions: true}}}}},
+		StartBand: band, PracticeTime: 60 * day,
+		Items: []ItemAnswer{{Place: 1, Submitted: true, FirstVerdict: VerdictCorrect, HasFirstVerdict: true}},
+	}
+	near3 := func(what string, got, want float64) {
+		t.Helper()
+		if math.Abs(got-want) > 1e-3 {
+			t.Errorf("%s = %.6f, want %.3f", what, got, want)
+		}
+	}
+	nearTo(t, "K_θ at n = 100", levelStep(100), 0.05)
+	nearTo(t, "K_θ at n = 20", levelStep(20), 0.1)
+	// The same learner, but another skill of the module was practised a day before the answer: the
+	// pause of the module is a day, the rule stays off, and the answer of skill a is the same.
+	control := ms
+	control.Skills = append(slices.Clone(ms.Skills), SkillState{Skill: b, AnswerWeight: 3, EvidenceCount: 1,
+		LastPractice: 59 * day, Stability: 1})
+	for _, m := range []*ModuleState{&ms, &control} {
+		if !m.step(e, pairItems(e), &g) {
+			t.Fatal("the answer moved nothing")
+		}
+	}
+	sk, ck := ms.Skills[0], control.Skills[0]
+	nearTo(t, "the move of θ", ms.Level-4, 0.0085)
+	nearTo(t, "the move of θ without the rule", control.Level-4, 0.0043)
+	nearTo(t, "the move of δ", sk.Correction-0.5, 0.0170)
+	if ck.Correction != sk.Correction || ck.Stability != sk.Stability {
+		t.Errorf("the rule moved δ or τ: %+v, want %+v", sk, ck)
+	}
+	if ms.AnswerWeight != 21 || control.AnswerWeight != 101 || sk.AnswerWeight != 21 {
+		t.Errorf("n %v, %v without the rule, and m %v after the answer, want 21, 101 and 21",
+			ms.AnswerWeight, control.AnswerWeight, sk.AnswerWeight)
+	}
+	reviewIn := func(q float64) float64 {
+		return float64(float64(reviewDate(q, sk.Stability, sk.LastPractice).At-60*day) / day)
+	}
+	for _, c := range []struct {
+		what        string
+		m           ModuleState
+		v, q, after float64
+	}{
+		{"", ms, 0.465, 0.793, 58.7},
+		{" without the rule", control, 0.228, 0.824, 84.9},
+	} {
+		near3("v"+c.what, uncertainty(c.m.AnswerWeight, c.m.Skills[0].AnswerWeight), c.v)
+		q := masteryChance(c.m.Level, c.m.AnswerWeight, c.m.Skills[0])
+		near3("q"+c.what, q, c.q)
+		if got := reviewIn(q); math.Abs(got-c.after) > 0.05 {
+			t.Errorf("the next review%s in %.3f days, want %.1f", c.what, got, c.after)
+		}
+	}
+	if !sk.Mastered || sk.MasteryBand != 2 {
+		t.Errorf("the mastery after the answer: %v at %d, want held at 2", sk.Mastered, sk.MasteryBand)
+	}
 }
 
 // The edges of the rules of forgetting.
