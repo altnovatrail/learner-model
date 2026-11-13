@@ -1501,14 +1501,14 @@ Checked 2026-11-07 in the container: `just ci-lint ci-test ci-proto` green — t
 
 Checked (2026-11-13): `just -f spec/justfile translation-check 0f983e1` on the four files — ok before this amendment, which is new text and not a translation, so the check reports its units as not in the original; `translation-anchors` on every Markdown file of the repository, the archives of `docs/plan/` too — no link leads to a renamed heading; the blind reading of `sample` — 15 stretches of about 4 KB, three fresh subagents, 14 differences, each fixed and checked again; `just -f spec/justfile docs-check-repo` — green, with the budgets. — RUN.md, T50.
 
-— *Amendment 2026-11-13 (R36):* **RUN.md no longer has the section «Задачи вне эпика»: a task outside an epic stands in table 1 of the current epic and goes into its archive like the others, and rules 3, 5, 6 and 10 are pointers to RULES.md and CLAUDE.md. What this entry says of the rules of RUN.md by the template and of the section «Задачи вне эпика, сделанные после него» holds for T48–T50, done before R36.** RUN.md is 18,871 bytes instead of 37,869; the history of its tables went to [plan/E5.md](plan/E5.md), «Из RUN.md».
+— *Second amendment 2026-11-13 (R36):* **RUN.md no longer has the section «Задачи вне эпика»: a task outside an epic stands in table 1 of the current epic and goes into its archive like the others; rules 3, 5 and 10 are pointers to RULES.md and CLAUDE.md, and rule 6 points to CLAUDE.md for what `docs-check` checks. When there is no current epic, a task outside an epic still goes to the archive of the last one done, the section «Задачи вне эпика, сделанные после него», as this entry says.** RUN.md was 18,871 bytes instead of 37,869 before E7 was unfolded; the history of its tables went to [plan/E5.md](plan/E5.md), «Из RUN.md».
 
 ## A shorter RUN.md
 
 **R36. RUN.md keeps only what is live and what no other file says: the executor's rules, the current epic, the tables 2 and 3, and the bodies of the tasks not yet done. The section «Задачи вне эпика» is gone: a task outside an epic stands in table 1 of the current epic and goes into its archive like the others. Rules that repeat RULES.md or CLAUDE.md are a line with a pointer, and their numbers stay. The history of the tables and the section «Задачи вне эпика» went to the archive of the last epic done word for word, not lost. This is the shape `sim` gave its RUN.md by R47 `sim`.** The author's instructions of 2026-11-13: «почисти файл RUN.md от ненужной для тебя информации чтобы уменьшить потребление токенов», «удали Задачи вне эпика», and, when E7 was unfolded, «как R47 sim» — the answer to whether to bring the cleanup to the shape of R47 `sim`.
-- **What changed** (RUN.md, 37,869 bytes → 18,871):
+- **What changed** (RUN.md, 37,869 bytes → 18,871 at commit 3ac80bd, before E7 was unfolded):
   - the opening — without the paragraph on the epics done and without the repeat of "one task is one session";
-  - rules 3, 5 and 10 — a pointer to RULES.md, Hard rules and How we work; rule 6 — without the list of what `docs-check` checks, which is in CLAUDE.md, Environment; rule 2 — the rules of the parts in `.claude/rules/`; rule 9 — a task outside an epic stands in table 1; the block «Ссылки» — gone, as RULES.md, Citations says it;
+  - rules 3, 5 and 10 — a pointer to RULES.md, Hard rules and How we work; rule 6 — without the list of what `docs-check` checks, which is in CLAUDE.md, Environment; rule 2 — the rules of the parts in `.claude/rules/`; rule 9 — a task outside an epic stands in table 1, and without a current epic goes to the archive of the last one done, as R35 says; the statuses `[-]` and `[?]` stay the author's decision; the block «Ссылки» — gone, as RULES.md, Citations says it;
   - «Статусы», «Кто», «План» and «Тело задачи» — a line each; «Как устроен план: эпики» — the same rules, shorter; the list of done epics — one line each;
   - the list of done epics as it was, the opening paragraphs of tables 2–4 — the history of the epics proposed, of the closed rows В1–В48 and of the move of table 4 — and the section «Задачи вне эпика» with the phrases of T48–T50 — to [plan/E5.md](plan/E5.md), «Из RUN.md». Table 3 keeps its next number, В50, which `docs-check` reads.
 
@@ -1519,7 +1519,7 @@ Checked (2026-11-13): `just -f spec/justfile translation-check 0f983e1` on the f
 - deleting the history without moving it, as the first pass of the cleanup did — the archive of the epic is where it would have gone at the next epic's end, and the decisions cite it;
 - renumbering the rules — the log and CLAUDE.md cite them by number.
 
-— *Consequence:* the 2026-11-13 amendment to R35. A move to a newer tag of `spec` that brings a new RUN.md of the template reads this entry first. The documents are outside the release's `paths`: the merge releases no tag (R16). — RUN.md; [plan/E5.md](plan/E5.md), «Из RUN.md».
+— *Consequence:* the second 2026-11-13 amendment to R35. A move to a newer tag of `spec` that brings a new RUN.md of the template reads this entry first. The documents are outside the release's `paths`: the merge releases no tag (R16). — RUN.md; [plan/E5.md](plan/E5.md), «Из RUN.md».
 
 ## Epic E7
 
@@ -1543,4 +1543,4 @@ Checked (2026-11-13): `just -f spec/justfile translation-check 0f983e1` on the f
 - the exploration on `sim` `v0.1.13`, without T51 — the judgement goes on the latest tag, and a later tag would shift the exploration's numbers;
 - Д5, ρ, τ₀ and the weight of an answer with help in the round — there are no new facts about them (R24, R32).
 
-— *Consequence:* RUN.md — E7 in table 1 with its tasks, the row of E7 has left table 2, and the row В50; [architecture.md](architecture.md), section 2.2, "Deferred"; the 2026-11-13 amendment to R32. The documents are outside the release's `paths`: the merge releases no tag (R16). — R04, R24, R30, R32; R46 `sim`; RUN.md, table 1, В50.
+— *Consequence:* RUN.md — E7 in table 1 with its tasks, the row of E7 has left table 2, and the row В50; [architecture.md](architecture.md), section 2.2, "Deferred"; [DEBT.md](../DEBT.md), Д6; the second 2026-11-13 amendment to R32. The documents are outside the release's `paths`: the merge releases no tag (R16). — R04, R24, R30, R32; R46 `sim`; RUN.md, table 1, В50.
