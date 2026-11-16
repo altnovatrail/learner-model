@@ -30,13 +30,14 @@ Releases come out by themselves: each commit of `main` whose CI has passed and w
 
 ## Documents
 
-The documents under `docs/` are in English; the work plan, its debt and the epic archives stay in Russian.
+The documents and the work plan are in English; the bodies of the plan's tasks and the archives of its epics are in Russian.
 
 - [docs/architecture.md](docs/architecture.md) — the component: what it does and does not do, its data and links, what was deliberately deferred, and how it is built.
 - [docs/decisions.md](docs/decisions.md) — the decision log: what was decided, why, and what was rejected.
 - [docs/sources.md](docs/sources.md) — the external facts the documents rest on, each with its source, its date and its quote.
 - [docs/measurements.md](docs/measurements.md) — the results of measurements.
-- [RUN.md](RUN.md) — the work plan, in epics, and [DEBT.md](DEBT.md) — its technical debt.
+- [RUN.md](RUN.md) — the work plan, in epics.
+- `run/` — the plan's other tables: [the epics for later](run/EPICS.md), [the open questions](run/QUESTIONS.md), [the technical debt](run/DEBT.md) and [the tasks outside an epic](run/TASKS.md).
 
 The working rules, for people and coding agents alike, are in [CLAUDE.md](CLAUDE.md) and [AGENTS.md](AGENTS.md). The platform's shared vocabulary, formats, contracts and decisions are in [spec](https://github.com/altnovatrail/spec/tree/v0.18.3), checked out here as a git submodule at `v0.18.3`: clone this repository with `git clone --recurse-submodules`.
 
