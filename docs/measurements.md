@@ -111,3 +111,99 @@ How long the gate of `sim` `v0.1.23`, commit 61ed988, takes on the code of `main
 
 - **In the container:** `just gate exact` from a clone of `sim` at `61ed988` in the session's folder, `GATE_LEARNER_MODEL` the repository's folder, 20 cores: 2 min 17.9 s by the clock, 1,997 s user and 48 s system (`time`); 69 numbers in their bands and to the bit, no learner breaks an invariant, code 0.
 - **On a runner:** the job "Gate" of CI on pull request #79, commit 01fd0ab, `ubuntu-24.04` without a Go cache: 7 min 16 s, of which the build of the stage `toolchain` 22 s and the gate 6 min 40 s, by the times of its steps (`gh api repos/altnovatrail/learner-model/actions/runs/<run>/jobs`); all 69 numbers in their bands. Below the budget `timeout-minutes: 15`, as 7 min 28 s on `v0.1.14` in T51.
+
+## 7. The exploration of the round of fairness, T61, 2026-11-16
+
+What the model's numbers of the start and the step do to `M11` of grades 1 and 5 and to the rest of the model's criterion, measured by the exploration T61 for R42 and stopped by the author's decision of 2026-11-16 (R42).
+
+### 7.1. The harness and the runs
+
+- **The harness** is `sim` `v0.1.23`, commit 61ed988, the tag of "Gate" and of the criterion `model-fair-1` (the 2026-11-16 amendment to R20; sources 6.13), from a clean clone in the session's folder; the base is `learner-model` v0.1.8 and `engine` v0.1.6, by its `go.mod`. The machine is the container's, 20 cores, shared with other sessions: the load average stood from 35 to 130 through the runs, so the times below are of a busy machine.
+- **The same bits as T59.** The three cells `D-` of the base, `sim run -populations D-grade1,D-grade3,D-grade5 -learners 2000 -set working -rule engine -part k/20` for k from 0 to 19 and `sim merge`, give the file `80323302ceed586c…04b`, the SHA-256 of measurements 5.1, in 6 min 34 s. The decisive run of the base, `just decisive engine <file>`, gives `9e89cb7cfd0f1f0c…763`, exactly `base` of `internal/criterion/paths.json` of `sim`, in 2 h 25 min by the clock, 49,217 s of user time.
+- **The variants** are commits on top of `main` 26be23c, whose Go code is v0.1.8's, in a clone in the session's folder; none goes into the repository. Their names: `kX` — K₀ of θ (`levelStep0`) X; `fX` — the floor of K_θ (`levelStepFloor`) X; `wX` — the weight of the trial series (`trialWeight`) X; `s3` — σ₀ (`startSpread`) 3.0; `dX` — K₀ of δ (`correctionStep0`) X; `dtX` — a decay of K_θ of its own, `levelStepDecay` X, in place of the shared 0.05 for θ alone; `kbXnN` — a rule: K₀ of θ is X while the weight of answers n is below N, and the base's 0.2 from N on. So `k04d02` is K₀ of θ 0.4 and K₀ of δ 0.2, commit c8b4ce9.
+- **To repeat them.** A name's numbers drop the decimal point after a leading 0: `k04` is 0.4, `k025` 0.25, `f0075` 0.075, `d015` 0.15, `dt10` 0.10, `dt30` 0.30; `w10` is 10, `w15` 15 and `w75` 7.5; N of `kbXnN` is whole. Each variant is one commit on `main` 26be23c that edits `model.go` alone: the constants of its name in the block of constants, the others as they are; `dtX` adds `levelStepDecay = X` beside `stepDecay` and puts it in place of `stepDecay` in `levelStep`, so that K_δ keeps 0.05; `kbXnN` adds `levelBoost0 = X` and `levelBoostWeight = N` and starts `levelStep` with `k0 := float64(levelStep0)`, `if n < levelBoostWeight { k0 = levelBoost0 }`, then `max(k0/(1+stepDecay·n), levelStepFloor)`. The commits of the session's clone are named above; a commit built anew has another SHA and the same numbers, and a file of results names its commit in its header, so its SHA-256 differs while every number is the same (R32). The reader of `M11` is the three calls named in the next item, over the files of the screening.
+- **The screening** runs each variant's three cells `D-` as the base's above, the bench built through a `go.work` with the clone of `sim` and the variant, `-commit` naming the variant's commit, 2–16 minutes a set. A program of the session's clone of `sim`, published nowhere, reads `M11` off two such files as `fair` and the target of `model-fair-1` read it (R66 sim): `bench.Fair`, `measure.ReadPair` of `measure.FairNumbers`, and the target (Δ1 + Δ5) / 2 from the same 2,000 resamples. Its numbers are `sim judge`'s to every digit on `k04w10`, `kb04n50w10` and `k04d02`.
+- **The cells of risk** are the twelve populations on which `k04w10` and `kb04n50w10` failed "no worse" — `W-repeat`, `S-adult`, `F-none`, `G3`, `G3-drop`, `G6`, `G0-exact`, `W-badday`, `W-error`, `G0-miss0.25`, `G0-skills0.3`, `E-leave` —, run as the cells `D-` are, 10–30 minutes a set. Their lines and those of the cells `D-` replace the base's in a copy of the base's decisive file, by population, graph and learner, and `sim judge` reads the copy. On `kb04n50w10` the copy gave the same ten failures as its decisive run, number for number; a copy reads no failure off the other cells, which stay the base's.
+- **The decisive runs** are `CANDIDATE_LEARNER_MODEL=<folder of the variant> just decisive engine <file>`, read by `sim judge` with a judgement file in the session's folder: `"judgement": "model-fair-1"`, `"criterion": "model"`, `"target": "M11.same"`, the base's file and the candidate's. The report reads them as decisive runs; it is the exploration's, not the judgement's.
+
+### 7.2. The screening on the cells `D-`
+
+`M11.same` of grades 1 and 5, the share of each that never comes within 200 answers, and the target with its interval; the base is 0.812 and 0.5525, never 0.021 and 0.314.
+
+| Set | `M11.same` 1; 5 | Never 1; 5 | Target |
+|---|---|---|---|
+| `k04` | 0.870; 0.669 | 0.012; 0.1245 | +0.087 [0.075; 0.100] |
+| `k04f01` | 0.870; 0.669 | 0.0035; 0.0665 | +0.087 [0.075; 0.100] |
+| `k04w10` | 0.8955; 0.7165 | 0.011; 0.0655 | +0.124 [0.109; 0.139] |
+| `f01w10` | 0.859; 0.631 | 0.0055; 0.0645 | +0.063 [0.049; 0.078] |
+| `k03f0075w75` | 0.880; 0.630 | 0.0065; 0.110 | +0.073 [0.059; 0.086] |
+| `k04w15` | 0.8885; 0.7735 | 0.013; 0.042 | +0.149 [0.133; 0.165] |
+| `k05w10` | 0.909; 0.778 | 0.0055; 0.0345 | +0.161 [0.146; 0.177] |
+| `k06w10` | 0.9145; 0.8125 | 0.004; 0.0195 | +0.181 [0.166; 0.196] |
+| `k08w10` | 0.922; 0.853 | 0.0025; 0.0045 | +0.205 [0.190; 0.220] |
+| `s3` | 0.9135; 0.5725 | 0.004; 0.3245 | +0.061 [0.049; 0.072] |
+| `w10` | 0.8465; 0.5945 | 0.0455; 0.1875 | +0.038 [0.024; 0.054] |
+| `w75` | 0.8565; 0.5765 | 0.024; 0.2415 | +0.034 [0.021; 0.048] |
+| `s3w10` | 0.9025; 0.6235 | 0.025; 0.1945 | +0.081 [0.068; 0.095] |
+| `s3k04` | 0.939; 0.662 | 0.0035; 0.1285 | +0.118 [0.107; 0.131] |
+| `s3k04w10` | 0.936; 0.735 | 0.0075; 0.0725 | +0.153 [0.139; 0.168] |
+| `s3k04f01w10d03` | 0.940; 0.7425 | 0; 0.024 | +0.159 [0.144; 0.174] |
+| `s3k06w10` | 0.953; 0.8285 | 0.0015; 0.0175 | +0.209 [0.195; 0.223] |
+| `k025` | 0.8445; 0.582 | 0.0145; 0.2745 | +0.031 [0.023; 0.039] |
+| `k04dt10` | 0.847; 0.594 | 0.0135; 0.2605 | +0.038 [0.028; 0.048] |
+| `k04dt15` | 0.800; 0.561 | 0.0215; 0.304 | −0.002 [−0.010; 0.007] |
+| `k06dt30` | 0.7785; 0.5505 | 0.021; 0.3155 | −0.018 [−0.026; −0.010] |
+| `kb04n30` | 0.849; 0.626 | 0.0195; 0.210 | +0.055 [0.043; 0.068] |
+| `kb04n50` | 0.871; 0.673 | 0.018; 0.1715 | +0.090 [0.077; 0.102] |
+| `kb04n50w10` | 0.8975; 0.7205 | 0.020; 0.095 | +0.127 [0.112; 0.142] |
+| `kb06n50w10` | 0.922; 0.8225 | 0.0235; 0.057 | +0.190 [0.175; 0.205] |
+| `s3kb06n50w10` | 0.956; 0.831 | 0.011; 0.055 | +0.211 [0.197; 0.226] |
+| `d02` | 0.813; 0.5665 | 0.018; 0.2645 | +0.008 [−0.000; 0.016] |
+| `d03` | 0.8055; 0.5635 | 0.015; 0.2885 | +0.002 [−0.005; 0.009] |
+| `k03d02` | 0.8625; 0.6235 | 0.0135; 0.152 | +0.061 [0.050; 0.071] |
+| `k035d02` | 0.867; 0.6555 | 0.012; 0.1045 | +0.079 [0.067; 0.090] |
+| `k04d02` | 0.882; 0.688 | 0.007; 0.082 | +0.103 [0.091; 0.114] |
+| `k04d03` | 0.882; 0.677 | 0.0105; 0.0955 | +0.097 [0.084; 0.110] |
+| `k045d015` | 0.8845; 0.732 | 0.008; 0.037 | +0.126 [0.113; 0.139] |
+| `k05d01` | 0.908; 0.7505 | 0.0045; 0.0235 | +0.147 [0.133; 0.161] |
+
+Fourteen more sets — the floor and σ₀ 3.0 beside the others, more `dtX` and `kbXnN`, K₀ of δ 0.25, and K₀ of θ 0.45 with K₀ of δ 0.2 — fall between these rows and change none of the readings below. Of all 48, grade 5 is at most 0.853, `k08w10`; grade 1 passes 0.90 with K₀ of θ 0.5 and up at the base's decay of K_θ, or with σ₀ 3.0. `M1` of grade 3 after the 200th answer is 0.519 on the base, 0.498 with `k04`, 0.492 with `k04w10` and `k04d02`, and 0.514 with the floor 0.1 added to `k04w10`: none of these sets brings the grades together by moving grade 3 off the truth.
+
+### 7.3. The decisive runs
+
+| Run | Commit | SHA-256 | Time | Target | Score, a reference | "No worse" failed |
+|---|---|---|---|---|---|---|
+| base | — | `9e89cb7cfd0f1f0c…763` | 2 h 25 min | — | — | — |
+| `k04w10` | d3471b0 | `37223ff093c28e03…95f` | 1 h 39 min | +0.124 [0.109; 0.139] | +0.044 [0.031; 0.057] | 13 |
+| `kb04n50w10` | f08930e | `97d781a1d792c7b1…dbb` | 1 h 56 min | +0.127 [0.112; 0.142] | +0.028 [0.016; 0.040] | 10 |
+| `kb06n50w10` | 17d544d | `0f47e0da19a7f26e…4de` | 1 h 57 min | +0.190 [0.175; 0.205] | +0.039 [0.027; 0.051] | 23 |
+| `k04d02` | c8b4ce9 | `82261d96e984b070…3ca` | 1 h 53 min | +0.103 [0.091; 0.114] | +0.051 [0.039; 0.062] | 18 |
+
+- All four are better than the base by the target, and none holds every constraint: the report's outcome is "the base stays as it is" each time. `k04d02` reaches 0.882 [0.868; 0.897] under grade 1 and 0.688 [0.669; 0.708] under grade 5.
+- `k04w10`: `M1.rms.200` on `G6`, `G0-exact`, `G0-miss0.25`, `G0-skills0.3`, `F-none`, `W-error`, `W-repeat` of school maths and `E-leave` of the essays, `M3.settle` on `G3-drop` and Brier and `M7.hard` on `S-adult` of olympiad maths, `M5.caught` on `F-none` and `M8.shift` on `W-repeat` of school maths. On `W-repeat` `M1.rms.200` is worse by up to 0.333 at the tolerance 0.01.
+- `kb04n50w10`, the same set with the larger K₀ only below n = 50: the same kinds, ten of them, `W-repeat` worse by up to 0.307 — the step after the 50th answer is not where the price is.
+- `kb06n50w10`: 23, `M1.rms.200` on sixteen cells of school maths among them, `W-repeat` worse by up to 0.518.
+- `k04d02`: `W-repeat` holds, and the failures move elsewhere — `M1.rms.200` on `G5` of both maths, `G0-skills1` of both, `G0-exact` of school maths and `S-scale3.5`; `M6.never` on `G2`, `G3`, `G0-miss1`, `G0-skills1` and `F-C1` of olympiad maths; `E3.retention` on `F-model`, `F-exp`, `F-C1` and `F-growth5` and `E3.late` on `F-growth5`; `M3.settle` on `G3-drop`; Brier on `S-adult`. Its score's group `forgets` is +0.235 [0.148; 0.318].
+- Two decisive runs, `s3k04w10` and `k06w10`, were stopped unfinished when `k04w10` failed: a stronger step could only be dearer, and the cells of risk were cheaper for the rest.
+
+### 7.4. The cells of risk
+
+"No worse" failed on the twelve populations of 7.1 alone, by `sim judge` of the copies.
+
+| Set | Failed | What |
+|---|---|---|
+| `k04` | 10 | `W-repeat` `M1.rms.200` by up to 0.344; `M1.rms.200` on five more cells of school maths and on `E-leave`; `G3-drop` `M3.settle`; `S-adult` Brier; `W-repeat` `M8.shift` |
+| `w10` | 6 | `S-adult` `M7.hard` and Brier; `F-none` `M5.caught`; `M1.rms.200` on `G6`, `W-error` and `W-repeat` of school maths |
+| `s3` | 17 | `M1.rms.200` and Brier on `G3-drop`, `G6`, `G0-exact`, `G0-skills0.3`, `F-none` and others, of both maths; `S-adult` `M7.hard` by up to 0.039 |
+| `s3w10` | 12 | `M1.rms.200` on nine cells of school maths; `G3-drop` `M3.settle`; `S-adult` Brier; `F-none` `M5.caught` |
+| `k03d02` | 10 | `G3` and `G3-drop`: `M1.rms.200`, `M3.settle`, `M3.unsettled`, `M6.never`; `W-repeat` Brier |
+| `k035d02` | 10 | the same kinds as `k03d02` |
+| `k04d03` | 4 | `W-repeat` `M1.rms.200` by up to 0.188; `G3-drop` `M3.settle`; `S-adult` Brier; `F-none` `M5.caught` |
+| `k04d02` | 4 | `G3` `M6.never`; `G3-drop` `M3.settle`; `G0-exact` `M1.rms.200` of school maths; `S-adult` Brier |
+| `k05d01` | 8 | `M6.never` on `G3`, `G0-exact` and `F-none` of olympiad maths; `G3-drop` `M3.settle`; `M1.rms.200` on `G6` and `G0-exact` of school maths; `S-adult` Brier and `M7.hard` |
+
+`k035d025` ran and was not read: the author stopped the exploration first (R42).
+
+### 7.5. `W-repeat`
+
+On `W-repeat` of school maths — a repeat of a task whose solution has gone to the device, answered with P* = 0.95 — the base's estimate of the skills is already high: `M1.mean` is +1.20 after the 50th answer and +2.72 after the 200th, `M1.rms.200` 2.92, while on olympiad maths it is +0.02. With `k04` it is +1.54 and +3.06, `M1.rms.200` 3.26; through the 20th answer the two are equal to the bit. A repeat is help and keeps "mastered" from being set, but its answer weighs in full (architecture 3.3), and a wider step of θ moves the estimate up by more on every repeat. K₀ of δ 0.2 with K₀ of θ 0.4 holds `W-repeat` (`k04d02`); 0.3 does not (`k04d03`).
