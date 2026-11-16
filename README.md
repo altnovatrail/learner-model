@@ -39,7 +39,7 @@ The documents and the work plan are in English; the current epic's description, 
 - [RUN.md](RUN.md) — the work plan, in epics.
 - `run/` — the plan's other tables: [the epics for later](run/EPICS.md), [the open questions](run/QUESTIONS.md), [the technical debt](run/DEBT.md) and [the tasks outside an epic](run/TASKS.md).
 
-The working rules, for people and coding agents alike, are in [CLAUDE.md](CLAUDE.md) and [AGENTS.md](AGENTS.md). The platform's shared vocabulary, formats, contracts and decisions are in [spec](https://github.com/altnovatrail/spec/tree/v0.18.4), checked out here as a git submodule at `v0.18.3`: clone this repository with `git clone --recurse-submodules`.
+The working rules, for people and coding agents alike, are in [CLAUDE.md](CLAUDE.md) and [AGENTS.md](AGENTS.md). The platform's shared vocabulary, formats, contracts and decisions are in [spec](https://github.com/altnovatrail/spec/tree/v0.18.4), checked out here as a git submodule at `v0.18.4`: clone this repository with `git clone --recurse-submodules`.
 
 ## License
 
