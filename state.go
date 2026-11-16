@@ -1,7 +1,14 @@
 package learnermodel
 
-// StateKind is the kind of state this version writes.
-const StateKind = 1
+// StateKind is the kind of state this version writes. It reads every kind up to it. Kind 2 adds
+// a module's FailuresInARow and TrialEndedByAdult, the state of the rules of R157 of spec (R45),
+// which kind 1 does not record.
+const StateKind = 2
+
+// guardKind is the kind of state that adds FailuresInARow and TrialEndedByAdult of a module, fields
+// 9 and 10: the writer writes them from this kind on, the reader requires them there and refuses
+// them below.
+const guardKind = 2
 
 // TrapCount is a trap the program found, with the number of pieces of evidence it was found in
 // and the practice time of the latest.
@@ -49,6 +56,15 @@ type ModuleState struct {
 	// trial series, the one that ended it too: that one clears the series' answers, and the engine
 	// still needs to know (R104 of spec). Evidence that moves nothing leaves it as it is.
 	LastInTrial bool
+	// FailuresInARow is the count of the guard (R45): the pieces of evidence in a row, past the
+	// trial series, on which the model expected the learner to know at least half of the answers,
+	// above the guessing floor, and fewer than half of the items with an answer were solved at the
+	// end of the attempt. The third lowers the level by a band; the
+	// count goes on until a piece of evidence that is no such failure.
+	FailuresInARow int32
+	// TrialEndedByAdult tells whether an adult's correction of the level ended the trial series
+	// before its five answers (R45): the series is then over whatever the weight of answers.
+	TrialEndedByAdult bool
 }
 
 // State is the state of one learner: the fold of the evidence log.

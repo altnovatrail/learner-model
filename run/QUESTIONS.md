@@ -8,7 +8,8 @@ Table 3 of [RUN.md](../RUN.md): the author's open questions from tasks' «Отк
 
 ## Table 3. Questions to the author
 
-Numbers are not reused: next — В54.
+Numbers are not reused: next — В55.
 
 | ID | Question | From | Options | Recommendation |
 |---|---|---|---|---|
+| В54 | «В реестр spec»: the order of row 4.20 and row 4.21 of `spec`'s `COORDINATION.md` against the order of releases of R103 spec. T68 changes what the model computes (R45), so "Gate", on the bands `sim` `v0.1.25` recorded on `learner-model` v0.1.8, is red on its pull request — 12 numbers out of their bands, measurements 9.2 — and holds the merge and the release; R103 spec has `sim` record the change at the commit of its pull request and cut a tag first, the pull request then raise `SIM_TAG` and `SIM_COMMIT` and be merged, while row 4.21, `sim`'s short run of the three rules, waits for row 4.20's release | T68 | (a) row 4.21 runs on the commit of T68's pull request: its short run by the criterion written before it, then the bands of the gate recorded on that commit and a tag of `sim`; T68's pull request raises the tag and is merged and released; 4.21 depends on 4.20's pull request, not its release. (b) A row of `sim` of its own before 4.21 records the bands on the commit and cuts the tag, and 4.21 runs after the release as planned — one more task of `sim`. (c) Release T68 without the gate — against R12 and R103 spec | (a): R103 spec's order as it stands, no extra task, and `sim` judges the three rules before they are released, as R20 asks of a change of what the model computes |

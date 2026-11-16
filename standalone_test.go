@@ -72,6 +72,17 @@ func choiceAnswer(skillID string, place, difficulty int32, correct bool, start l
 	}
 }
 
+// putRight makes a wrong answer of choiceAnswer one put right on the first rung of the ladder: the
+// solution is not shown, and the item is solved at the end.
+func putRight(e lm.Evidence) lm.Evidence {
+	e.Outcome = lm.Outcome{Kind: lm.OutcomeAfterHint, Rung: 1, HasRung: true}
+	e.Items = []lm.ItemAnswer{{
+		Place: 1, Submitted: true, FirstVerdict: lm.VerdictNotYet, HasFirstVerdict: true,
+		FinalVerdict: lm.VerdictCorrect, HasFinalVerdict: true, WrongBeforeFirstCorrect: 1, HasFirstCorrect: true,
+	}}
+	return e
+}
+
 func near(t *testing.T, what string, got, want float64) {
 	t.Helper()
 	if math.Abs(got-want) > standaloneTolerance {
@@ -98,7 +109,9 @@ type standaloneRow struct {
 	theta, delta float64
 }
 
-// SPEC 2.7: a settled child fails difficulty 3 of `1-2` three times, then answers difficulty 2.
+// SPEC 2.7: a settled child fails difficulty 3 of `1-2` three times, then answers difficulty 2. Each
+// failure is put right on the first rung of the ladder, so that the guard, which counts the tasks a
+// learner is stuck on, does not lower the level (R45); TestGuard leaves the three unsolved.
 func TestStandaloneThreeFailures(t *testing.T) {
 	a := topic("combinatorics.enumeration")
 	g := olympiadGraphs(t, map[string][]int32{a: {1}})
@@ -115,7 +128,11 @@ func TestStandaloneThreeFailures(t *testing.T) {
 	failures := []int32{1, 2, 3, 0}
 	for i, r := range rows {
 		var err error
-		s, _, err = lm.Append(s, choiceAnswer(r.topic, r.place, r.d, r.correct, ladderBand(1), 1000), g)
+		e := choiceAnswer(r.topic, r.place, r.d, r.correct, ladderBand(1), 1000)
+		if !r.correct {
+			e = putRight(e)
+		}
+		s, _, err = lm.Append(s, e, g)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -132,11 +149,12 @@ func TestStandaloneThreeFailures(t *testing.T) {
 }
 
 // SPEC 2.9: the trial series of a child of grade 3, who starts at θ₀ = 2.5 and stands about a
-// level lower; every topic is new, and no δ moves.
+// level lower; every topic is new, and no δ moves. The start is a band below the band of the grade
+// (R45), so θ₀ = 2.5 is the start of a learner of grade 5, whose band 5-6 stands at 5.
 func TestStandaloneTrialSeries(t *testing.T) {
-	start, err := lm.BandByGrade(lm.Grade{Value: 3, Known: true}, ladder())
-	if err != nil || start != ladderBand(2) {
-		t.Fatalf("BandByGrade(3) = %+v, %v; want the band 3-4", start, err)
+	start, err := lm.BandByGrade(lm.Grade{Value: 5, Known: true}, ladder())
+	if err != nil || start != ladderBand(3) {
+		t.Fatalf("BandByGrade(5) = %+v, %v; want the band 5-6", start, err)
 	}
 	rows := []standaloneRow{
 		{topic("logic.ordering"), 2, 2, false, 0.6407, 0},

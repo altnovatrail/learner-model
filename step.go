@@ -63,6 +63,7 @@ type answer struct {
 	// j is J, the number of the item's recorded primary skills that go to some skill.
 	j      int
 	p      float64 // P, with the retention of the skills
+	known  float64 // R̄ · σ, P above the guessing floor: the chance the learner knows the answer
 	w      float64 // the weight of retention, w; 1 without forgetting
 	helped bool    // given with help: it masters nothing
 }
@@ -331,6 +332,7 @@ func (ms *ModuleState) answers(e Evidence, items []item, g *Graph, trial bool) (
 			shares:  shares,
 			j:       ic.j,
 			p:       ic.p,
+			known:   float64(ic.rbar * ic.sigma),
 			w:       retentionWeight(ic.c, ic.sigma, ic.rbar, ic.p1, ic.p),
 		})
 	}
@@ -370,13 +372,16 @@ func moves(answers []answer, rs []skillRetention) []skillMove {
 // it. Evidence with no answer moves nothing, nor does evidence that weighs nothing by its
 // provenance, and step reports whether it moved anything.
 func (ms *ModuleState) step(e Evidence, items []item, g *Graph) bool {
+	if e.LevelSetByAdult {
+		return ms.correct(e.Task.Band.Place, g)
+	}
 	return ms.move(e, items, g, ms.inTrial())
 }
 
 // inTrial tells whether the module is in its trial series: the weight of its answers is below 5,
-// within ε (docs/architecture.md, section 3.5).
+// within ε (docs/architecture.md, section 3.5), and no adult's correction has ended it (R45).
 func (ms *ModuleState) inTrial() bool {
-	return ms.AnswerWeight < trialWeight-weightTolerance
+	return ms.AnswerWeight < trialWeight-weightTolerance && !ms.TrialEndedByAdult
 }
 
 // move is the step, with the trial series or without it as trial says.
@@ -404,7 +409,7 @@ func (ms *ModuleState) move(e Evidence, items []item, g *Graph, trial bool) bool
 				Weight:     u,
 			})
 		}
-		ms.Level = trialLevel(shift(ms.StartBand.Place), ms.Trial)
+		ms.Level = trialLevel(startLevel(ms.StartBand.Place), ms.Trial)
 	} else {
 		var pull float64
 		for _, a := range answers {
@@ -439,6 +444,11 @@ func (ms *ModuleState) move(e Evidence, items []item, g *Graph, trial bool) bool
 		ms.judge(sk, m, e.Task.Band.Place)
 	}
 	ms.countTraps(e.Traps, g, at)
+	// The guard reads the evidence once the step is done: the mastery is judged at the level the
+	// step gave.
+	if !trial {
+		ms.guard(stuck(items, answers))
+	}
 	return true
 }
 

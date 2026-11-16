@@ -42,6 +42,17 @@ const (
 	// failuresToLose is how many failed pieces of evidence in a row take a mastery away.
 	failuresToLose = 2
 
+	// The rules of R157 of spec in place of a calibration (R45): startBelow is how far below the
+	// band of the learner's grade a module's level starts, a band's width; guardFailures is how
+	// many failures of a module in a row, past its trial series — tasks the model gave as fitting and
+	// the learner left unsolved, rules.go —, lower its level by a band, bandStep, but not below
+	// levelFloor, a band below the lowest band, where a learner of that band's grades starts; halfBand
+	// is half a band's width, how far a level may stand from the middle of the band it stands in.
+	startBelow    = bandStep
+	guardFailures = 3
+	levelFloor    = -bandStep
+	halfBand      = bandStep / 2
+
 	// gridStep is the step of the grid the trial series' maximum is first looked for on, and
 	// halvings the most halvings of the best cell after it. The halving stops sooner where the
 	// cell has narrowed to neighbouring floats; near 0, where floats are dense, it stops at 128,
@@ -184,6 +195,26 @@ func addSeconds(t int64, seconds float64) int64 {
 // shift is where the band at a place, from 1, stands on the module's scale: 2.5 · (place − 1).
 func shift(place int32) float64 {
 	return float64(bandStep * float64(place-1))
+}
+
+// startLevel is θ₀, where the level of a module starts from its start band, the band of the
+// learner's grade: a band's width below that band on the scale, and so below the lowest band too
+// for a learner of its grades (R45).
+func startLevel(start int32) float64 {
+	return shift(start) - startBelow
+}
+
+// levelBand is the band a level stands in on the scale of a module's bands, given by place from 1:
+// the band whose middle task is nearest it, within half a band's width, the upper of two as near;
+// the highest band when the level is above it; and none, false, when the level is more than half
+// a band below the lowest band, or there are no bands (R45).
+func levelBand(level float64, bands []Band) (Band, bool) {
+	for i := len(bands) - 1; i >= 0; i-- {
+		if level >= shift(bands[i].Place)-halfBand {
+			return bands[i], true
+		}
+	}
+	return Band{}, false
 }
 
 // beta is where a task of the band at a place, of a difficulty from 1 to 5, stands on the scale.

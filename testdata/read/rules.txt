@@ -1,0 +1,40 @@
+# a learner of grade 1 in olympiad maths and the workbook: the start below the lowest band, an adult's corrections and the guard
+read at=1762092000 grade=3/true engine=example/olympiad,example/workbook
+module example/olympiad evidence=true start=1/1-2 level=1/1-2 trial-over=true last-in-trial=false
+  skill example/olympiad/skill/a count=8 last=1762084800 estimate=bfe2d6caf999a29a(-0.58872) uncertainty=3feae63a5ad1acf4(0.840604) retention=3fefbaed084374cc(0.991568)
+  skill example/olympiad/skill/b count=2 last=1762081200 estimate=bfe6e7fabdf46f50(-0.715818) uncertainty=3fecfa3e4ebb7664(0.905547) retention=3fef8a7ab868e133(0.985654)
+module example/workbook evidence=true start=1/grade-2 level=2/grade-3 trial-over=true last-in-trial=false
+  skill example/workbook/skill/addition count=1 last=1762092000 estimate=4001b499fc92b3a2(2.21318) uncertainty=4003d139f6294d3d(2.47716) retention=3ff0000000000000(1)
+task example/workbook/task/page
+  item 1 p=3fef888881869972(0.985417)
+  item 2 p=3fef888881869972(0.985417)
+  item 3 p=3fef888881869972(0.985417)
+  item 4 p=3fef888881869972(0.985417)
+task example/olympiad/task/x
+  item 1 p=3fdeebb014396141(0.483135)
+read at=1762178400 grade=3/true engine=example/olympiad,example/workbook
+module example/olympiad evidence=true start=1/1-2 level=1/1-2 trial-over=true last-in-trial=false
+  skill example/olympiad/skill/a count=8 last=1762084800 estimate=bfe2d6caf999a29a(-0.58872) uncertainty=3feae63a5ad1acf4(0.840604) retention=3fecf283c3cdfc98(0.904604)
+  skill example/olympiad/skill/b count=2 last=1762081200 estimate=bfe6e7fabdf46f50(-0.715818) uncertainty=3fecfa3e4ebb7664(0.905547) retention=3fec76c6fbfc7bf9(0.889499)
+module example/workbook evidence=true start=1/grade-2 level=2/grade-3 trial-over=true last-in-trial=false
+  skill example/workbook/skill/addition count=1 last=1762092000 estimate=4001b499fc92b3a2(2.21318) uncertainty=4003d139f6294d3d(2.47716) retention=3feccccccccccccc(0.9)
+task example/workbook/task/page
+  item 1 p=3fec6147a7c5f07f(0.886875)
+  item 2 p=3fec6147a7c5f07f(0.886875)
+  item 3 p=3fec6147a7c5f07f(0.886875)
+  item 4 p=3fec6147a7c5f07f(0.886875)
+task example/olympiad/task/x
+  item 1 p=3fdd54d701ef03b7(0.458303)
+read at=1767276000 grade=0/false engine=
+module example/olympiad evidence=true start=1/1-2 level=1/1-2 trial-over=true last-in-trial=false
+  skill example/olympiad/skill/a count=8 last=1762084800 estimate=bfe2d6caf999a29a(-0.58872) uncertainty=3feae63a5ad1acf4(0.840604) retention=3fd18a25278b7e06(0.274057)
+  skill example/olympiad/skill/b count=2 last=1762081200 estimate=bfe6e7fabdf46f50(-0.715818) uncertainty=3fecfa3e4ebb7664(0.905547) retention=3fd077d361bfe06f(0.257314)
+module example/workbook evidence=true start=1/grade-2 level=2/grade-3 trial-over=true last-in-trial=false
+  skill example/workbook/skill/addition count=1 last=1762092000 estimate=4001b499fc92b3a2(2.21318) uncertainty=4003d139f6294d3d(2.47716) retention=3fd07bec832b5f68(0.257564)
+task example/workbook/task/page
+  item 1 p=3fd03e621da591a5(0.253808)
+  item 2 p=3fd03e621da591a5(0.253808)
+  item 3 p=3fd03e621da591a5(0.253808)
+  item 4 p=3fd03e621da591a5(0.253808)
+task example/olympiad/task/x
+  item 1 p=3fd1ceedda22a6f4(0.278255)

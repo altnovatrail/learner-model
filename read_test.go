@@ -319,8 +319,9 @@ func TestReadSkill(t *testing.T) {
 func TestReadTask(t *testing.T) {
 	g := olympiadGraphs(t, map[string][]int32{topic("a"): {1, 2, 3}})
 
-	// A learner of grade 3 starts at θ₀ = 2.5: P = 0.2 + 0.8 · σ(0) = 0.6 (section 3.1).
-	r := mustRead(t, lm.State{}, g, 0, lm.Grade{Value: 3, Known: true}, olympiad)
+	// A learner of grade 5, of the band 5-6, starts a band below it, at θ₀ = 2.5 (R45): on the task
+	// of the band 3-4, P = 0.2 + 0.8 · σ(0) = 0.6 (section 3.1).
+	r := mustRead(t, lm.State{}, g, 0, lm.Grade{Value: 5, Known: true}, olympiad)
 	task := candidate(topic("a"))
 	task.Items = append(task.Items,
 		lm.TaskItem{Place: 3, Slots: []lm.Slot{{Check: 9}}}, // a kind of check of a later version

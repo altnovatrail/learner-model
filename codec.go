@@ -17,8 +17,9 @@ import (
 //
 // The reader is strict, as only this writer writes: it skips a field it does not know by its wire
 // type and keeps an enum value it does not know as its number, and it refuses bytes cut short, a
-// field of a wrong wire type or written twice, a field its kind writes that is missing, field 20
-// in evidence of kind 1, which does not write it, a value whose flag of presence is missing, a
+// field of a wrong wire type or written twice, a field its kind writes that is missing, a field a
+// later kind adds in an earlier one — field 20 of evidence in kind 1, field 21 in kinds 1 and 2,
+// fields 9 and 10 of a module in a state of kind 1 —, a value whose flag of presence is missing, a
 // string that is no UTF-8, elements of a repeated field out of their canonical order or twice,
 // and NaN and the infinities. What it accepts, the writer gives back as the same bytes, but for
 // the fields it does not know.
@@ -26,8 +27,9 @@ import (
 // EncodeEvidence gives the bytes of e. It refuses, with ErrInvalid: a kind outside 1 to
 // EvidenceKind; a string that is no UTF-8; a duplicate place, skill or trap; items of the task and
 // answers whose places do not match one for one; a value set without its flag of presence — a
-// rung without HasRung, say; and a leading question on request in evidence of kind 1, which does
-// not record it.
+// rung without HasRung, say; a leading question on request in evidence of kind 1, and a
+// correction in kinds 1 and 2, which do not record them; and a correction with skills, items,
+// traps or the other facts of an attempt, or whose task is not that of LevelCorrection.
 func EncodeEvidence(e Evidence) ([]byte, error) {
 	if err := checkEvidence(e); err != nil {
 		return nil, err
@@ -51,7 +53,9 @@ func DecodeEvidence(b []byte) (Evidence, error) {
 
 // EncodeState gives the bytes of s. It refuses, with ErrNotFinite, a NaN or an infinity, and,
 // with ErrInvalid, a kind outside 1 to StateKind, a string that is no UTF-8, a duplicate module,
-// skill or trap, and a mastery band without Mastered.
+// skill or trap, a mastery band without Mastered, a count of the guard below 0, and, in a
+// state of kind 1, which does not record them, a count of the guard or a trial series ended by an
+// adult.
 func EncodeState(s State) ([]byte, error) {
 	if err := checkState(s); err != nil {
 		return nil, err
@@ -160,6 +164,10 @@ func writeEvidence(w *wire.Writer, e Evidence) {
 	if e.Kind >= leadingQuestionKind {
 		w.Bool(20, e.LeadingQuestionOnRequest)
 	}
+	// Kind 3 adds field 21 the same way.
+	if e.Kind >= correctionKind {
+		w.Bool(21, e.LevelSetByAdult)
+	}
 }
 
 func writeItem(w *wire.Writer, item TaskItem, a ItemAnswer) {
@@ -218,6 +226,11 @@ func writeState(w *wire.Writer, s State) {
 				w.Message(7, func(w *wire.Writer) { writeSkill(w, sk) })
 			}
 			w.Bool(8, m.LastInTrial)
+			// Kind 2 adds fields 9 and 10, and kind 1 does not record them.
+			if s.Kind >= guardKind {
+				w.Int64(9, int64(m.FailuresInARow))
+				w.Bool(10, m.TrialEndedByAdult)
+			}
 		})
 	}
 }
