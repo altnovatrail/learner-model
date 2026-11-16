@@ -36,9 +36,12 @@ Measured at each epic's archive, by RUN.md, Epics: `just -f spec/justfile tokens
 | Project | Window, UTC | Sessions | Calls, main / subagents | Context of a call, k, main / subagents | Compactions | Cost at API prices |
 |---|---|---|---|---|---|---|
 | `-workspaces-learner-model` — E7, T51–T57: the reference | 2026-11-13T22:41 … 2026-11-16T01:48 | 7 | 355 / 86 | 128.2 / 73.2 | 0 | $26.24 |
+| `-workspaces-learner-model` — E8, T58–T61 | 2026-11-16T01:48 … 2026-11-16T16:17 | 4 | 545 / 87 | 173.3 / 65.4 | 0 | $36.10 |
 
 - **E7**, measured 2026-11-16 by T58 (R40). The window runs from the merge of T50, c0db4dc at 22:40 UTC, after which E7 was unfolded, to the merge of T57, 1e2dc90 at 01:47:40 UTC; it holds the unfolding, T51, the planning of T52 and T56–T57, all on `claude-opus-5-5`. T58, which archives the epic, is a session after the window.
 - **The threshold** is not reached: this row is the reference itself, and `docs-budgets.json` has not been raised — T49 set it, and T50 removed the limits held until the translation, neither of which counts as a raise (the 2026-11-13 amendment to R145 spec).
+- **E8**, measured 2026-11-16 by T64 (R40). The window runs from the merge of T57, 1e2dc90 at 01:47:40 UTC, after which T58 unfolded E8, to the merge of T61, 7ff2b89 at 16:16:32 UTC; it holds T58–T61, a session each, all on `claude-opus-5-5`. T62 and T63 were deferred and had no session; T64, which archives the epic, is a session after the window.
+- **The threshold** is met for E8: 173.3 thousand for a main call is 35 % above the reference, 128.2, over 545 main calls, against the 25 % of R145 spec. By session, over all its calls, the subagents' with the main ones — so below the main calls' own figure —, T61 is 187.7 thousand with 234 main calls, T59 165.6 with 138, T58 144.4 with 111 and T60 83.2 with 62. What entered between calls carried 100.2 M of context in all: the output of Bash 47.4 M, `docs/decisions.md` read by Bash 87 times 11.2 M and RUN.md 73 times 4.3 M. `docs-budgets.json` has not been raised since T49. The analysis is T65 of [run/TASKS.md](../run/TASKS.md) (R155 spec).
 
 ## 5. The start by the grade and the cells `D-`, T59, 2026-11-16
 
