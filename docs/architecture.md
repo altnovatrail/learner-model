@@ -63,7 +63,7 @@ Items 2.4 and 2.5 concern both libraries, and 2.4 also `api`. Т-10 is a questio
   - a module's own step of bands — a field of the next format version (R44 spec), if the harness shows that one step for all modules is not enough;
   - the numbers that the harness `sim` will check (R163 standalone): the step of 2.5 between bands and the spread of the trial series σ₀ = 2.5 — standalone too calls them a guess and a number of simulation; I without guessing taken into account, because of which the uncertainty is understated on a choice of two; guessing 0 for `predicate`, where there are many correct answers.
 
-  The harness has since found that the start by the grade is not fair: under grades 1 and 5 of olympiad maths, where the model starts a band below and a band above the truth, the estimate comes to that of grade 3 by the 50th answer for 0.812 and 0.5525 of the learners, against `sim`'s bound 0.90, and a start above the truth is left more slowly (R58 sim). Why, and the candidates on σ₀, the trial series and the step — or on a start by the grade other than the grade's band, which changes R51 spec — are epic E8 in table 1 of [RUN.md](../RUN.md) (R40).
+  The harness has since found that the start by the grade is not fair: under grades 1 and 5 of olympiad maths, where the model starts a band below and a band above the truth, too few learners come to the estimate of grade 3 within `sim`'s bound, and a start above the truth is left more slowly (R58 sim). Why, and the candidates on σ₀, the trial series and the step — or on a start by the grade other than the grade's band, which changes R51 spec — are epic E8 in table 1 of [RUN.md](../RUN.md) (R40).
 - **Task:** T01, done.
 
 ### 2.2. The model of forgetting
