@@ -47,18 +47,24 @@ ci-lint:
         exit 1
     fi
 
-# The coverage goes into coverage/go.out, one Go profile, which the job coverage of .github's shared
-# go.yml sends to Codecov (R48 spec; R13). Go counts statements and leaves the tests themselves out;
-# a package that no test runs is in it too, its statements at zero. Every test counts for every
-# package of the module, -coverpkg=./...: a test of golden vectors runs the code of other packages,
-# and its lines count where they are. The checks of the same bits on every build — the tests on the
-# targets, the comparison of the assembler and the rules of code — are go.yml's, by its input
-# same-bits, with the lists of .github/coderules.json (R09; R18), and its job arm64 runs this recipe
-# too, on arm64 hardware: what it runs must run on every host.
-# Run the tests, with the race detector, and write their coverage.
+# Two runs of every test, each a check of its own, and the recipe fails if either does: first with
+# the race detector, then without it for the coverage, which goes into coverage/go.out, one Go
+# profile, which the job coverage of .github's shared go.yml sends to Codecov (R48 spec; R13). The
+# race detector and coverage in one run, -covermode=atomic, took four times as long as the two apart
+# (measurements 8; R43). Without -race the profile needs no atomic counters: -covermode=set says
+# whether a statement ran, all that Codecov reads, and marks the same statements. Go counts
+# statements and leaves the tests themselves out; a package that no test runs is in it too, its
+# statements at zero. Every test counts for every package of the module, -coverpkg=./...: a test of
+# golden vectors runs the code of other packages, and its lines count where they are. The checks of
+# the same bits on every build — the tests on the targets, the comparison of the assembler and the
+# rules of code — are go.yml's, by its input same-bits, with the lists of .github/coderules.json
+# (R09; R18), and its job arm64 runs this recipe too, on arm64 hardware: what it runs must run on
+# every host.
+# Run the tests with the race detector, then again for their coverage.
 ci-test:
+    go test -race -count=1 ./...
     mkdir -p coverage
-    go test -race -count=1 -covermode=atomic -coverpkg=./... -coverprofile=coverage/go.out ./...
+    go test -count=1 -covermode=set -coverpkg=./... -coverprofile=coverage/go.out ./...
 
 # The schema of the evidence and the state, by buf of the container (R10; docs/architecture.md,
 # section 3.7): buf lint by buf.yaml; buf breaking, category FILE, against the latest tag v* of

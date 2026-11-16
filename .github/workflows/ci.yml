@@ -10,6 +10,11 @@ on:
 permissions:
   contents: read
 
+# The tag of sim and the SHA of its commit, for the jobs of the gate below, named once here.
+env:
+  SIM_TAG: v0.1.25
+  SIM_COMMIT: 0a3131362dc9f2c2ff436120fdf598267034dbd7
+
 # A new push to a pull request cancels its older run; every commit to main is checked.
 concurrency:
   group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
@@ -18,17 +23,17 @@ concurrency:
 jobs:
   secrets:
     name: Secrets
-    uses: altnovatrail/.github/.github/workflows/secrets.yml@fab102d8bbb4659575e107ee488e072aaaa71821 # v0.1.24
+    uses: altnovatrail/.github/.github/workflows/secrets.yml@93c848fb51a10a245968cf730b99cc709a7748bf # v0.1.31
 
   # A pull request's commits are what it checks; a push to main has been checked as one.
   dco:
     name: DCO
     if: github.event_name == 'pull_request'
-    uses: altnovatrail/.github/.github/workflows/dco.yml@fab102d8bbb4659575e107ee488e072aaaa71821 # v0.1.24
+    uses: altnovatrail/.github/.github/workflows/dco.yml@93c848fb51a10a245968cf730b99cc709a7748bf # v0.1.31
 
   documents:
     name: Documents
-    uses: altnovatrail/.github/.github/workflows/documents.yml@fab102d8bbb4659575e107ee488e072aaaa71821 # v0.1.24
+    uses: altnovatrail/.github/.github/workflows/documents.yml@93c848fb51a10a245968cf730b99cc709a7748bf # v0.1.31
 
   # The repository's Go code, by its own ci- recipes in its toolchain stage, and the coverage of
   # its tests, which the shared workflow sends to Codecov (R16 .github). same-bits holds the bits
@@ -42,7 +47,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    uses: altnovatrail/.github/.github/workflows/go.yml@fab102d8bbb4659575e107ee488e072aaaa71821 # v0.1.24
+    uses: altnovatrail/.github/.github/workflows/go.yml@93c848fb51a10a245968cf730b99cc709a7748bf # v0.1.31
     with:
       same-bits: true
 
@@ -60,52 +65,101 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
+      # The toolchain stage from the cache of GitHub Actions, by the steps of the job arm64 of the
+      # shared go.yml of v0.1.31 word for word (R36, R42, R47 .github; R43): the same file, image,
+      # path and key, so on this amd64 runner the entry is the one go.yml's job toolchain fills and
+      # reads, and the image is built from the Dockerfile only on a miss. This job is not one of
+      # go.yml's and gets no artifact of its job toolchain: on a miss it builds the image itself.
+      # It saves nothing: on a push to main go.yml's job toolchain saves the entry of a miss, and a
+      # second save of the same key would race it for nothing; a pull request reads main's entry. The
+      # stage is toolchain: learner-model's adds nothing to its toolchain-core, so go.yml keeps the
+      # one entry of toolchain for every job, and this one shares it (R47 .github). buf, tar and
+      # gzip are all this job runs: it takes no cache of Go.
+      - name: Toolchain image from the cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/novatrail-toolchain.tar
+          key: toolchain-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.devcontainer/Dockerfile') }}
+
       - name: Toolchain image
-        run: docker build --target toolchain --tag toolchain - < .devcontainer/Dockerfile
+        env:
+          SAVE: "false"
+          STAGES: toolchain
+        run: |
+          # Each stage STAGES names, from its own file, novatrail-<stage>.tar, and as the one image
+          # novatrail-toolchain, as spec's toolchain.sh names either stage (R47): the job toolchain
+          # builds and saves one, then the other, and every other job takes one.
+          for stage in $STAGES; do
+              case $stage in
+                  toolchain | toolchain-core) ;;
+                  *)
+                      echo "::error::STAGES names ${stage}, which is neither toolchain nor toolchain-core."
+                      exit 1
+                      ;;
+              esac
+              tar=$RUNNER_TEMP/novatrail-$stage.tar
+              restored=false
+              if [ -f "$tar" ]; then
+                  restored=true
+                  if docker load --quiet --input "$tar" && docker image inspect novatrail-toolchain > /dev/null; then
+                      rm -f -- "$tar"
+                      echo "Toolchain image: ${stage} loaded from its file."
+                      continue
+                  fi
+                  echo "::warning::The file of the ${stage} stage does not load as the image novatrail-toolchain: the image is built from the Dockerfile. A file from the cache does so on every run until its entry is deleted (gh cache delete) or the Dockerfile changes."
+                  rm -f -- "$tar"
+              fi
+              docker build --target "$stage" --tag novatrail-toolchain - < .devcontainer/Dockerfile
+              # Only a job that saves writes the file. A file that came has its entry or its artifact
+              # already, which no save replaces.
+              if [ "$SAVE" = true ] && [ "$restored" = false ] && ! docker save --output "$tar" novatrail-toolchain; then
+                  echo "::warning::The image of the ${stage} stage could not be saved: the jobs after this one and the next run build it again."
+                  rm -f -- "$tar"
+              fi
+          done
 
       - name: ci-proto
         run: |
           docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp \
               --volume "$PWD:/work" --workdir /work \
-              toolchain just ci-proto
+              novatrail-toolchain just ci-proto
 
       - name: ci-release
         run: |
           docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp \
               --volume "$PWD:/work" --workdir /work \
-              toolchain just ci-release
+              novatrail-toolchain just ci-release
 
   # The gate of sim: every change to the model after its baseline, v0.1.0, passes the bench (R12;
-  # R103 spec). sim comes from git by the tag and the SHA of its commit below, not as a release
-  # file, and neither Dependabot nor a shared workflow raises them: this repository's session does,
-  # by the order of releases of R103 spec (R15, R20). Its own recipe, `just gate`, builds the bench
-  # on this checkout in place of learner-model's commit in gate.json, through a go.work it writes in
-  # a temporary folder and never commits, with engine at the commit gate.json names, and holds the
-  # numbers to their bands — red when one leaves them, for the better or the worse — in the
-  # toolchain stage of sim's devcontainer of the same tag. The release waits for this job too: it
-  # follows a green CI on main.
-  gate:
-    name: Gate
-    runs-on: ubuntu-24.04
+  # R103 spec). sim comes from git by the tag and the SHA of its commit in the env of the workflow,
+  # not as a release file, and neither Dependabot nor a shared workflow raises them: this
+  # repository's session does, by the order of releases of R103 spec (R15, R20). sim's own recipes
+  # build the bench on this checkout in place of learner-model's commit in gate.json, through a
+  # go.work they write in a temporary folder and never commit, with engine at the commit gate.json
+  # names, in the toolchain stage of sim's devcontainer of the same tag. The gate runs as jobs, by
+  # the recipes of R67 sim (R43): four parts, each `just gate-part k 4` into a folder of parts that
+  # goes on as an artifact, and after them the check "Gate", the required one of the ruleset of
+  # main, `just gate-check bands`, which merges the parts and holds the build to gate.json and the
+  # numbers to their bands — red when one leaves them, for the better or the worse. Those are the
+  # numbers of `just gate` to the bit: a learner comes from its seeds alone, and sim's merge refuses
+  # a part missing, repeated or of another run. Every job runs on one kind of runner, since a part
+  # splits its share by the runner's processors: arm64, standard and free for a public repository,
+  # where sim's gate runs about a minute faster than on amd64 (measurements 3.1 spec), and whose
+  # numbers sim's CI holds to the same bits as amd64's (R67 sim). The limit, 15 minutes a job as in
+  # sim's gate.yml, is a guard against a hung run. The release waits for this job too: it follows a
+  # green CI on main.
+  gate-part:
+    name: Gate / part ${{ matrix.part }}
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
-    env:
-      SIM_TAG: v0.1.23
-      SIM_COMMIT: 61ed988d788b2c6033001ed42f9a95a2c70ce5d2
+    strategy:
+      fail-fast: true
+      matrix:
+        part: [0, 1, 2, 3]
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          path: lm
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: altnovatrail/sim
-          ref: ${{ env.SIM_COMMIT }}
-          persist-credentials: false
-          path: sim
-
       # The tag names the commit: a tag moved by mistake stops here, as sim's recipe stops a library
       # whose tag is not on the commit gate.json names. An annotated tag points at it through ^{}.
+      # Each part checks it before anything runs, and "Gate" fails with a part that failed.
       - name: sim tag
         run: |
           tags="$(git ls-remote https://github.com/altnovatrail/sim "refs/tags/$SIM_TAG" "refs/tags/$SIM_TAG^{}")"
@@ -118,13 +172,214 @@ jobs:
               exit 1
           fi
 
-      - name: Toolchain image of sim
-        run: docker build --target toolchain --tag sim-toolchain - < sim/.devcontainer/Dockerfile
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: lm
 
-      - name: gate
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: altnovatrail/sim
+          ref: ${{ env.SIM_COMMIT }}
+          persist-credentials: false
+          path: sim
+
+      # The caches of Go between runs, by the steps of sim's gate.yml at SIM_COMMIT word for word:
+      # GOCACHE and GOMODCACHE in one folder, by the module sums and the toolchain of sim, not by the
+      # commits gate.json names, so a new pin builds its libraries on the cache of the one before,
+      # restore-keys. A pull request only reads it, and the first part of a push to main saves it.
+      - name: Go cache
+        id: go
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/go
+          key: gate-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('sim/go.sum', 'sim/.devcontainer/Dockerfile') }}
+          restore-keys: gate-${{ runner.os }}-${{ runner.arch }}-
+
+      # sim's toolchain stage from the cache, by the steps of "Proto", keyed by the hash of sim's
+      # Dockerfile at SIM_COMMIT: a tag of sim with another Dockerfile takes an entry of its own.
+      # On a miss only the first part writes and saves the file, as in sim's gate.yml, so that the
+      # parts do not save one key, and only on a push to main: a pull request reads main's entry.
+      - name: Toolchain image from the cache
+        id: toolchain
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/novatrail-toolchain.tar
+          key: toolchain-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('sim/.devcontainer/Dockerfile') }}
+
+      - name: Toolchain image
+        env:
+          SAVE: ${{ matrix.part == 0 && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          STAGES: toolchain
         run: |
+          # Each stage STAGES names, from its own file, novatrail-<stage>.tar, and as the one image
+          # novatrail-toolchain, as spec's toolchain.sh names either stage (R47): the job toolchain
+          # builds and saves one, then the other, and every other job takes one.
+          for stage in $STAGES; do
+              case $stage in
+                  toolchain | toolchain-core) ;;
+                  *)
+                      echo "::error::STAGES names ${stage}, which is neither toolchain nor toolchain-core."
+                      exit 1
+                      ;;
+              esac
+              tar=$RUNNER_TEMP/novatrail-$stage.tar
+              restored=false
+              if [ -f "$tar" ]; then
+                  restored=true
+                  if docker load --quiet --input "$tar" && docker image inspect novatrail-toolchain > /dev/null; then
+                      rm -f -- "$tar"
+                      echo "Toolchain image: ${stage} loaded from its file."
+                      continue
+                  fi
+                  echo "::warning::The file of the ${stage} stage does not load as the image novatrail-toolchain: the image is built from the Dockerfile. A file from the cache does so on every run until its entry is deleted (gh cache delete) or the Dockerfile changes."
+                  rm -f -- "$tar"
+              fi
+              docker build --target "$stage" --tag novatrail-toolchain - < sim/.devcontainer/Dockerfile
+              # Only a job that saves writes the file. A file that came has its entry or its artifact
+              # already, which no save replaces.
+              if [ "$SAVE" = true ] && [ "$restored" = false ] && ! docker save --output "$tar" novatrail-toolchain; then
+                  echo "::warning::The image of the ${stage} stage could not be saved: the jobs after this one and the next run build it again."
+                  rm -f -- "$tar"
+              fi
+          done
+
+      - name: Toolchain image into the cache
+        if: steps.toolchain.outputs.cache-hit != 'true' && matrix.part == 0 && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/novatrail-toolchain.tar
+          key: ${{ steps.toolchain.outputs.cache-primary-key }}
+
+      - name: gate-part
+        env:
+          PART: ${{ matrix.part }}
+          PARTS: ${{ strategy.job-total }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/go" "$RUNNER_TEMP/parts"
+          # The builds from the cache are touched, as go.yml touches its own (R41 .github): go deletes
+          # a build unused for five days, by its time, at the end of a command, and an entry keeps the
+          # times of its save, so the first command would delete what the next ones need.
+          find "$RUNNER_TEMP/go" -path "$RUNNER_TEMP/go/mod" -prune -o -type f -exec touch -c -- {} +
+          docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp \
+              --env GOCACHE=/go/build --env GOMODCACHE=/go/mod --env GATE_LEARNER_MODEL=/work/lm \
+              --volume "$RUNNER_TEMP/go:/go" --volume "$RUNNER_TEMP/parts:/parts" \
+              --volume "$PWD:/work" --workdir /work/sim \
+              novatrail-toolchain just gate-part "$PART" "$PARTS" /parts
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate-part-${{ matrix.part }}
+          path: ${{ runner.temp }}/parts
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Go cache into the cache
+        if: steps.go.outputs.cache-hit != 'true' && matrix.part == 0 && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/go
+          key: ${{ steps.go.outputs.cache-primary-key }}
+
+  # The check after the parts, named as the gate was. It runs when a part failed too, and then
+  # fails: a required check skipped would pass as green.
+  gate:
+    name: Gate
+    needs: gate-part
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    steps:
+      - name: Parts
+        env:
+          PARTS_RESULT: ${{ needs.gate-part.result }}
+        run: |
+          if [ "$PARTS_RESULT" != success ]; then
+              echo "::error::The parts of the gate did not all pass: $PARTS_RESULT. Their jobs say why."
+              exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: lm
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: altnovatrail/sim
+          ref: ${{ env.SIM_COMMIT }}
+          persist-credentials: false
+          path: sim
+
+      # The caches of Go the parts took, from the same entry, which this job does not save.
+      - name: Go cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/go
+          key: gate-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('sim/go.sum', 'sim/.devcontainer/Dockerfile') }}
+          restore-keys: gate-${{ runner.os }}-${{ runner.arch }}-
+
+      # The image the parts took, from the same entry, by the same script; on a miss it is built and
+      # not saved, since the first part saves it.
+      - name: Toolchain image from the cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/novatrail-toolchain.tar
+          key: toolchain-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('sim/.devcontainer/Dockerfile') }}
+
+      - name: Toolchain image
+        env:
+          SAVE: "false"
+          STAGES: toolchain
+        run: |
+          # Each stage STAGES names, from its own file, novatrail-<stage>.tar, and as the one image
+          # novatrail-toolchain, as spec's toolchain.sh names either stage (R47): the job toolchain
+          # builds and saves one, then the other, and every other job takes one.
+          for stage in $STAGES; do
+              case $stage in
+                  toolchain | toolchain-core) ;;
+                  *)
+                      echo "::error::STAGES names ${stage}, which is neither toolchain nor toolchain-core."
+                      exit 1
+                      ;;
+              esac
+              tar=$RUNNER_TEMP/novatrail-$stage.tar
+              restored=false
+              if [ -f "$tar" ]; then
+                  restored=true
+                  if docker load --quiet --input "$tar" && docker image inspect novatrail-toolchain > /dev/null; then
+                      rm -f -- "$tar"
+                      echo "Toolchain image: ${stage} loaded from its file."
+                      continue
+                  fi
+                  echo "::warning::The file of the ${stage} stage does not load as the image novatrail-toolchain: the image is built from the Dockerfile. A file from the cache does so on every run until its entry is deleted (gh cache delete) or the Dockerfile changes."
+                  rm -f -- "$tar"
+              fi
+              docker build --target "$stage" --tag novatrail-toolchain - < sim/.devcontainer/Dockerfile
+              # Only a job that saves writes the file. A file that came has its entry or its artifact
+              # already, which no save replaces.
+              if [ "$SAVE" = true ] && [ "$restored" = false ] && ! docker save --output "$tar" novatrail-toolchain; then
+                  echo "::warning::The image of the ${stage} stage could not be saved: the jobs after this one and the next run build it again."
+                  rm -f -- "$tar"
+              fi
+          done
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: gate-part-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/parts
+
+      - name: gate-check
+        run: |
+          mkdir -p "$RUNNER_TEMP/go"
+          # The builds from the cache are touched, as go.yml touches its own (R41 .github): go deletes
+          # a build unused for five days, by its time, at the end of a command, and an entry keeps the
+          # times of its save, so the first command would delete what the next ones need.
+          find "$RUNNER_TEMP/go" -path "$RUNNER_TEMP/go/mod" -prune -o -type f -exec touch -c -- {} +
           set -o pipefail
           docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp \
-              --env GATE_LEARNER_MODEL=/work/lm \
+              --env GOCACHE=/go/build --env GOMODCACHE=/go/mod --env GATE_LEARNER_MODEL=/work/lm \
+              --volume "$RUNNER_TEMP/go:/go" --volume "$RUNNER_TEMP/parts:/parts" \
               --volume "$PWD:/work" --workdir /work/sim \
-              sim-toolchain just gate | tee -a "$GITHUB_STEP_SUMMARY"
+              novatrail-toolchain just gate-check bands /parts | tee -a "$GITHUB_STEP_SUMMARY"
