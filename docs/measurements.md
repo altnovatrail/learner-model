@@ -104,3 +104,9 @@ What the model does under grades 1, 3 and 5 of olympiad maths, where it starts a
 - Every variant runs the reference under itself too, so each row's pairs are of one model. The rows have no intervals: a share near 0.55 of 2,000 learners has a standard error of about 0.011, and the judgement's yardstick is `sim`'s (R57 sim).
 - The share of learners with the reference's wrong answers in the series under grade 1 stays 1.000 but for σ₀ 2.0, 0.847, and σ₀ 4.0, 0.559: a prior that much narrower or wider moves θ in the series enough for the engine to give grade 1 other tasks than grade 3. Under grade 5 the share is 0.201 but for σ₀ 2.0, 0.136, and σ₀ 4.0, 0.400.
 - The runs measure the three cells `D-` alone, in `G0`: no learning and no break. What the variants do to the other 65 cells and to the criterion of the model is not measured here.
+
+## 6. The time of "Gate" on `sim` `v0.1.23`, T60, 2026-11-16
+
+How long the gate of `sim` `v0.1.23`, commit 61ed988, takes on the code of `main` cb8c5e0, for the 2026-11-16 amendment to R20. The earlier tags' times stand in the amendments to R20 themselves: 118 seconds on 20 cores for `v0.1.14` in T51, and 7 min 28 s of the job on a runner.
+
+- **In the container:** `just gate exact` from a clone of `sim` at `61ed988` in the session's folder, `GATE_LEARNER_MODEL` the repository's folder, 20 cores: 2 min 17.9 s by the clock, 1,997 s user and 48 s system (`time`); 69 numbers in their bands and to the bit, no learner breaks an invariant, code 0.
