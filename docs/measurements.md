@@ -2,7 +2,7 @@
 
 > The results of the library's measurements: what was measured, how, on what, and what numbers came out. The document that describes how it is built — [architecture.md](architecture.md) — cites this one and holds only what was decided from the measurements (RULES.md, How we work; R143 spec). A measurement is cited by its section, as any document is: `measurements 1`, and from another repository `measurements 1 learner-model`.
 >
-> An external fact on which a measurement stands is a record of [sources.md](sources.md). Sections 1–3 were moved here word for word on 2026-11-13 from [architecture.md](architecture.md), subsections 3.6 and 3.7, by task T49 (R35), and the conclusions stayed there; "rule N" in them is a rule of subsection 3.6 of architecture. The measurement of the tokens spent by the sessions of an epic, by the rules of epics of [RUN.md](../RUN.md), will take its place here as a section of its own when it is made for the first time.
+> An external fact on which a measurement stands is a record of [sources.md](sources.md). Sections 1–3 were moved here word for word on 2026-11-13 from [architecture.md](architecture.md), subsections 3.6 and 3.7, by task T49 (R35), and the conclusions stayed there; "rule N" in them is a rule of subsection 3.6 of architecture. The tokens spent by the sessions of an epic, measured at its archive by the rules of epics of [RUN.md](../RUN.md), are section 4.
 
 ## 1. The same bits: the port `detmath` and `math`
 
@@ -28,3 +28,14 @@ After T40 (R29), 2026-11-11. The benchmark is `BenchmarkReadoutTask`, a syntheti
 ## 3. The schema and `buf`
 
 T05's experiment: `buf convert` with `use_proto_names=true` turned evidence encoded by hand into `{"kind":1,"practice_time":"1762041600","x":-0,"items":[{"place":1,"first_verdict":"VERDICT_CORRECT"}]}` and back into the same bytes, and `buf breaking` on a removed field answered "Previously present field "3" with name "x" on message "Evidence" was deleted" ([plan/E1.md](plan/E1.md), T05).
+
+## 4. The tokens of an epic's sessions
+
+Measured at each epic's archive, by RUN.md, Epics: `just -f spec/justfile tokens-report --since … --until … --row` over this repository's transcripts on the machine where the epic ran, one row of the table of measurements 1.9 spec. The reference of the threshold of R145 spec is this repository's first row of at least 300 main calls after T50 (measurements 1.9 spec): the row of E7, 128.2 thousand for a main call.
+
+| Project | Window, UTC | Sessions | Calls, main / subagents | Context of a call, k, main / subagents | Compactions | Cost at API prices |
+|---|---|---|---|---|---|---|
+| `-workspaces-learner-model` — E7, T51–T57: the reference | 2026-11-13T22:41 … 2026-11-16T01:48 | 7 | 355 / 86 | 128.2 / 73.2 | 0 | $26.24 |
+
+- **E7**, measured 2026-11-16 by T58 (R40). The window runs from the merge of T50, c0db4dc at 22:40 UTC, after which E7 was unfolded, to the merge of T57, 1e2dc90 at 01:47:40 UTC; it holds the unfolding, T51, the planning of T52 and T56–T57, all on `claude-opus-5-5`. T58, which archives the epic, is a session after the window.
+- **The threshold** is not reached: this row is the reference itself, and `docs-budgets.json` has not been raised — T49 set it, and T50 removed the limits held until the translation, neither of which counts as a raise (the 2026-11-13 amendment to R145 spec).
