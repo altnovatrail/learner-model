@@ -14,7 +14,7 @@ Its card in spec is architecture 3.8 spec. The card is the summary and this repo
 
 ## Documents
 
-The documents under `docs/` are in English, but for the epic archives `docs/plan/`, which stay in Russian; RUN.md and `run/` are in English, but for the bodies of tasks (R143 spec, R153 spec, R154 spec; R39). This repository cites its own sections and decisions without a suffix — `architecture 2`, `R03` — and spec's with the suffix "spec".
+The documents under `docs/` are in English, but for the epic archives `docs/plan/`, which stay in Russian; RUN.md and `run/` are in English, but for the current epic's description and the bodies of tasks (R143 spec, R153 spec, R154 spec; R39). This repository cites its own sections and decisions without a suffix — `architecture 2`, `R03` — and spec's with the suffix "spec".
 
 - [docs/architecture.md](docs/architecture.md) — the component: what it does and does not do, its data and links (section 1), what the card left to decide, decided, with what was deliberately deferred (section 2), and how it is built (section 3).
 - [docs/decisions.md](docs/decisions.md) — this repository's decision log, `R01`…: read it before proposing a change. Other repositories cite its entries as `R03 learner-model`.
