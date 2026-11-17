@@ -2,7 +2,7 @@
 
 > The results of the library's measurements: what was measured, how, on what, and what numbers came out. The document that describes how it is built — [architecture.md](architecture.md) — cites this one and holds only what was decided from the measurements (RULES.md, How we work; R143 spec). A measurement is cited by its section, as any document is: `measurements 1`, and from another repository `measurements 1 learner-model`.
 >
-> An external fact on which a measurement stands is a record of [sources.md](sources.md). Sections 1–3 were moved here word for word on 2026-11-13 from [architecture.md](architecture.md), subsections 3.6 and 3.7, by task T49 (R35), and the conclusions stayed there; "rule N" in them is a rule of subsection 3.6 of architecture. The tokens spent by the sessions of an epic, measured at its archive by the rules of epics of [RUN.md](../RUN.md), are section 4.
+> An external fact on which a measurement stands is a record of [sources.md](sources.md). Sections 1–3 were moved here word for word on 2026-11-13 from [architecture.md](architecture.md), subsections 3.6 and 3.7, by task T49 (R35), and the conclusions stayed there; "rule N" in them is a rule of subsection 3.6 of architecture. The tokens spent by the sessions of an epic, measured at its archive by the rules of epics of [RUN.md](../RUN.md), are section 4, and the analysis of E8's by the threshold of R145 spec is section 10.
 
 ## 1. The same bits: the port `detmath` and `math`
 
@@ -41,7 +41,7 @@ Measured at each epic's archive, by RUN.md, Epics: `just -f spec/justfile tokens
 - **E7**, measured 2026-11-16 by T58 (R40). The window runs from the merge of T50, c0db4dc at 22:40 UTC, after which E7 was unfolded, to the merge of T57, 1e2dc90 at 01:47:40 UTC; it holds the unfolding, T51, the planning of T52 and T56–T57, all on `claude-opus-5-5`. T58, which archives the epic, is a session after the window.
 - **The threshold** is not reached: this row is the reference itself, and `docs-budgets.json` has not been raised — T49 set it, and T50 removed the limits held until the translation, neither of which counts as a raise (the 2026-11-13 amendment to R145 spec).
 - **E8**, measured 2026-11-16 by T64 (R40). The window runs from the merge of T57, 1e2dc90 at 01:47:40 UTC, after which T58 unfolded E8, to the merge of T61, 7ff2b89 at 16:16:32 UTC; it holds T58–T61, a session each, all on `claude-opus-5-5`. T62 and T63 were deferred and had no session; T64, which archives the epic, is a session after the window.
-- **The threshold** is met for E8: 173.3 thousand for a main call is 35 % above the reference, 128.2, over 545 main calls, against the 25 % of R145 spec. By session, over all its calls, the subagents' with the main ones — so below the main calls' own figure —, T61 is 187.7 thousand with 234 main calls, T59 165.6 with 138, T58 144.4 with 111 and T60 83.2 with 62. What entered between calls carried 100.2 M of context in all: the output of Bash 47.4 M, `docs/decisions.md` read by Bash 87 times 11.2 M and RUN.md 73 times 4.3 M. `docs-budgets.json` has not been raised since T49. The analysis is T65 of [run/TASKS.md](../run/TASKS.md) (R155 spec).
+- **The threshold** is met for E8: 173.3 thousand for a main call is 35 % above the reference, 128.2, over 545 main calls, against the 25 % of R145 spec. By session, over all its calls, the subagents' with the main ones — so below the main calls' own figure —, T61 is 187.7 thousand with 234 main calls, T59 165.6 with 138, T58 144.4 with 111 and T60 83.2 with 62. What entered between calls carried 100.2 M of context in all: the output of Bash 47.4 M, `docs/decisions.md` read by Bash 87 times 11.2 M and RUN.md 73 times 4.3 M. `docs-budgets.json` has not been raised since T49. The analysis, T65, found the length of the sessions the cause, not the documents: over each session's first 80 main calls E8 carries 122.1 thousand a call, below E7's 127.9 — section 10 (R47).
 
 ## 5. The start by the grade and the cells `D-`, T59, 2026-11-16
 
@@ -247,3 +247,30 @@ The chance that a run of independent answers, each a failure with chance q, hold
 
 
 A rough look of `sim` at 0a31313 on 300 learners a cell, the working set: `just rough engine` of the base, `learner-model` v0.1.8, and of the code of T68 with `CANDIDATE_LEARNER_MODEL`, the commit of a copy of the checkout whose Go code is this pull request's, the sum of P of the guard of 9.2, then `sim judge` of a judgement file of the criterion `model` with the one candidate, not committed. The report names no failure of the constraint `fair` on `D-grade1` and `D-grade5` (R57 sim). The candidate holds not every constraint, and the base would stay: 158 "no worse" checks fail, among them `M1.rms.200` of `G0` in olympiad maths, worse by at most 0.080 against the tolerance 0.048, of `G1` by 0.287 against 0.122, `M7.error.10` of `G1` in olympiad maths by 0.799 against 0.267, `M2.brier.all` in grade-3 maths on every cell `G`, and `M3.settle` of `G3` in grade-3 maths by 12.9 answers against 5.8; and the floors of `M4.false.all` and `M6.late` of `G0` in grade-3 maths, which the candidate's run does not read. On the gate the start alone moves these numbers, and the guard keeps them (measurements 9.2): the risk R157 spec took for the first child. Row 4.21 of `spec`'s `COORDINATION.md` judges the three rules by its own criterion.
+
+## 10. The context of E8's sessions, T65, 2026-11-17
+
+The analysis of the threshold of R145 spec that section 4 found for E8: why a main call of E8 carries 173.3 thousand of context against the reference's 128.2, and what of it to remove (R47).
+
+- **How.** `just -f spec/justfile tokens-report --top 25` over this repository's transcripts on the machine where both epics ran, for the window of each row of section 4 — E7 from 2026-11-13T22:40:00Z, E8 from 2026-11-16T01:47:40Z to 16:16:32Z —, its `--json` for the main calls of each session — the columns of their context and its largest below —, and a script of Node over the same transcripts for the context of each main call by its number in the session: the input, the cache read and the cache written of its `usage`, once a message. The script is in no repository; it prints numbers alone, never what a transcript says. E7's window counts 358 main calls here at 128.6 thousand against section 4's 355 at 128.2, since it starts a minute earlier.
+- **By session, main calls alone**, thousand a call:
+
+| Epic | Session | Main calls | Context of a call | Largest | Over the first 60 calls |
+|---|---|---|---|---|---|
+| E7 | the plan of E7 | 73 | 128.8 | 190.7 | 116.2 |
+| E7 | T51 | 66 | 104.8 | 144.4 | 100.9 |
+| E7 | T52 | 70 | 163.8 | 246.9 | 151.6 |
+| E7 | T56 | 79 | 115.2 | 175.2 | 100.0 |
+| E7 | T57 | 62 | 127.1 | 182.9 | 125.2 |
+| E7 | all five | 350 | 127.9 | 246.9 | 118.8 |
+| E8 | T58 | 111 | 161.8 | 237.7 | 114.8 |
+| E8 | T59 | 138 | 179.8 | 267.5 | 117.3 |
+| E8 | T60 | 62 | 93.1 | 130.1 | 91.9 |
+| E8 | T61 | 234 | 196.3 | 327.7 | 104.9 |
+| E8 | all four | 545 | 173.3 | 327.7 | 107.2 |
+
+  E7's other two sessions in the window, the end of T50 and T170 spec's check, are 8 calls. Every session starts at 26–40 thousand and grows by 1.3–3.0 thousand a call, E8's by 1.3–1.9 and E7's by 1.6–3.0.
+- **The cause is the length of the sessions.** Over each session's first 80 main calls E8 carries 122.1 thousand a call, 5 % below E7's 127.9, and over its first 60, 107.2 against 118.8. E7's longest session has 79 main calls; E8's three of 111, 138 and 234 add 244 calls beyond the 80th, at 200–330 thousand each, and they alone lift the mean from 122.1 to 173.3. The context grows with what a session has gathered (measurements 1.5 spec), so a session twice as long carries more per call at the same pace.
+- **What entered between calls** is E7's in size: by Bash 1,276,147 characters in 591 results against 1,261,456 in 398; `docs/decisions.md` by Bash 294,693 characters in 87 reads against 293,746 in 78, and E7 read 103,212 more by Read; RUN.md 173,370 against 209,746, by Bash and Read together. What they carried grew — Bash 47.36 M against 20.99 M, `docs/decisions.md` 11.17 M against 4.81 M, RUN.md 6.19 M against 5.08 M, the model's own output 21.94 M against 7.99 M — because the same text rides on more calls after it in a longer session. `docs/decisions.md` grew from 400,235 to 431,799 bytes over E8 and RUN.md was 28–31 KB; within the budgets of `docs-budgets.json`, unraised since T49.
+- **Why the sessions were long.** T58 wrote the epic, measured E7 and planned T59; T59 and T61 ran `sim`'s cells — 39 and 60 calls of runs —, T61 its 48 sets screened and decided (R42). T61 also waited: 19 commands in the background, then 76 main calls that only waited for them — 70 loops `until grep -q …; do sleep …; done` in the foreground, each holding its call until the run ended or its timeout of 10 to 60 minutes did, and then called again, the rest Monitor and the stopping of tasks —, at 203 thousand a call on average, 15.4 M of the session's 45.9 M, $3.08 of its $14.62 at the cache's price, $0.20 a million (`spec/tools/tokens/prices.mjs`). Without them T61's calls carry 191.7 thousand: the waits cost, but lift the mean little. Over 10 hours 41 minutes, from 05:34 to 16:15 UTC, T61 had no compaction.
+- **Smaller things.** 7 Reads of a tool's output that Claude Code kept in a file — RUN.md cut at 40,000 characters, a part of `sim`'s decision log and the outputs of background commands — brought 224,516 characters, 4.37 M carried; 86 notifications of background commands, 4.51 M; the attachment of the cost ceiling on 625 calls, 2.25 M. None is the documents'.
