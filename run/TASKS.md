@@ -7,4 +7,4 @@ Open tasks outside the current epic, each as its body, in Russian (R154 spec, R1
 
 ## Tasks outside an epic
 
-None yet.
+None open.

@@ -252,25 +252,25 @@ A rough look of `sim` at 0a31313 on 300 learners a cell, the working set: `just 
 
 The analysis of the threshold of R145 spec that section 4 found for E8: why a main call of E8 carries 173.3 thousand of context against the reference's 128.2, and what of it to remove (R47).
 
-- **How.** `just -f spec/justfile tokens-report --top 25` over this repository's transcripts on the machine where both epics ran, for the window of each row of section 4 — E7 from 2026-11-13T22:40:00Z, E8 from 2026-11-16T01:47:40Z to 16:16:32Z —, its `--json` for the main calls of each session — the columns of their context and its largest below —, and a script of Node over the same transcripts for the context of each main call by its number in the session: the input, the cache read and the cache written of its `usage`, once a message. The script is in no repository; it prints numbers alone, never what a transcript says. E7's window counts 358 main calls here at 128.6 thousand against section 4's 355 at 128.2, since it starts a minute earlier.
+- **How.** `just -f spec/justfile tokens-report --top 25` over this repository's transcripts on the machine where both epics ran, for the window of each row of section 4 — E7 from 2026-11-13T22:40:00Z to 2026-11-16T01:47:40Z, E8 from 2026-11-16T01:47:40Z to 16:16:32Z —, its `--json` for the main calls of each session — the columns of their context and its largest below —, and a script of Node over the same transcripts for the context of each main call by its number in the session: the input, the cache read and the cache written of its `usage`, once a message — the last column below; it counts T61's session as 235 main calls, one more than `tokens-report`. The script is in no repository; it prints numbers alone, never what a transcript says. E7's window counts 358 main calls here at 128.6 thousand against section 4's 355 at 128.2, since it starts a minute earlier.
 - **By session, main calls alone**, thousand a call:
 
-| Epic | Session | Main calls | Context of a call | Largest | Over the first 60 calls |
+| Epic | Session | Main calls | Context of a call | Largest | Over the first 80 calls |
 |---|---|---|---|---|---|
-| E7 | the plan of E7 | 73 | 128.8 | 190.7 | 116.2 |
-| E7 | T51 | 66 | 104.8 | 144.4 | 100.9 |
-| E7 | T52 | 70 | 163.8 | 246.9 | 151.6 |
-| E7 | T56 | 79 | 115.2 | 175.2 | 100.0 |
-| E7 | T57 | 62 | 127.1 | 182.9 | 125.2 |
-| E7 | all five | 350 | 127.9 | 246.9 | 118.8 |
-| E8 | T58 | 111 | 161.8 | 237.7 | 114.8 |
-| E8 | T59 | 138 | 179.8 | 267.5 | 117.3 |
-| E8 | T60 | 62 | 93.1 | 130.1 | 91.9 |
-| E8 | T61 | 234 | 196.3 | 327.7 | 104.9 |
-| E8 | all four | 545 | 173.3 | 327.7 | 107.2 |
+| E7 | the plan of E7 | 73 | 128.8 | 190.7 | 128.8 |
+| E7 | T51 | 66 | 104.8 | 144.4 | 104.8 |
+| E7 | T52 | 70 | 163.8 | 246.9 | 163.8 |
+| E7 | T56 | 79 | 115.2 | 175.2 | 115.2 |
+| E7 | T57 | 62 | 127.1 | 182.9 | 127.1 |
+| E7 | all five | 350 | 127.9 | 246.9 | 127.9 |
+| E8 | T58 | 111 | 161.8 | 237.7 | 136.9 |
+| E8 | T59 | 138 | 179.8 | 267.5 | 136.4 |
+| E8 | T60 | 62 | 93.1 | 130.1 | 93.1 |
+| E8 | T61 | 234 | 196.3 | 327.7 | 115.5 |
+| E8 | all four | 545 | 173.3 | 327.7 | 122.1 |
 
-  E7's other two sessions in the window, the end of T50 and T170 spec's check, are 8 calls. Every session starts at 26–40 thousand and grows by 1.3–3.0 thousand a call, E8's by 1.3–1.9 and E7's by 1.6–3.0.
-- **The cause is the length of the sessions.** Over each session's first 80 main calls E8 carries 122.1 thousand a call, 5 % below E7's 127.9, and over its first 60, 107.2 against 118.8. E7's longest session has 79 main calls; E8's three of 111, 138 and 234 add 244 calls beyond the 80th, at 200–330 thousand each, and they alone lift the mean from 122.1 to 173.3. The context grows with what a session has gathered (measurements 1.5 spec), so a session twice as long carries more per call at the same pace.
+  E7's other two sessions in the window, the end of T50 and T170 spec's check, are 8 calls. Every session starts at 26–40 thousand and grows over its first 60 calls by 1.8–3.0 thousand a call in E7 and 1.7–2.7 in E8.
+- **The cause is the length of the sessions.** Over each session's first 80 main calls E8 carries 122.1 thousand a call, 4.5 % below the 127.9 of E7's five sessions, and over its first 60, 107.2 against 118.8. E7's longest session has 79 main calls; E8's three of 111, 138 and 234 add 243 calls beyond the 80th, at 200–330 thousand each, and they alone lift the mean from 122.1 to 173.3. The context grows with what a session has gathered (measurements 1.5 spec), so a session twice as long carries more per call at the same pace.
 - **What entered between calls** is E7's in size: by Bash 1,276,147 characters in 591 results against 1,261,456 in 398; `docs/decisions.md` by Bash 294,693 characters in 87 reads against 293,746 in 78, and E7 read 103,212 more by Read; RUN.md 173,370 against 209,746, by Bash and Read together. What they carried grew — Bash 47.36 M against 20.99 M, `docs/decisions.md` 11.17 M against 4.81 M, RUN.md 6.19 M against 5.08 M, the model's own output 21.94 M against 7.99 M — because the same text rides on more calls after it in a longer session. `docs/decisions.md` grew from 400,235 to 431,799 bytes over E8 and RUN.md was 28–31 KB; within the budgets of `docs-budgets.json`, unraised since T49.
-- **Why the sessions were long.** T58 wrote the epic, measured E7 and planned T59; T59 and T61 ran `sim`'s cells — 39 and 60 calls of runs —, T61 its 48 sets screened and decided (R42). T61 also waited: 19 commands in the background, then 76 main calls that only waited for them — 70 loops `until grep -q …; do sleep …; done` in the foreground, each holding its call until the run ended or its timeout of 10 to 60 minutes did, and then called again, the rest Monitor and the stopping of tasks —, at 203 thousand a call on average, 15.4 M of the session's 45.9 M, $3.08 of its $14.62 at the cache's price, $0.20 a million (`spec/tools/tokens/prices.mjs`). Without them T61's calls carry 191.7 thousand: the waits cost, but lift the mean little. Over 10 hours 41 minutes, from 05:34 to 16:15 UTC, T61 had no compaction.
+- **Why the sessions were long.** T58 wrote the epic, measured E7 and planned T59; T59 and T61 ran `sim`'s cells — 39 and 60 calls of runs —, T61 its 48 sets screened and decided (R42). T61 also waited: 19 commands in the background, then 76 main calls that only waited for them — 70 loops `until grep -q …; do sleep …; done` in the foreground, each holding its call until the run ended or its timeout of 10 to 60 minutes did, and then called again, the rest Monitor and the stopping of tasks —, at 203 thousand a call on average, 15.4 M of the session's 45.9 M, $3.08 of its $14.62 at the cache's price, $0.20 a million (`spec/tools/tokens/prices.mjs`). By the script, T61's other 159 calls carry 191.7 thousand against 195.4 over all 235: the waits cost, but lift the mean little. Over 10 hours 41 minutes, from 05:34 to 16:15 UTC, T61 had no compaction.
 - **Smaller things.** 7 Reads of a tool's output that Claude Code kept in a file — RUN.md cut at 40,000 characters, a part of `sim`'s decision log and the outputs of background commands — brought 224,516 characters, 4.37 M carried; 86 notifications of background commands, 4.51 M; the attachment of the cost ceiling on 625 calls, 2.25 M. None is the documents'.
