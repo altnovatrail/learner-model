@@ -304,6 +304,8 @@ func readEvidence(b []byte) (Evidence, error) {
 			return element(&e.Traps, readFoundTrap)
 		case 20:
 			return boolField(n, seen, &e.LeadingQuestionOnRequest)
+		case 21:
+			return boolField(n, seen, &e.LevelSetByAdult)
 		}
 		return nil
 	})
@@ -313,15 +315,9 @@ func readEvidence(b []byte) (Evidence, error) {
 	if err := seen.require("evidence", 1, 2, 3, 4, 5, 6, 9, 10, 11, 13, 14, 15, 16); err != nil {
 		return e, err
 	}
-	// Kind 2 adds field 20, which every kind from it writes and kind 1 does not. A kind below 1 is
-	// refused for its kind, by canonicalEvidence.
-	if e.Kind >= leadingQuestionKind {
-		return e, seen.require("evidence of kind "+itoa(e.Kind), 20)
-	}
-	if e.Kind >= 1 && seen.has(20) {
-		return e, errors.New("evidence of kind " + itoa(e.Kind) + " with field 20")
-	}
-	return e, nil
+	// Kind 2 adds field 20 and kind 3 field 21, which every kind from it writes and the kinds before
+	// it do not. A kind below 1 is refused for its kind, by canonicalEvidence.
+	return e, kindFields(seen, "evidence", e.Kind, []addedField{{leadingQuestionKind, 20}, {correctionKind, 21}})
 }
 
 func readItem(b []byte) (TaskItem, ItemAnswer, error) {
@@ -386,22 +382,36 @@ func readFoundTrap(b []byte) (FoundTrap, error) {
 
 func readState(b []byte) (State, error) {
 	var s State
+	var modules []fields // the fields each module has, in order
 	seen, err := readMessage(b, func(n int, seen *fields) *reading {
 		switch n {
 		case 1:
 			return int32Field(n, seen, &s.Kind)
 		case 2:
-			return element(&s.Modules, readModule)
+			return element(&s.Modules, func(b []byte) (ModuleState, error) {
+				m, f, err := readModule(b)
+				modules = append(modules, f)
+				return m, err
+			})
 		}
 		return nil
 	})
 	if err != nil {
 		return State{}, err
 	}
-	return s, seen.require("a state", 1)
+	if err := seen.require("a state", 1); err != nil {
+		return s, err
+	}
+	// Kind 2 adds fields 9 and 10 of a module.
+	for _, f := range modules {
+		if err := kindFields(f, "a module of a state", s.Kind, []addedField{{guardKind, 9}, {guardKind, 10}}); err != nil {
+			return s, err
+		}
+	}
+	return s, nil
 }
 
-func readModule(b []byte) (ModuleState, error) {
+func readModule(b []byte) (ModuleState, fields, error) {
 	var m ModuleState
 	seen, err := readMessage(b, func(n int, seen *fields) *reading {
 		switch n {
@@ -421,13 +431,17 @@ func readModule(b []byte) (ModuleState, error) {
 			return element(&m.Skills, readSkill)
 		case 8:
 			return boolField(n, seen, &m.LastInTrial)
+		case 9:
+			return int32Field(n, seen, &m.FailuresInARow)
+		case 10:
+			return boolField(n, seen, &m.TrialEndedByAdult)
 		}
 		return nil
 	})
 	if err != nil {
-		return ModuleState{}, err
+		return ModuleState{}, seen, err
 	}
-	return m, seen.require("a module", 1, 2, 3, 4, 8)
+	return m, seen, seen.require("a module", 1, 2, 3, 4, 8)
 }
 
 func readTrialAnswer(b []byte) (TrialAnswer, error) {
@@ -482,4 +496,26 @@ func readSkill(b []byte) (SkillState, error) {
 		return SkillState{}, err
 	}
 	return sk, seen.require("a skill", 1, 2, 3, 4, 5, 6, 9)
+}
+
+// addedField is a field a kind adds: a message of that kind or later must have it, and one of an
+// earlier kind from 1 must not.
+type addedField struct {
+	kind  int32
+	field int
+}
+
+// kindFields holds a message of a kind to the fields the kinds add.
+func kindFields(seen fields, what string, kind int32, added []addedField) error {
+	for _, a := range added {
+		switch {
+		case kind >= a.kind:
+			if err := seen.require(what+" of kind "+itoa(kind), a.field); err != nil {
+				return err
+			}
+		case kind >= 1 && seen.has(a.field):
+			return errors.New(what + " of kind " + itoa(kind) + " with field " + strconv.Itoa(a.field))
+		}
+	}
+	return nil
 }

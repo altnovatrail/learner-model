@@ -99,11 +99,12 @@ func (s *State) append(e Evidence, in input) Evidence {
 	return e
 }
 
-// newModule is a module before its first evidence, at θ₀ of its start band, as both the step and
-// reading take it: the trial series gives θ from θ₀ anew, so the start changes no bit of the
-// state, but the step's P of the first evidence is the P reading gives.
+// newModule is a module before its first evidence, at θ₀ of its start band — a band below it
+// (R45) —, as both the step and reading take it: the trial series gives θ from θ₀ anew, so the
+// start changes no bit of the state, but the step's P of the first evidence is the P reading
+// gives.
 func newModule(module string, start BandRef) ModuleState {
-	return ModuleState{Module: module, StartBand: start, Level: shift(start.Place)}
+	return ModuleState{Module: module, StartBand: start, Level: startLevel(start.Place)}
 }
 
 // moduleIndex finds a module's state, or where it would stand.
@@ -155,6 +156,10 @@ func checkInputState(s State) error {
 		// A module has a state once evidence moved it, and while the series lasts that was in it.
 		if !m.LastInTrial && m.inTrial() {
 			return invalid("module " + m.Module + " in the trial series, whose last evidence was not in it")
+		}
+		// The guard counts past the series only.
+		if m.FailuresInARow != 0 && m.inTrial() {
+			return invalid("module " + m.Module + " with a count of the guard of " + itoa(m.FailuresInARow))
 		}
 		// A skill has a state only once it has been practised, and its stability is then τ₀ or more.
 		for _, sk := range m.Skills {

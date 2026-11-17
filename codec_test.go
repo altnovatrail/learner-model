@@ -79,6 +79,7 @@ func goldenState() lm.State {
 				{Skill: skill("addition"), Correction: 0.58, AnswerWeight: 5, EvidenceCount: 2, LastPractice: -5,
 					Stability: 2.5, MasteryBand: 2, Mastered: true},
 			},
+			FailuresInARow: 2, TrialEndedByAdult: true,
 		}},
 	}
 }
@@ -130,6 +131,30 @@ func TestGoldenEvidence(t *testing.T) {
 	}
 	if e.Task.Items[0].Place != 1 || e.Task.Primary[0] != skill("addition") {
 		t.Errorf("the lists are not in their canonical order: %+v", e.Task)
+	}
+}
+
+// goldenCorrection is what LevelCorrection gives: evidence of its own kind beside an attempt (R45).
+func goldenCorrection() lm.Evidence {
+	return lm.LevelCorrection(module, lm.BandRef{Place: 2, ID: "grade-3"}, lm.BandRef{Place: 1, ID: "grade-2"}, 1762300800)
+}
+
+func TestGoldenCorrection(t *testing.T) {
+	b, err := lm.EncodeEvidence(goldenCorrection())
+	if err != nil {
+		t.Fatal(err)
+	}
+	golden(t, "correction.binpb", b)
+	e, err := lm.DecodeEvidence(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	again, err := lm.EncodeEvidence(e)
+	if err != nil || !bytes.Equal(again, b) {
+		t.Errorf("encode(decode(b)) = %x, %v; not b", again, err)
+	}
+	if !e.LevelSetByAdult || e.Task.ID != module+"/level/grade-3" || e.Task.Band.Place != 2 || e.Task.Difficulty != 3 {
+		t.Errorf("the correction reads as %+v", e)
 	}
 }
 
@@ -807,8 +832,11 @@ func TestStrictValues(t *testing.T) {
 		"items out of order":      slices.Concat(evidenceTop(), item(2), item(1)),
 		"an item place twice":     slices.Concat(evidenceTop(), item(1), item(1)),
 		"two traps, unordered":    slices.Concat(evidenceTop(), []byte{0x9a, 0x01, 0x03, 0x0a, 0x01, 'b', 0x9a, 0x01, 0x03, 0x0a, 0x01, 'a'}),
-		"kind 2 without field 20": bytes.TrimSuffix(evidenceTop(), leadingField),
-		"kind 1 with field 20":    slices.Concat(kindOneTop(), []byte{0xa0, 0x01, 0x00}),
+		"kind 3 without field 21": bytes.TrimSuffix(evidenceTop(), correctionField),
+		"kind 2 without field 20": bytes.TrimSuffix(kindTop(2), leadingField),
+		"kind 1 with field 20":    slices.Concat(kindTop(1), []byte{0xa0, 0x01, 0x00}),
+		"kind 2 with field 21":    slices.Concat(kindTop(2), correctionField),
+		"kind 1 with field 21":    slices.Concat(kindTop(1), correctionField),
 	} {
 		if _, err := lm.DecodeEvidence(b); !errors.Is(err, lm.ErrCorrupt) {
 			t.Errorf("evidence with %s: %v, not ErrCorrupt", name, err)
@@ -817,10 +845,16 @@ func TestStrictValues(t *testing.T) {
 	if _, err := lm.DecodeEvidence(slices.Concat(evidenceTop(), item(1), item(2))); err != nil {
 		t.Errorf("two items in order: %v", err)
 	}
-	if !bytes.HasSuffix(evidenceTop(), leadingField) {
-		t.Errorf("the top of kind 2 does not end with field 20 set: %x", evidenceTop())
+	if !bytes.HasSuffix(evidenceTop(), slices.Concat(leadingField, correctionField)) {
+		t.Errorf("the top of kind 3 does not end with field 20 set and field 21: %x", evidenceTop())
 	}
-	if e, err := lm.DecodeEvidence(kindOneTop()); err != nil || e.Kind != 1 || e.LeadingQuestionOnRequest {
+	if !bytes.HasSuffix(kindTop(2), leadingField) {
+		t.Errorf("the top of kind 2 does not end with field 20 set: %x", kindTop(2))
+	}
+	if e, err := lm.DecodeEvidence(kindTop(2)); err != nil || e.Kind != 2 || e.LevelSetByAdult {
+		t.Errorf("evidence of kind 2 without field 21 reads as kind %d with a correction %v: %v", e.Kind, e.LevelSetByAdult, err)
+	}
+	if e, err := lm.DecodeEvidence(kindTop(1)); err != nil || e.Kind != 1 || e.LeadingQuestionOnRequest {
 		t.Errorf("evidence of kind 1 without field 20 reads as kind %d with a leading question %v: %v", e.Kind, e.LeadingQuestionOnRequest, err)
 	}
 	if _, err := lm.DecodeState([]byte{0x08, 0x00}); !errors.Is(err, lm.ErrCorrupt) {
@@ -831,13 +865,20 @@ func TestStrictValues(t *testing.T) {
 	}
 }
 
-// leadingField is field 20 set, the last field kind 2 writes.
-var leadingField = []byte{0xa0, 0x01, 0x01}
+// leadingField is field 20 set, the last field kind 2 writes, and correctionField field 21 unset,
+// the last kind 3 writes.
+var (
+	leadingField    = []byte{0xa0, 0x01, 0x01}
+	correctionField = []byte{0xa8, 0x01, 0x00}
+)
 
-// kindOneTop is evidenceTop of kind 1, which writes no field 20.
-func kindOneTop() []byte {
+// kindTop is evidenceTop of an earlier kind: kind 2 writes no field 21, and kind 1 no field 20.
+func kindTop(kind int32) []byte {
 	e := goldenEvidence()
-	e.Kind, e.LeadingQuestionOnRequest = 1, false
+	e.Kind = kind
+	if kind < 2 {
+		e.LeadingQuestionOnRequest = false
+	}
 	e.Task.Items, e.Items, e.Traps = nil, nil, nil
 	b, err := lm.EncodeEvidence(e)
 	if err != nil {

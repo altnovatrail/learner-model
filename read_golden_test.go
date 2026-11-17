@@ -81,8 +81,12 @@ func review(r lm.ReviewDate) string {
 func writeRead(t *testing.T, out *strings.Builder, r lm.Readout, candidates []lm.Task) {
 	t.Helper()
 	for _, m := range r.Modules {
-		fmt.Fprintf(out, "module %s evidence=%v start=%s trial-over=%v last-in-trial=%v",
-			m.Module, m.HasEvidence, band(m.StartBand), m.TrialOver, m.LastInTrial)
+		level := "none"
+		if m.HasLevelBand {
+			level = band(m.LevelBand)
+		}
+		fmt.Fprintf(out, "module %s evidence=%v start=%s level=%s trial-over=%v last-in-trial=%v",
+			m.Module, m.HasEvidence, band(m.StartBand), level, m.TrialOver, m.LastInTrial)
 		for _, trap := range m.Traps {
 			fmt.Fprintf(out, " trap=%s:%d:%d", trap.ID, trap.Count, trap.Last)
 		}
@@ -144,7 +148,7 @@ func readGolden(t *testing.T, note string, log []lm.Evidence, g lm.Graphs) strin
 		e := log[i]
 		last = max(last, e.PracticeTime)
 		module := strings.Join(strings.SplitN(e.Task.ID, "/", 3)[:2], "/")
-		if g[module].Current && !slices.ContainsFunc(candidates, func(c lm.Task) bool { return strings.HasPrefix(c.ID, module+"/") }) {
+		if !e.LevelSetByAdult && g[module].Current && !slices.ContainsFunc(candidates, func(c lm.Task) bool { return strings.HasPrefix(c.ID, module+"/") }) {
 			candidates = append(candidates, e.Task)
 		}
 	}

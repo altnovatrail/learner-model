@@ -38,6 +38,9 @@ func checkEvidenceContent(e Evidence) error {
 	if e.Kind < leadingQuestionKind && e.LeadingQuestionOnRequest {
 		return invalid("LeadingQuestionOnRequest in evidence of kind " + itoa(e.Kind))
 	}
+	if err := checkCorrection(e); err != nil {
+		return err
+	}
 	answerPlaces := make([]int32, 0, len(e.Items))
 	for _, a := range e.Items {
 		if err := checkAnswer(a); err != nil {
@@ -60,6 +63,32 @@ func checkEvidenceContent(e Evidence) error {
 		}
 	}
 	return idList("trap", traps)
+}
+
+// checkCorrection refuses a correction in a kind before kind 3, which does not record it, and one
+// that is not what LevelCorrection gives, but for its kind, its band, its start band and its time:
+// its task is `<module>/level/<band ID>` of the band set, of difficulty 3, by the adult, and it
+// holds nothing else of an attempt, so that a version before kind 3 reads it as evidence with no
+// answer (R45).
+func checkCorrection(e Evidence) error {
+	if !e.LevelSetByAdult {
+		return nil
+	}
+	if e.Kind < correctionKind {
+		return invalid("LevelSetByAdult in evidence of kind " + itoa(e.Kind))
+	}
+	t := e.Task
+	module, ok := moduleOf(t.ID)
+	want := LevelCorrection(module, t.Band, e.StartBand, e.PracticeTime)
+	w := want.Task
+	if !ok || t.ID != w.ID || t.Template || t.Difficulty != w.Difficulty ||
+		t.KeyProvenance != w.KeyProvenance || t.SkillTagsProvenance != w.SkillTagsProvenance ||
+		len(t.Primary)+len(t.Supporting)+len(t.Items)+len(e.Items)+len(e.Traps) > 0 ||
+		e.Outcome != want.Outcome || e.TechniqueOnStep || e.TechniqueOnRequest || e.LeadingQuestionOnRequest ||
+		e.ExplainAgainCount != 0 || e.HasSolutionSeenFact {
+		return invalid("a correction other than LevelCorrection gives, of task " + shownBytes(t.ID))
+	}
+	return nil
 }
 
 // checkTaskContent checks the description of a task as the codec needs it — of evidence, or of a
@@ -135,6 +164,12 @@ func checkState(s State) error {
 		}
 		if err := finite("the level of "+m.Module, m.Level, m.AnswerWeight); err != nil {
 			return err
+		}
+		if m.FailuresInARow < 0 {
+			return invalid("a count of the guard below 0 in " + m.Module)
+		}
+		if s.Kind < guardKind && (m.FailuresInARow != 0 || m.TrialEndedByAdult) {
+			return invalid("the guard's state of " + m.Module + " in a state of kind " + itoa(s.Kind))
 		}
 		for _, a := range m.Trial {
 			if err := finite("a trial answer of "+m.Module, a.Weight); err != nil {

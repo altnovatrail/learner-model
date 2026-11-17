@@ -85,7 +85,7 @@ ci-proto:
     fi
     tmp="$(mktemp -d)"
     trap 'rm -rf "$tmp"' EXIT
-    for pair in evidence:Evidence state:State; do
+    for pair in evidence:Evidence correction:Evidence state:State; do
         name="${pair%%:*}" type="novatrail.learnermodel.v1.${pair##*:}"
         buf convert proto --type "$type" --from "testdata/wire/$name.binpb#format=binpb" \
             --to "$tmp/$name.json#format=json,use_proto_names=true"
@@ -106,7 +106,7 @@ ci-proto:
 proto-json:
     #!/usr/bin/env bash
     set -euo pipefail
-    for pair in evidence:Evidence state:State; do
+    for pair in evidence:Evidence correction:Evidence state:State; do
         name="${pair%%:*}"
         buf convert proto --type "novatrail.learnermodel.v1.${pair##*:}" --from "testdata/wire/$name.binpb#format=binpb" \
             --to "testdata/wire/$name.json#format=json,use_proto_names=true"

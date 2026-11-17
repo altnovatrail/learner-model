@@ -219,3 +219,31 @@ What R43 gave: the time of `ci-test`, of the gate and of "Proto" before and afte
 - **The gate in the container**, the same code: `sim`'s `just gate-part k 4` for k = 0…3 one after the other, from a clone of `sim` at 0a31313, `GATE_LEARNER_MODEL` this checkout — 140 s together, each part on all 20 cores; `just gate-check bands` on the four — 3 s, "The gate is green"; `just gate-check exact` — "every number is the recorded ones to the last bit". On runners the parts run at once, each on its own four processors.
 - **Before, on runners:** the runs of CI on the pushes to `main` 7ff2b89 and ffd27d6, 43905689460 and 43910268369 (`gh api repos/altnovatrail/learner-model/actions/runs/<run>/jobs`, 2026-11-16): the run 7 min 24 s and 11 min 43 s from its start to its last job; "Gate" 437 s and 646 s, of them the step `gate` 394 s and 619 s and the build of `sim`'s stage 24 s and 20 s; "Go / test" 113 s and 128 s, of them `ci-test` 75 s and 84 s and the image 33 s and 37 s; "Go / arm64" 205 s and 191 s, of them `ci-test` 130 s and 127 s; "Proto" 36 s and 29 s, of them the build of the image 22 s and 24 s.
 - **After, on runners:** the runs of CI on pull request #82, 43915596079 on d31dfde and 43916796535 on 47ae913, read the same way the same day. The first missed every entry of the image — the Dockerfile's hash is new, and `main` has saved none for it —, the second too, since a pull request saves none; `sim`'s image is built in each job of the gate, its Dockerfile unchanged but its entry of arm64 new. The run of 47ae913 took 3 min 30 s from its start to its last job, the run of d31dfde 6 min 44 s, of them up to 3 min 20 s in the queue for a runner: `Go / test` waited from 17:12:36 to 17:16:03. "Gate / part k" 120–126 s each, of them `gate-part` 89–95 s and the image 21–24 s; "Gate" 41 s and 48 s, of them `gate-check` 11 s and 13 s; the path of the gate 3 min 15 s on 47ae913, from the start of the first part to the end of "Gate", against 437 s and 646 s of the one job before. "Go / test" 83 s and 99 s, of them `ci-test` 28 s and 39 s; "Go / arm64" 84 s and 87 s, of them `ci-test` 30 s and 29 s; "Proto" 53 s and 29 s, of them the image 34 s and 22 s. `codecov/patch` — "Coverage not affected", and all 69 numbers of the gate in their bands.
+
+## 9. The three rules on `sim`'s gate, T68, 2026-11-16
+
+What chose the guard of R45 and what the rules do to the gate's numbers.
+
+### 9.1. Three failures in a row, a computation of runs
+
+The chance that a run of independent answers, each a failure with chance q, holds three failures in a row somewhere, by the recurrence over the length of the last run of failures (a one-off computation in the session):
+
+| q | 20 answers | 50 | 100 | 200 |
+|---|---|---|---|---|
+| 0.225 — the corridor's target 0.775 | 0.153 | 0.356 | 0.592 | 0.836 |
+| 0.1 | 0.016 | 0.043 | 0.085 | 0.164 |
+
+### 9.2. The variants of the guard on the gate
+
+`sim`'s `just gate bands`, from a clone of `sim` at 0a31313 — the gate of `v0.1.25`, the bands recorded on `learner-model` v0.1.8 —, `GATE_LEARNER_MODEL` this checkout, in the container, about 2 min a run. How often the guard fired a learner's module down was counted by a temporary counter of the session, not committed.
+- **The start alone**, a band below the grade's band, no guard: out of the bands are `M1.rms.200` of `G0` in olympiad maths, 0.561 against 0.499 ± 2 × 0.016; `M7.error.10` of `G1`, 1.758 against 1.103 in olympiad maths and 1.261 against 1.022 in grade-3 maths; `M3.lag` of `G2` in olympiad maths, −1.222 against −1.024, and of `G2-half`, −0.756 against −0.520 in olympiad maths and −1.245 against −1.056 in grade-3 maths; `E1.corridor` of `G2` in olympiad maths, 0.236 against 0.255; `E2.stuck` of `G2-half` in olympiad maths and of `A-linked`, 0.016 against 0; and `M4.false.all` and `M6.late` of `G0` and `E3.late` of `F-model` in grade-3 maths are "not read" in the gate's report.
+- **Three tasks in a row not solved at the end, lowering at each third:** 12,886 firings; `M1.rms.200` of `G0` in olympiad maths 1.501, `M6.never` 0.164 against 0.103, and every cell above but `G0`'s further out.
+- **The same, lowering once a run:** 9,581 firings; `M3.lag` of `G2` in olympiad maths −1.460, `G3`'s `M3.unsettled` 0.964 against 0.856, and `F-model` in olympiad maths out on `M2.brier.after7`, `M5.caught`, `M5.never` and `E3.late`, 0.196 against 0.507.
+- **The P of the attempts stuck on**, by the state before each: most had the model's P below 0.2 — tasks the learner was expected to fail.
+- **The sum of P at least half the answers, once a run:** 2 firings, and each of the gate's 62 numbers is the start alone's to its printed digits, the same out of their bands.
+- **R45's failure, the same sum above the guessing floor, R̄ · σ:** the review of T68 found that by P a choice of two is never too hard. The gate's 62 numbers are the start alone's again; the firings were not counted.
+
+### 9.3. The constraint `fair`
+
+
+A rough look of `sim` at 0a31313 on 300 learners a cell, the working set: `just rough engine` of the base, `learner-model` v0.1.8, and of the code of T68 with `CANDIDATE_LEARNER_MODEL`, the commit of a copy of the checkout whose Go code is this pull request's, the sum of P of the guard of 9.2, then `sim judge` of a judgement file of the criterion `model` with the one candidate, not committed. The report names no failure of the constraint `fair` on `D-grade1` and `D-grade5` (R57 sim). The candidate holds not every constraint, and the base would stay: 158 "no worse" checks fail, among them `M1.rms.200` of `G0` in olympiad maths, worse by at most 0.080 against the tolerance 0.048, of `G1` by 0.287 against 0.122, `M7.error.10` of `G1` in olympiad maths by 0.799 against 0.267, `M2.brier.all` in grade-3 maths on every cell `G`, and `M3.settle` of `G3` in grade-3 maths by 12.9 answers against 5.8; and the floors of `M4.false.all` and `M6.late` of `G0` in grade-3 maths, which the candidate's run does not read. On the gate the start alone moves these numbers, and the guard keeps them (measurements 9.2): the risk R157 spec took for the first child. Row 4.21 of `spec`'s `COORDINATION.md` judges the three rules by its own criterion.

@@ -40,10 +40,19 @@ type SkillReadout struct {
 type ModuleReadout struct {
 	Module string
 	// HasEvidence is false for a module of the engine with no evidence yet, whose StartBand is
-	// then the starting point by the learner's grade, or the zero BandRef when the module's
-	// current version has no bands.
+	// then the band of the learner's grade, BandByGrade, the starting point a band below it, or the
+	// zero BandRef when the module's current version has no bands.
 	HasEvidence bool
 	StartBand   BandRef
+	// LevelBand is the band the module's level stands in, by the bands of its current version — of
+	// the starting point for a module with no evidence —: the band whose middle task is nearest the
+	// level, the highest band when the level is above it (R45). HasLevelBand is false, and LevelBand
+	// the zero BandRef, when the level is more than half a band below the lowest band, as it starts
+	// for a learner of that band's grades, and when the module has no current version or one with no
+	// bands. An adult's correction sets the level in the band it names, where the next evidence
+	// moves it on; that the band is next to this one is for api to check (R45).
+	LevelBand    BandRef
+	HasLevelBand bool
 	// TrialOver tells whether the module's trial series is over, and LastInTrial whether the last
 	// evidence that moved the module was still in it, the evidence that ended it too (R104 of
 	// spec). Both are false before the module's first evidence.
@@ -380,11 +389,15 @@ func (m moduleRead) readout(at int64, grade Grade) (ModuleReadout, bool, error) 
 		}
 		// With no place to start at, the engine still gets the module's reading, for its lessons
 		// and anchor skills.
-		start, _, err := startingPoint(grade, g.Bands)
+		start, ok, err := startingPoint(grade, g.Bands)
 		if err != nil {
 			return ModuleReadout{}, false, err
 		}
-		return ModuleReadout{Module: m.id, StartBand: start}, true, nil
+		out := ModuleReadout{Module: m.id, StartBand: start}
+		if ok {
+			out.LevelBand, out.HasLevelBand = levelBandRef(startLevel(start.Place), g)
+		}
+		return out, true, nil
 	}
 	ms := m.state
 	out := ModuleReadout{
@@ -395,6 +408,9 @@ func (m moduleRead) readout(at int64, grade Grade) (ModuleReadout, bool, error) 
 		LastInTrial: ms.LastInTrial,
 		Traps:       slices.Clone(ms.Traps),
 		Skills:      make([]SkillReadout, 0, len(ms.Skills)),
+	}
+	if g != nil {
+		out.LevelBand, out.HasLevelBand = levelBandRef(ms.Level, g)
 	}
 	for _, sk := range ms.Skills {
 		out.Skills = append(out.Skills, ms.skillReadout(sk, g, at))
@@ -423,6 +439,15 @@ func (ms *ModuleState) skillReadout(sk SkillState, g *Graph, at int64) SkillRead
 		out.Review = reviewDate(q, sk.Stability, sk.LastPractice)
 	}
 	return out
+}
+
+// levelBandRef names the band a level stands in by a graph, levelBand.
+func levelBandRef(level float64, g *Graph) (BandRef, bool) {
+	b, ok := levelBand(level, g.Bands)
+	if !ok {
+		return BandRef{}, false
+	}
+	return bandAt(g, b.Place), true
 }
 
 // bandAt names the band at a place by the graph: its ID, when the graph has a band there.

@@ -1,21 +1,21 @@
 # a learner of grade 3 in olympiad maths past 20 answers, back after a break of 30 days: the level forgets, and n falls back to 20
 read at=1764734400 grade=3/true engine=example/olympiad,example/workbook
-module example/olympiad evidence=true start=2/3-4 trial-over=true last-in-trial=false
-  skill example/olympiad/skill/a count=14 last=1764727200 estimate=400fc72e05df6910(3.97226) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3fefc641316b3076(0.992951) mastered=1/1-2 cautious=3feea2cddd699c93(0.957374) review=1765131201
-  skill example/olympiad/skill/b count=14 last=1764734400 estimate=40088901ed7ea7d8(3.0669) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3ff0000000000000(1)
-module example/workbook evidence=false start=2/grade-3 trial-over=false last-in-trial=false
+module example/olympiad evidence=true start=2/3-4 level=2/3-4 trial-over=true last-in-trial=false
+  skill example/olympiad/skill/a count=14 last=1764727200 estimate=400dd9874e632736(3.73122) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3fefc641316b3076(0.992951) mastered=1/1-2 cautious=3fee56f32c79f00b(0.948114) review=1765113697
+  skill example/olympiad/skill/b count=14 last=1764734400 estimate=4006dac3087db817(2.85682) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3ff0000000000000(1)
+module example/workbook evidence=false start=2/grade-3 level=1/grade-2 trial-over=false last-in-trial=false
 task example/olympiad/task/x
-  item 1 p=3fdb40e87f509040(0.425837)
+  item 1 p=3fd92d49e052eff4(0.393389)
 read at=1764820800 grade=3/true engine=example/olympiad,example/workbook
-module example/olympiad evidence=true start=2/3-4 trial-over=true last-in-trial=false
-  skill example/olympiad/skill/a count=14 last=1764727200 estimate=400fc72e05df6910(3.97226) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3fed64b0b280a411(0.918541) mastered=1/1-2 cautious=3fec571496f82ca7(0.88563) review=1765131201
-  skill example/olympiad/skill/b count=14 last=1764734400 estimate=40088901ed7ea7d8(3.0669) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3fefa8655f442fe0(0.989306)
-module example/workbook evidence=false start=2/grade-3 trial-over=false last-in-trial=false
+module example/olympiad evidence=true start=2/3-4 level=2/3-4 trial-over=true last-in-trial=false
+  skill example/olympiad/skill/a count=14 last=1764727200 estimate=400dd9874e632736(3.73122) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3fed64b0b280a411(0.918541) mastered=1/1-2 cautious=3fec10e9187b917c(0.877064) review=1765113697
+  skill example/olympiad/skill/b count=14 last=1764734400 estimate=4006dac3087db817(2.85682) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3fefa8655f442fe0(0.989306)
+module example/workbook evidence=false start=2/grade-3 level=1/grade-2 trial-over=false last-in-trial=false
 task example/olympiad/task/x
-  item 1 p=3fdb1956fca48feb(0.423422)
+  item 1 p=3fd90b67bdc0d794(0.391321)
 read at=1769918400 grade=0/false engine=
-module example/olympiad evidence=true start=2/3-4 trial-over=true last-in-trial=false
-  skill example/olympiad/skill/a count=14 last=1764727200 estimate=400fc72e05df6910(3.97226) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3fd30fbfb6871563(0.297836) mastered=1/1-2 cautious=3fd260e84a3f4e8f(0.287165) review=1765131201
-  skill example/olympiad/skill/b count=14 last=1764734400 estimate=40088901ed7ea7d8(3.0669) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3fe514c909be9342(0.658787)
+module example/olympiad evidence=true start=2/3-4 level=2/3-4 trial-over=true last-in-trial=false
+  skill example/olympiad/skill/a count=14 last=1764727200 estimate=400dd9874e632736(3.73122) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3fd30fbfb6871563(0.297836) mastered=1/1-2 cautious=3fd23366fe97dc41(0.284387) review=1765113697
+  skill example/olympiad/skill/b count=14 last=1764734400 estimate=4006dac3087db817(2.85682) uncertainty=3fdd92ee6b2e68b6(0.462093) retention=3fe514c909be9342(0.658787)
 task example/olympiad/task/x
-  item 1 p=3fd6526258f78c68(0.348778)
+  item 1 p=3fd4f428f19f8360(0.327402)

@@ -2,12 +2,17 @@ package learnermodel
 
 // EvidenceKind is the kind of evidence this version writes. It reads every kind up to it, and a
 // later one too, skipping what it does not know (docs/architecture.md, section 3.5). Kind 2 adds
-// LeadingQuestionOnRequest, which kind 1 does not record.
-const EvidenceKind = 2
+// LeadingQuestionOnRequest, which kind 1 does not record, and kind 3 LevelSetByAdult, which kinds
+// 1 and 2 do not.
+const EvidenceKind = 3
 
 // leadingQuestionKind is the kind that adds LeadingQuestionOnRequest, field 20: the writer writes
 // it from this kind on, the reader requires it there and refuses it below.
 const leadingQuestionKind = 2
+
+// correctionKind is the kind that adds LevelSetByAdult, field 21, as leadingQuestionKind adds
+// field 20.
+const correctionKind = 3
 
 // OutcomeKind is how an attempt ended (concepts 11 of spec). A value this version does not know
 // is kept as its number and weighs nothing.
@@ -99,4 +104,35 @@ type Evidence struct {
 	// Items holds what happened to each item; the slots and the item's own skills are in Task.
 	Items []ItemAnswer
 	Traps []FoundTrap // ordered by ID byte by byte
+	// LevelSetByAdult tells that the evidence is no attempt but an adult's correction of the
+	// module's level, as LevelCorrection gives it (R45). Kinds 1 and 2 do not record it, and it is
+	// false there.
+	LevelSetByAdult bool
+}
+
+// levelKind is the kind of entry the ID of a correction's task names in place of a task's: no
+// kind of the format's, so that it names no entry of a module.
+const levelKind = "/level/"
+
+// LevelCorrection gives the evidence of an adult's correction of the level of a module, by its
+// full ID (R45; R157 of spec): the band the adult set, by its place and ID in the module's current
+// version, at a time in whole seconds of Unix time, UTC, with the start band api gives any evidence
+// of the module, by BandByGrade. Append sets the module's level in that band in one step, or keeps
+// it when it stands there already, ends the trial series and starts the guard's count anew, so
+// that a repeat changes nothing; a band above the version's highest is the highest. Its task is
+// no task: its ID is `<module>/level/<band ID>`, its band the band set and its difficulty 3, the
+// band's middle, where the level goes, and the adult its provenance; it has no skills and no
+// items, so that a version before kind 3, which does not know LevelSetByAdult, reads it as
+// evidence with no answer, which moves nothing (R08).
+func LevelCorrection(module string, band, start BandRef, at int64) Evidence {
+	return Evidence{
+		Kind: EvidenceKind,
+		Task: Task{
+			ID: module + levelKind + band.ID, Band: band, Difficulty: 3,
+			KeyProvenance: ProvenanceAdult, SkillTagsProvenance: ProvenanceAdult,
+		},
+		StartBand:       start,
+		PracticeTime:    at,
+		LevelSetByAdult: true,
+	}
 }
