@@ -12,8 +12,8 @@ permissions:
 
 # The tag of sim and the SHA of its commit, for the jobs of the gate below, named once here.
 env:
-  SIM_TAG: v0.1.25
-  SIM_COMMIT: 0a3131362dc9f2c2ff436120fdf598267034dbd7
+  SIM_TAG: v0.1.28
+  SIM_COMMIT: 4daee0159bb223852a1763f6ce3ff6cbf43911bd
 
 # A new push to a pull request cancels its older run; every commit to main is checked.
 concurrency:
