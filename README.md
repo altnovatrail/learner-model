@@ -13,22 +13,12 @@
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=altnovatrail_learner-model&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=altnovatrail_learner-model)
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=altnovatrail_learner-model&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=altnovatrail_learner-model)
 
-The NovaTrail learner model: how well a learner has mastered each skill, estimated from the evidence of attempts. It is a Go library of pure computation with no input or output of its own: `api` hands it the skill graph and the evidence, and the engine reads its estimates to pick the next lesson or task. Its model is a Rasch model with a guessing floor, updated Elo-style, with the level kept for each module, forgetting, evidence weighed by its outcome and provenance, and a cautious "mastered". The evidence log is the source of truth and the state a cache of it, recomputed bit for bit on any build, WebAssembly included.
+The NovaTrail learner model: how well a learner has mastered each skill, estimated from the evidence of attempts, and each skill's state. It is a Go library of pure computation with no input or output of its own. Its model is a Rasch model with a guessing floor, updated Elo-style, with the level kept for each module, forgetting, evidence weighed by its outcome and provenance, and a cautious "mastered". The evidence log is the source of truth and the state a cache of it, recomputed bit for bit on any build, WebAssembly included.
 
-A component of [NovaTrail](https://github.com/altnovatrail/spec), a universal open platform for adaptive learning, interactive lessons and AI tutoring. It comes together with engine and sim: no change to the model goes in without passing sim's gate.
+It is a component of [NovaTrail](https://github.com/altnovatrail/spec), a universal open platform for adaptive learning, interactive lessons and AI tutoring:
 
-## Releases
+- `api`, the platform's service, calls it when an attempt ends: it hands it the evidence and the skill graph and keeps the evidence log and the state;
+- `engine` reads its estimates to pick the next lesson or task;
+- `sim`, the learner simulator, judges every change of the model before it is released.
 
-Each change of the code or the schema merged to `main` comes out by itself as the next patch, with its tag. Go code takes the library as a Go module, and the release's one file, the schema of the evidence and the state, is verified with spec's recipe ([docs/README.md](docs/README.md), "Releases"):
-
-```sh
-go get github.com/altnovatrail/learner-model@<tag>
-gh release download <tag> -R altnovatrail/learner-model
-just -f spec/justfile release-verify learner-model <tag> learner-model-proto-<tag>.tar.gz
-```
-
-## Documents
-
-- [docs/README.md](docs/README.md) — the index of the documents, the detail of the releases and how to work on the repository.
-- [docs/architecture.md](docs/architecture.md) — the component and how it is built; [docs/decisions.md](docs/decisions.md) — the decision log.
-- [RUN.md](RUN.md) — the work plan; [CLAUDE.md](CLAUDE.md) and [AGENTS.md](AGENTS.md) — the working rules.
+Its card is [architecture 3.8 spec](https://github.com/altnovatrail/spec/blob/main/docs/architecture.md#38-learner-model-and-engine); the detail, the decisions and how to work on it are in [docs/](docs/README.md).
