@@ -7,15 +7,4 @@ Open tasks outside the current epic, each as its body, in Russian (R154 spec, R1
 
 ## Tasks outside an epic
 
-#### T78. Комментарии кода по R160 spec
-
-- **Цель:** комментарии Go, `.proto` вне описаний схемы, YAML, `justfile` и Dockerfile говорят только то, чего не скажет код: почему, ограничение, ловушка, контракт экспортируемого API; номер решения — якорем в конце, `(R25)` (R160 spec, «Comments»).
-- **Почему:** четвёртая часть из разделения T74 по правилу 11 RUN.md; `docs-check` с `"comments": true` проверяет номера, но не содержание.
-- **Сделать:**
-  - без пересказа кода, истории, номеров задач и разделов документов (`docs/architecture.md, section 3.6` и т. п.); `R10 in docs/decisions.md` — `(R10)`;
-  - описания полей `.proto` — для читателя выгрузки (`.claude/rules/proto.md`), их R160 spec не трогает, кроме номеров;
-  - уведомления лицензий в `detmath/port.go` — как есть;
-  - изменение `*.go` вне тестов, `proto/` и `buf.yaml` выпускает следующий патч (R16): одна задача — один выпуск. Больше одного ревью — разделить по правилу 11 при планировании.
-- **Как проверить:** `just -f spec/justfile docs-check-repo`; проверки частей `go`, `proto` и `ci` по `.claude/rules/`; `/code-review high`.
-- **Разделы:** R160 spec, R32 spec; RULES.md spec — The bar; `.claude/rules/`.
-- **Зависит от:** T74.
+None.
