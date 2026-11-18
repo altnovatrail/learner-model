@@ -2,9 +2,9 @@
 
 > Why learner-model is built the way it is. Each entry says what was decided, why, what was rejected and where it is described.
 >
-> **Rule:** do not re-propose what was rejected without new facts. If a decision has to change, ask the author and update this file. An entry is never rewritten: an amendment with its date at the end of the entry corrects it, or a new entry replaces it, and the old one stays where it is, marked "Superseded".
+> **Rule:** do not re-propose what was rejected without new facts. If a decision has to change, ask the author and rewrite its entry in its place, and every entry the change touches: an entry is its text in force — what was decided, why, what was rejected and where it is described —, git keeps the old text, and the commit says why. An entry that still has dated amendments is rewritten whole, its amendments folded in, when a task touches it (R160 spec).
 >
-> The repository was set up on 2026-10-19 from the template of `spec` v0.1.0 (R21 spec), moved to `spec` v0.2.9 on 2026-10-20 (R01), to v0.6.3 on 2026-11-02 (R02), to v0.6.6 the same day (R05), to v0.9.3 on 2026-11-06 (R11), to v0.9.5 on 2026-11-07 (R15), to v0.9.9 on 2026-11-08 (R17), to v0.9.16 on 2026-11-09 (R19), to v0.12.0 the same day (R23), to v0.14.0 on 2026-11-11 (R26), to v0.15.0 the same day (R27), to v0.16.3 on 2026-11-13 (R33), to v0.18.3 on 2026-11-16 (R38, R39), to v0.18.4 the same day (R43), to v0.18.6 the same day (R44), to v0.18.14 on 2026-11-17 (R46), and to v0.18.27 on 2026-11-18 (R48). How it comes to differ from the template over time — the tools in the devcontainer, the rules in RUN.md — is recorded here as a decision, as R46 canvas-api recorded the differences from its model. Next number — R49.
+> The repository was set up on 2026-10-19 from the template of `spec` v0.1.0 (R21 spec); a move to a tag of `spec` is its commit, with no entry here (R160 spec). How it comes to differ from the template over time — the tools in the devcontainer, the rules in RUN.md — is recorded here as a decision, as R46 canvas-api recorded the differences from its model. Next number — R49.
 >
 > Here entries are cited as `R03`, in other repositories as `R03 learner-model`. The decisions of `spec` are cited as "R18 spec", MathTrail's decisions as "R37 canvas-api", and in a list as "canvas-api: R37, R38". Each log has its own numbers.
 >

@@ -200,7 +200,7 @@ func TestReadModuleWithNoBands(t *testing.T) {
 	}
 }
 
-// The two flags of the trial series (R104 of spec): before it, in it, at its last evidence and
+// The two flags of the trial series (R104 spec): before it, in it, at its last evidence and
 // after it; evidence that moves nothing leaves them as they are.
 func TestTrialFlags(t *testing.T) {
 	g := olympiadGraphs(t, map[string][]int32{topic("a"): {1, 2, 3}})

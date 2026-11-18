@@ -86,12 +86,12 @@ import "math"
 //                             2*r
 //              exp(r) = 1 + -------
 //                            R - r
-//                                 r*R1(r)
-//                     = 1 + r + ----------- (for better accuracy)
-//                                2 - R1(r)
+//                                 r*`R1(r)`
+//                     = 1 + r + ------------- (for better accuracy)
+//                                2 - `R1(r)`
 //      where
-//                               2       4             10
-//              R1(r) = r - (P1*r  + P2*r  + ... + P5*r   ).
+//                                 2       4             10
+//              `R1(r)` = r - (P1*r  + P2*r  + ... + P5*r   ).
 //
 //   3. Scale back to obtain exp(x):
 //      From step 1, we have

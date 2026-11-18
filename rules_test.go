@@ -8,7 +8,7 @@ import (
 	lm "github.com/altnovatrail/learner-model"
 )
 
-// The rules of R157 of spec in place of a calibration (R45; docs/architecture.md, section 3.1):
+// The rules of R157 spec in place of a calibration (R45; docs/architecture.md, section 3.1):
 // the start a band below the band of the grade, the band the level stands in, an adult's correction
 // and the guard.
 

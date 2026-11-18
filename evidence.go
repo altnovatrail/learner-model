@@ -115,7 +115,7 @@ type Evidence struct {
 const levelKind = "/level/"
 
 // LevelCorrection gives the evidence of an adult's correction of the level of a module, by its
-// full ID (R45; R157 of spec): the band the adult set, by its place and ID in the module's current
+// full ID (R45; R157 spec): the band the adult set, by its place and ID in the module's current
 // version, at a time in whole seconds of Unix time, UTC, with the start band api gives any evidence
 // of the module, by BandByGrade. Append sets the module's level in that band in one step, or keeps
 // it when it stands there already, ends the trial series and starts the guard's count anew, so

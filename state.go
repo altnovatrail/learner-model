@@ -1,7 +1,7 @@
 package learnermodel
 
 // StateKind is the kind of state this version writes. It reads every kind up to it. Kind 2 adds
-// a module's FailuresInARow and TrialEndedByAdult, the state of the rules of R157 of spec (R45),
+// a module's FailuresInARow and TrialEndedByAdult, the state of the rules of R157 spec (R45),
 // which kind 1 does not record.
 const StateKind = 2
 
@@ -54,7 +54,7 @@ type ModuleState struct {
 	Skills       []SkillState  // ordered by skill ID byte by byte
 	// LastInTrial tells whether the last piece of evidence that moved the module was still in the
 	// trial series, the one that ended it too: that one clears the series' answers, and the engine
-	// still needs to know (R104 of spec). Evidence that moves nothing leaves it as it is.
+	// still needs to know (R104 spec). Evidence that moves nothing leaves it as it is.
 	LastInTrial bool
 	// FailuresInARow is the count of the guard (R45): the pieces of evidence in a row, past the
 	// trial series, on which the model expected the learner to know at least half of the answers,
