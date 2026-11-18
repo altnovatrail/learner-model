@@ -368,6 +368,14 @@ For architecture 3.6; R43.
   - `codeql.yml` — Go "from go.dev's archive by ARG GO_VERSION and GO_SHA256_AMD64", "each once as ARG <name>=<value>" in the stage `toolchain` and the stages it is built from, with no image (R45 .github).
 - `go help testflag` of Go 1.27.4 in the container, read 2026-11-16: "-covermode set,count,atomic … The default is "set" unless -race is enabled, in which case it is "atomic". … set: bool: does this statement run? … atomic: int: count, but correct in multithreaded tests; significantly more expensive."
 
+### 5.9. The shared workflows and the action `toolchain` of `.github` v0.1.33
+
+For R48.
+
+- the release [v0.1.33](https://github.com/altnovatrail/.github/releases/tag/v0.1.33), commit f1c7e9e, read 2026-11-18 in a clone in a temporary folder: immutable, of 2026-11-18 01:35 UTC, the latest (`gh release list -R altnovatrail/.github`, `gh release view v0.1.33 --json isImmutable`); `gh release verify v0.1.33 -R altnovatrail/.github` — "✓ Release v0.1.33 verified!". Between v0.1.31 and v0.1.33 (`git diff --stat v0.1.31 v0.1.33 -- .github/workflows .github/actions`) of what a caller calls only `go.yml` changed, with its `on.workflow_call` the same, and `.github/actions/toolchain/action.yml` is new:
+  - R49 .github — "`.github` has a composite action, `.github/actions/toolchain`, "Toolchain image and Go caches": the image of the caller's stage `toolchain` and the caches of Go for a job of the caller's own that runs Go in that stage, by the steps that the job `arm64` of the shared `go.yml` had, and `arm64` takes the action itself"; its step "Toolchain image" sets `SAVE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}`, and "Toolchain image into the cache" saves the image on a miss on a push to `main`;
+  - the 2026-11-18 amendment to R41 .github (T75): "on a miss of the exact key every restore of the Go caches — in `check`, `target`, `fma-diff` and `rules`, and in the composite action … — takes the newest entry of the same check and Dockerfile by the restore key `go-<OS>-<architecture>-<check>-<hash of .devcontainer/Dockerfile>-`, the key without the hash of `go.sum`".
+
 ## 6. Other NovaTrail repositories
 
 ### 6.1. The log and the cache in `api`
