@@ -7,15 +7,15 @@ import (
 	lm "github.com/altnovatrail/learner-model"
 )
 
-// The test vectors of standalone (docs/architecture.md, sections 3.1 and 3.5): the worked examples
-// of SPEC.md of mathtrail/mathtrail-standalone, at commit 6b29dd9 of its main, read 2026-11-07.
-// They hold to the four decimals printed there, 1e-4, as SPEC 2.8 asks: a module of olympiad
-// maths whose tasks are a choice of five, c = 0.2, counts exactly as standalone while retention is
-// 1. Each answer of a table is evidence of a task of one item with one choice slot; the level
-// `1-2`, `3-4` or `5-6` is the band at place 1, 2 or 3, and the topic is the task's primary skill.
-// The numbers are standalone's, typed in from its tables; no code of standalone is here.
-// Example 1, SPEC 2.6, starts the step of Elo from no answers, which evidence never does past the
-// trial series, and runs inside the package, in step_internal_test.go.
+// The test vectors of standalone (R12): the worked examples of SPEC.md of
+// mathtrail/mathtrail-standalone, at commit 6b29dd9 of its main. They hold to the four decimals
+// printed there, 1e-4, as SPEC.md asks: a module of olympiad maths whose tasks are a choice of
+// five, c = 0.2, counts exactly as standalone while retention is 1. Each answer of a table is
+// evidence of a task of one item with one choice slot; the level `1-2`, `3-4` or `5-6` is the band
+// at place 1, 2 or 3, and the topic is the task's primary skill. The numbers are standalone's,
+// typed in from its tables; no code of standalone is here. Its first example starts the step of Elo
+// from no answers, which evidence never does past the trial series, and runs inside the package, in
+// step_internal_test.go.
 
 const olympiad = "example/olympiad"
 
@@ -109,9 +109,10 @@ type standaloneRow struct {
 	theta, delta float64
 }
 
-// SPEC 2.7: a settled child fails difficulty 3 of `1-2` three times, then answers difficulty 2. Each
-// failure is put right on the first rung of the ladder, so that the guard, which counts the tasks a
-// learner is stuck on, does not lower the level (R45); TestGuard leaves the three unsolved.
+// Three failures: a settled child fails difficulty 3 of `1-2` three times, then answers one of
+// difficulty 2. Each failure is put right on the first rung of the ladder, so that the guard, which
+// counts the tasks a learner is stuck on, does not lower the level (R45); TestGuard leaves the
+// three unsolved.
 func TestStandaloneThreeFailures(t *testing.T) {
 	a := topic("combinatorics.enumeration")
 	g := olympiadGraphs(t, map[string][]int32{a: {1}})
@@ -148,9 +149,9 @@ func TestStandaloneThreeFailures(t *testing.T) {
 	}
 }
 
-// SPEC 2.9: the trial series of a child of grade 3, who starts at θ₀ = 2.5 and stands about a
-// level lower; every topic is new, and no δ moves. The start is a band below the band of the grade
-// (R45), so θ₀ = 2.5 is the start of a learner of grade 5, whose band 5-6 stands at 5.
+// The trial series of a child of grade 3, who starts at θ₀ = 2.5 and stands about a level lower;
+// every topic is new, and no δ moves. The start is a band below the band of the grade (R45), so
+// θ₀ = 2.5 is the start of a learner of grade 5, whose band 5-6 stands at 5.
 func TestStandaloneTrialSeries(t *testing.T) {
 	start, err := lm.BandByGrade(lm.Grade{Value: 5, Known: true}, ladder())
 	if err != nil || start != ladderBand(3) {
@@ -200,8 +201,8 @@ func TestStandaloneTrialSeries(t *testing.T) {
 	}
 }
 
-// SPEC 2.12: the floor of θ's step, a mastery at a band below the task's, one failure that holds it
-// and a second in a row that takes it away. The topic is taught at all three bands.
+// The floor of θ's step, a mastery at a band below the task's, one failure that holds it and a
+// second in a row that takes it away. The topic is taught at all three bands.
 func TestStandaloneFloorAndMastery(t *testing.T) {
 	a := topic("combinatorics.enumeration")
 	g := olympiadGraphs(t, map[string][]int32{a: {1, 2, 3}})

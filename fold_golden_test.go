@@ -12,13 +12,12 @@ import (
 	lm "github.com/altnovatrail/learner-model"
 )
 
-// The golden vectors of the fold (docs/architecture.md, section 3.6): synthetic logs, each piece
-// of evidence with the bytes of the state after it, one file for every build, testdata/fold. A
-// line is "evidence <hex>" or "state <hex>", the bytes of the codec; a line opening with # is a
-// note. The test reads the evidence from the file, appends it and holds the state's bytes to the
-// next line, so that the file pins what goes in as well as what comes out. LEARNERMODEL_UPDATE=1
-// writes the files anew from the logs below, and they change only with the version of
-// learner-model.
+// The golden vectors of the fold (R09): synthetic logs, each piece of evidence with the bytes of
+// the state after it, one file for every build, testdata/fold. A line is "evidence <hex>" or "state
+// <hex>", the bytes of the codec; a line opening with # is a note. The test reads the evidence from
+// the file, appends it and holds the state's bytes to the next line, so that the file pins what
+// goes in as well as what comes out. LEARNERMODEL_UPDATE=1 writes the files anew from the logs
+// below, and they change only with the version of learner-model.
 
 // goldenJournal is a log of a golden file with the graphs it is folded against, and the kind its
 // evidence is written in: 1 for the logs that kind 1 wrote, kept as api keeps them, and 0 for a

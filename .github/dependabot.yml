@@ -9,10 +9,9 @@ updates:
     cooldown:
       default-days: 3
     groups:
-      # Every reference to a shared workflow of .github in one pull request, to one release: they
-      # go to one release anyway, and a pull request per file would be a rebase and a round of CI
-      # each. Actions of other owners stay a pull request each (the 2026-11-08 amendment to R04
-      # .github; R38 in docs/decisions.md).
+      # Every reference to a shared workflow of .github in one pull request, to one release: they go
+      # to one release anyway, and a pull request per file would be a rebase and a round of CI each.
+      # Actions of other owners stay a pull request each (R04 .github; R38).
       shared-workflows:
         patterns: ["altnovatrail/.github/*"]
 
@@ -23,13 +22,12 @@ updates:
     cooldown:
       default-days: 3
 
-  # The Go modules the code is built from, as in every Go repository of NovaTrail (architecture 3.3
-  # .github). go.mod requires none — the code takes Go's standard library alone (R09 in
-  # docs/decisions.md) — so it has nothing to raise. Go itself, in the
-  # Dockerfile, and the tools the recipes run by `go run` at an exact version are not among them:
-  # those are raised by hand. Neither is .devcontainer/gopls/, the lock file of gopls: it is spec's,
-  # from the go kind of its template, and goes up with GOPLS_VERSION in the Dockerfile only by a
-  # move to a newer tag of spec (R19 in docs/decisions.md).
+  # The Go modules the code is built from, as in every Go repository of NovaTrail. go.mod requires
+  # none — the code takes Go's standard library alone (R09) — so it has nothing to raise. Go itself,
+  # in the Dockerfile, and the tools the recipes run by `go run` at an exact version are not among
+  # them: those are raised by hand. Neither is .devcontainer/gopls/, the lock file of gopls: it is
+  # spec's, from the go kind of its template, and goes up with GOPLS_VERSION in the Dockerfile only
+  # by a move to a newer tag of spec (R19).
   - package-ecosystem: gomod
     directory: /
     schedule:

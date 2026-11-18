@@ -1,9 +1,8 @@
 package learnermodel
 
 // EvidenceKind is the kind of evidence this version writes. It reads every kind up to it, and a
-// later one too, skipping what it does not know (docs/architecture.md, section 3.5). Kind 2 adds
-// LeadingQuestionOnRequest, which kind 1 does not record, and kind 3 LevelSetByAdult, which kinds
-// 1 and 2 do not.
+// later one too, skipping what it does not know (R08). Kind 2 adds LeadingQuestionOnRequest, which
+// kind 1 does not record, and kind 3 LevelSetByAdult, which kinds 1 and 2 do not.
 const EvidenceKind = 3
 
 // leadingQuestionKind is the kind that adds LeadingQuestionOnRequest, field 20: the writer writes
@@ -14,8 +13,8 @@ const leadingQuestionKind = 2
 // field 20.
 const correctionKind = 3
 
-// OutcomeKind is how an attempt ended (concepts 11 of spec). A value this version does not know
-// is kept as its number and weighs nothing.
+// OutcomeKind is how an attempt ended. A value this version does not know is kept as its number and
+// weighs nothing.
 type OutcomeKind int32
 
 const (
@@ -46,7 +45,7 @@ const (
 	VerdictNotYet
 )
 
-// UnverdictedReason is why a submission gave no verdict (concepts 9.1 of spec).
+// UnverdictedReason is why a submission gave no verdict.
 type UnverdictedReason int32
 
 const (
@@ -83,8 +82,8 @@ type FoundTrap struct {
 	ItemPlaces []int32  // where it was found, ascending
 }
 
-// Evidence is the evidence of one finished attempt (docs/architecture.md, section 3.5): its
-// observations, not the model's conclusions.
+// Evidence is the evidence of one finished attempt: its observations, not the model's conclusions
+// (R08).
 type Evidence struct {
 	Kind      int32
 	Task      Task

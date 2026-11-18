@@ -8,11 +8,11 @@ import (
 )
 
 // The benchmark of Readout.Task on a pool the size of olympiad maths 0.1.1, as the engine reads it
-// (Д18 in RUN.md): the engine asks for the P of every task of the pool before each choice, 772
-// calls. The module is synthetic, of the package's shape: three bands, 19 skills with a verdict,
-// 772 tasks of one item and one primary skill each, 32 of them with a supporting skill, slots of a
-// number, a choice of five or a fraction, and 19 templates. Read is api's call, not the engine's:
-// it runs once, before the loop, which times Task alone.
+// (R29): the engine asks for the P of every task of the pool before each choice, 772 calls. The
+// module is synthetic, of the package's shape: three bands, 19 skills with a verdict, 772 tasks of
+// one item and one primary skill each, 32 of them with a supporting skill, slots of a number, a
+// choice of five or a fraction, and 19 templates. Read is api's call, not the engine's: it runs
+// once, before the loop, which times Task alone.
 
 const poolModule = "example/pool"
 

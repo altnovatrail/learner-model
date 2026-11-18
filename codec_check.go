@@ -237,7 +237,7 @@ func utf8Strings(ss ...string) error {
 }
 
 // shownBytes shows a string byte by byte, as \xNN past ASCII, without strconv.Quote, which
-// reads Unicode tables (rule 6).
+// reads Unicode tables (R09).
 func shownBytes(s string) string {
 	const hex = "0123456789abcdef"
 	var b strings.Builder

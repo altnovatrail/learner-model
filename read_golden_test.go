@@ -12,11 +12,11 @@ import (
 	lm "github.com/altnovatrail/learner-model"
 )
 
-// The golden vectors of reading (docs/architecture.md, section 3.6): the logs of the golden files
-// of the fold, testdata/fold, folded and read at three times, with what Read and Readout.Task give
-// written out as text, every float as its bits, testdata/read. The test takes the evidence from
-// the fold's file, so that the two files pin one log. LEARNERMODEL_UPDATE=1 writes the files anew,
-// and they change only with the version of learner-model.
+// The golden vectors of reading (R09): the logs of the golden files of the fold, testdata/fold,
+// folded and read at three times, with what Read and Readout.Task give written out as text, every
+// float as its bits, testdata/read. The test takes the evidence from the fold's file, so that the
+// two files pin one log. LEARNERMODEL_UPDATE=1 writes the files anew, and they change only with the
+// version of learner-model.
 
 // anchorsLog is a learner of grade 3 in olympiad maths and school maths, which teaches the anchor
 // skills olympiad maths relies on: division is mastered over pages of school maths.

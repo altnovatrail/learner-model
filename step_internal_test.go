@@ -9,10 +9,10 @@ import (
 	"github.com/altnovatrail/learner-model/detmath"
 )
 
-// SPEC 2.6 of standalone, at commit 6b29dd9 of its main, read 2026-11-07: the step of Elo run from
-// θ = 0 and no answers, on tasks of `1-2`, two topics — what evidence never meets, since its first
-// five answers are the trial series, so the test runs the step past it. It holds to the four
-// decimals printed there (standalone_test.go has the other examples).
+// The first worked example of standalone's SPEC.md, at commit 6b29dd9 of its main: the step of Elo
+// run from θ = 0 and no answers, on tasks of `1-2`, two topics — what evidence never meets, since
+// its first five answers are the trial series, so the test runs the step past it. It holds to the
+// four decimals printed there (standalone_test.go has the other examples).
 
 const internalTolerance = 1e-4
 
@@ -96,21 +96,21 @@ func TestStandaloneTenAnswers(t *testing.T) {
 	}
 }
 
-// The numbers of SPEC 2.1, 2.2 and 2.12 of standalone and the example of docs/architecture.md,
-// section 3.1, that the tests through Append cannot see.
+// The numbers of standalone's SPEC.md — the scale, the step and the floor of θ's step — and of the
+// example of the scale of docs/architecture.md (R03), that the tests through Append cannot see.
 func TestModelNumbers(t *testing.T) {
 	// A child of grade 3 at θ₀ = 2.5 on difficulty 3 of `3-4` with five options: P = 0.6.
 	nearTo(t, "P at the start", probability(0.2, shift(2)-beta(2, 3)), 0.6)
-	// SPEC 2.1: a child at the start of their level expects these at the five difficulties.
+	// The scale: a child at the start of their level expects these at the five difficulties.
 	for d, want := range []float64{0.9046, 0.7848, 0.6000, 0.4152, 0.2954} {
 		nearTo(t, "P at difficulty "+strconv.Itoa(d+1), probability(0.2, -beta(1, int32(d+1))), want)
 	}
-	// SPEC 2.12, the first answer: K_θ at its floor, K_δ, v and √v.
+	// The floor of θ's step, the first answer: K_θ at its floor, K_δ, v and √v.
 	nearTo(t, "K_θ at n = 79", levelStep(79), 0.05)
 	nearTo(t, "K_δ at m = 9", correctionStep(9), 0.2759)
 	nearTo(t, "v at n = 80, m = 10", uncertainty(80, 10), 0.3045)
 	nearTo(t, "√v at n = 80, m = 10", math.Sqrt(uncertainty(80, 10)), 0.5518)
-	// The weight of an attempt: the table of docs/architecture.md, section 3.3.
+	// The weight of an attempt: the table of docs/architecture.md (R06).
 	for n, want := range map[int]float64{1: 1, 2: 1.5, 4: 2, 10: 2.5} {
 		if got := float64(float64(n) * seriesWeight(n)); math.Abs(got-want) > 1e-12 {
 			t.Errorf("an attempt of %d answers weighs %v, want %v", n, got, want)
@@ -141,8 +141,8 @@ func TestModelNumbers(t *testing.T) {
 	}
 }
 
-// The example of docs/architecture.md, section 3.2: a skill mastered at the band `3-4`, shift
-// 2.5, with θ + δ = 4.5, n = 100 and m = 20. The document prints three decimals.
+// The example of forgetting of docs/architecture.md (R04): a skill mastered at the band `3-4`,
+// shift 2.5, with θ + δ = 4.5, n = 100 and m = 20. The document prints three decimals.
 func TestForgettingExample(t *testing.T) {
 	const day = 86400
 	near3 := func(what string, got, want float64) {
@@ -190,12 +190,12 @@ func TestForgettingExample(t *testing.T) {
 	nearTo(t, "R after two minutes", retentionAt(SkillState{Stability: 1}, 120), 0.99984)
 }
 
-// The example of docs/architecture.md, section 3.2, with the forgetting of the level: the learner of
-// the example, mastered at `3-4`, comes back to the module after 60 days and answers difficulty 3
-// of `3-4` with five options right. The pause of the module is 60 days, so n falls from 100 to 20
-// before the step: K_θ is 0.1, not its floor of 0.05, and θ moves twice as far, while δ moves as it
-// would without the rule. v widens, and the next review comes sooner. The document prints three
-// decimals, and the review one.
+// The example of forgetting of docs/architecture.md, with the forgetting of the level (R04): the
+// learner of the example, mastered at `3-4`, comes back to the module after 60 days and answers
+// difficulty 3 of `3-4` with five options right. The pause of the module is 60 days, so n falls
+// from 100 to 20 before the step: K_θ is 0.1, not its floor of 0.05, and θ moves twice as far,
+// while δ moves as it would without the rule. v widens, and the next review comes sooner. The
+// document prints three decimals, and the review one.
 func TestLevelForgettingExample(t *testing.T) {
 	const day = 86400
 	const module = "example/olympiad"
@@ -284,7 +284,8 @@ func TestForgettingEdges(t *testing.T) {
 		t.Errorf("a time before the last practice forgets")
 	}
 
-	// The weight: 1 without forgetting, 0 where σ is 1, and the formula of section 3.2 elsewhere.
+	// The weight: 1 without forgetting, 0 where σ is 1, and the formula of retentionWeight
+	// elsewhere.
 	weight := func(c, sigma, rbar float64) float64 {
 		return retentionWeight(c, sigma, rbar, chance(c, sigma, 1), chance(c, sigma, rbar))
 	}

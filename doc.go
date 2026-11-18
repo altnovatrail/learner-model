@@ -12,6 +12,6 @@
 // included. The code imports nothing but Go's standard library, and only the packages its rules
 // allow.
 //
-// What the library computes and why is in docs/architecture.md, section 3, and in
-// docs/decisions.md of this repository.
+// What the library computes and why is in this repository's docs/architecture.md and
+// docs/decisions.md.
 package learnermodel

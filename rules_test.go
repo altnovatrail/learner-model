@@ -8,9 +8,8 @@ import (
 	lm "github.com/altnovatrail/learner-model"
 )
 
-// The rules of R157 spec in place of a calibration (R45; docs/architecture.md, section 3.1):
-// the start a band below the band of the grade, the band the level stands in, an adult's correction
-// and the guard.
+// The rules of R157 spec in place of a calibration (R45): the start a band below the band of the
+// grade, the band the level stands in, an adult's correction and the guard.
 
 // settled is a learner of olympiad maths past the trial series, at a level, with one skill a.
 func settled(level float64) lm.State {
@@ -251,7 +250,7 @@ func stuckOn(skillID string, place, difficulty int32, at int64) lm.Evidence {
 func TestGuard(t *testing.T) {
 	a := topic("a")
 	g := olympiadGraphs(t, map[string][]int32{a: {1, 2, 3}})
-	// SPEC 2.7 with the three failures stuck on: the third lowers θ by a band after its step.
+	// standalone's three failures, stuck on: the third lowers θ by a band after its step.
 	s := settled(0.9)
 	s.Modules[0].Skills[0].Correction = 0.3
 	thetas := []float64{0.8185, 0.7437, 0.6755 - 2.5}

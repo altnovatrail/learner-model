@@ -51,10 +51,10 @@ jobs:
     with:
       same-bits: true
 
-  # The schema of the evidence and the state, by buf of the toolchain stage (R10;
-  # docs/architecture.md, section 3.7): lint, breaking against the latest tag v*, which is why the
-  # checkout takes the tags, and the golden bytes of the codec converted to JSON and back. Then the
-  # file a release signs, the schema's archive, built twice and held to the tree (R16).
+  # The schema of the evidence and the state, by buf of the toolchain stage (R10): lint, breaking
+  # against the latest tag v*, which is why the checkout takes the tags, and the golden bytes of the
+  # codec converted to JSON and back. Then the file a release signs, the schema's archive, built
+  # twice and held to the tree (R16).
   proto:
     name: Proto
     runs-on: ubuntu-24.04
@@ -66,18 +66,18 @@ jobs:
           fetch-depth: 0
 
       # The toolchain stage from the cache of GitHub Actions, by the restore and the script of the
-      # two image steps of the composite action toolchain of .github v0.1.33, which the job arm64 of
-      # its go.yml takes, word for word but SAVE (R36, R42, R47, R49 .github; R43, R48): the same
-      # file, image, path and key, so on this amd64 runner the entry is the one go.yml's job
-      # toolchain fills and reads, and the image is built from the Dockerfile only on a miss. Not
-      # the action itself: it is for a job that runs Go, and would take Go caches and save the
-      # image on main (R48). This job is not one of go.yml's and gets no artifact of its job
-      # toolchain: on a miss it builds the image itself. It saves nothing: on a push to main
-      # go.yml's job toolchain saves the entry of a miss, and a second save of the same key would
-      # race it for nothing; a pull request reads main's entry. The stage is toolchain:
-      # learner-model's adds nothing to its toolchain-core, so go.yml keeps the one entry of
-      # toolchain for every job, and this one shares it (R47 .github). buf, tar and gzip are all
-      # this job runs: it takes no cache of Go.
+      # two image steps of .github's composite action toolchain, of the release the job go above
+      # pins, which its job arm64 takes, word for word but SAVE
+      # (R36, R42, R47, R49 .github; R43, R48): the same file, image, path and key, so on this
+      # amd64 runner the entry is the one go.yml's job toolchain fills and reads, and the image is
+      # built from the Dockerfile only on a miss. Not the action itself: it is for a job that runs
+      # Go, and would take Go caches and save the image on main (R48). This job is not one of
+      # go.yml's and gets no artifact of its job toolchain: on a miss it builds the image itself. It
+      # saves nothing: on a push to main go.yml's job toolchain saves the entry of a miss, and a
+      # second save of the same key would race it for nothing; a pull request reads main's entry.
+      # The stage is toolchain: learner-model's adds nothing to its toolchain-core, so go.yml keeps
+      # the one entry of toolchain for every job, and this one shares it (R47 .github). buf, tar and
+      # gzip are all this job runs: it takes no cache of Go.
       - name: Toolchain image from the cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -133,7 +133,7 @@ jobs:
               --volume "$PWD:/work" --workdir /work \
               novatrail-toolchain just ci-release
 
-  # The gate of sim: every change to the model after its baseline, v0.1.0, passes the bench (R12;
+  # The gate of sim: every change to the model after its first version passes the gate (R12;
   # R103 spec). sim comes from git by the tag and the SHA of its commit in the env of the workflow,
   # not as a release file, and neither Dependabot nor a shared workflow raises them: this
   # repository's session does, by the order of releases of R103 spec (R15, R20). sim's own recipes
@@ -147,10 +147,10 @@ jobs:
   # numbers of `just gate` to the bit: a learner comes from its seeds alone, and sim's merge refuses
   # a part missing, repeated or of another run. Every job runs on one kind of runner, since a part
   # splits its share by the runner's processors: arm64, standard and free for a public repository,
-  # where sim's gate runs about a minute faster than on amd64 (measurements 3.1 spec), and whose
-  # numbers sim's CI holds to the same bits as amd64's (R67 sim). The limit, 15 minutes a job as in
-  # sim's gate.yml, is a guard against a hung run. The release waits for this job too: it follows a
-  # green CI on main.
+  # where sim's gate runs about a minute faster than on amd64 (R43), and whose numbers sim's CI
+  # holds to the same bits as amd64's (R67 sim). The limit, 15 minutes a job as in sim's gate.yml,
+  # is a guard against a hung run. The release waits for this job too: it follows a green CI on
+  # main.
   gate-part:
     name: Gate / part ${{ matrix.part }}
     runs-on: ubuntu-24.04-arm

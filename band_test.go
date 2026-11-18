@@ -35,7 +35,7 @@ func sameState(t *testing.T, a, b lm.State) bool {
 	return bytes.Equal(x, y)
 }
 
-// The start band by grade (docs/architecture.md, section 3.1).
+// The start band by grade (R03).
 func TestBandByGrade(t *testing.T) {
 	gap := []lm.Band{
 		{Place: 1, ID: "early", Grades: []int32{2}},
