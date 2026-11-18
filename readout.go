@@ -6,10 +6,9 @@ import (
 	"strings"
 )
 
-// Reading the state at a time t₀ (docs/architecture.md, sections 3.1–3.4 and 3.7): what the
-// engine, api and the skill map read of the model. Reading writes nothing into the cache: what
-// depends on the time, the learner's grade and the modules of the engine is worked out here, from
-// the state as the fold left it (R08 api; the amendment of 2026-11-02 to R80 spec).
+// Reading the state at a time t₀: what the engine, api and the skill map read of the model. Reading
+// writes nothing into the cache: what depends on the time, the learner's grade and the modules of
+// the engine is worked out here, from the state as the fold left it (R08 api; R80 spec).
 
 // ReviewDate is when a mastered skill is due for review: At, in whole seconds of Unix time, UTC,
 // or Already, when it is due whatever the time.
@@ -59,12 +58,12 @@ type ModuleReadout struct {
 	TrialOver   bool
 	LastInTrial bool
 	// Traps are the traps the program found that have no skill with a state, counted at the module
-	// (docs/architecture.md, section 3.3).
+	// (R06).
 	Traps  []TrapCount
 	Skills []SkillReadout // ordered by skill ID byte by byte
 }
 
-// AnchorStatus is whether a learner has an anchor skill (docs/architecture.md, section 3.4).
+// AnchorStatus is whether a learner has an anchor skill (R07).
 type AnchorStatus int32
 
 const (
@@ -161,12 +160,12 @@ const anchorPrefix = "core."
 // and a current version gives the starting point by the grade, BandByGrade, or none when that
 // version has no bands, as a module with no tasks may have none; one with neither is left out.
 // Anchors are the anchor skills a graph of a module of the engine names as a prerequisite or a
-// skill it teaches, each with its status (docs/architecture.md, section 3.4): held, when a skill
-// that teaches it is mastered in any of the modules with a current version; otherwise not held,
-// when a skill of the engine's modules that may be mastered teaches it — a skill with a verdict
-// and a band it is taught at —, not mastered when one of them has answers, no evidence
-// otherwise; and unknown otherwise: no one teaches it, or only skills that may not be mastered
-// do. A module with no current version gives no graph, so its mastery is not seen.
+// skill it teaches, each with its status (R07): held, when a skill that teaches it is mastered in
+// any of the modules with a current version; otherwise not held, when a skill of the engine's
+// modules that may be mastered teaches it — a skill with a verdict and a band it is taught at —,
+// not mastered when one of them has answers, no evidence otherwise; and unknown otherwise: no one
+// teaches it, or only skills that may not be mastered do. A module with no current version gives no
+// graph, so its mastery is not seen.
 //
 // It refuses, with ErrInvalid, a state Append would refuse, a module of the engine twice or not
 // named by the full ID of a module, a module with no entry in g, a graph Append would refuse, and
@@ -208,13 +207,12 @@ func Read(s State, g Graphs, at int64, grade Grade, engineModules []string) (Rea
 }
 
 // Task gives the probability of a right answer to each item of a candidate task at the time of
-// reading, by place: the P the step would take of evidence at that time (docs/architecture.md,
-// sections 3.1 and 3.2), by the same function — with the retention of the item's skills at t₀,
-// and without it, R̄ = 1, while the module's trial series lasts. A module with no state starts at
-// the starting point by the grade. An item with no slot, or with one of a kind of check this
-// version does not know, has no verdict and so no P. The provenance of the task's key and skill
-// tags does not change P: evidence that weighs nothing by it moves nothing, but the chance of a
-// right answer is the same.
+// reading, by place: the P the step would take of evidence at that time (R03, R04), by the same
+// function — with the retention of the item's skills at t₀, and without it, R̄ = 1, while the
+// module's trial series lasts. A module with no state starts at the starting point by the grade. An
+// item with no slot, or with one of a kind of check this version does not know, has no verdict and
+// so no P. The provenance of the task's key and skill tags does not change P: evidence that weighs
+// nothing by it moves nothing, but the chance of a right answer is the same.
 //
 // It refuses, with ErrInvalid, a task the codec would refuse, one whose ID names no module, one
 // not of a difficulty from 1 to 5 or at a band place below 1, a choice without its number of
@@ -223,8 +221,7 @@ func Read(s State, g Graphs, at int64, grade Grade, engineModules []string) (Rea
 // current version has no bands: a task of it would have none to be in.
 //
 // It copies nothing it need not: tags and items already in their order are read as they are, and
-// R at t₀ and the start of a module Read has read come from Read (docs/architecture.md, section
-// 3.7; R29).
+// R at t₀ and the start of a module Read has read come from Read (R29).
 func (r Readout) Task(t Task) (TaskReadout, error) {
 	if err := checkTaskTags(t); err != nil {
 		return TaskReadout{}, err
@@ -418,9 +415,9 @@ func (m moduleRead) readout(at int64, grade Grade) (ModuleReadout, bool, error) 
 	return out, true, nil
 }
 
-// skillReadout is what reading at t₀ gives of a skill with a state (docs/architecture.md, section
-// 3.2): θ + δ, v and R at t₀, and for a mastered skill R · q at t₀ and the review date, by the
-// functions of model.go. g names the mastery band; it is nil without a current version.
+// skillReadout is what reading at t₀ gives of a skill with a state (R04): θ + δ, v and R at t₀, and
+// for a mastered skill R · q at t₀ and the review date, by the functions of model.go. g names the
+// mastery band; it is nil without a current version.
 func (ms *ModuleState) skillReadout(sk SkillState, g *Graph, at int64) SkillReadout {
 	out := SkillReadout{
 		Skill:         sk.Skill,
@@ -486,7 +483,7 @@ func anchors(mods []moduleRead, at int64) []AnchorReadout {
 }
 
 // anchorOf gives the status of an anchor skill from the skills that teach it in the modules with
-// a current version (docs/architecture.md, section 3.4).
+// a current version (R07).
 func anchorOf(anchor string, mods []moduleRead, at int64) AnchorReadout {
 	out := AnchorReadout{Anchor: anchor}
 	var held, engineTeaches, masterable, practised bool
@@ -548,7 +545,7 @@ func isModuleID(id string) bool {
 
 // startingPoint gives where a module with no state starts for a learner of a grade, BandByGrade,
 // and false, with the zero BandRef, when the module's current version has no bands: a module with
-// no tasks may have none (the format's section 11), and then no place to start at either.
+// no tasks may have none, and then no place to start at either.
 func startingPoint(grade Grade, bands []Band) (BandRef, bool, error) {
 	if len(bands) == 0 {
 		return BandRef{}, false, nil

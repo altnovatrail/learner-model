@@ -2,10 +2,9 @@ package learnermodel
 
 import "math"
 
-// The rules of R157 spec in place of a calibration of the model's constants (R45;
-// docs/architecture.md, section 3.1): the start a band below the band of the learner's grade —
-// startLevel in model.go —, an adult's correction of a module's level, and a guard that lowers the
-// level after three failures of the module in a row.
+// The rules of R157 spec in place of a calibration of the model's constants (R45): the start a
+// band below the band of the learner's grade — startLevel in model.go —, an adult's correction of
+// a module's level, and a guard that lowers the level after three failures of the module in a row.
 
 // correct is an adult's correction of the module's level to the band at a place of its current
 // version, the step of evidence that LevelCorrection gives: the level goes to the band's middle,
@@ -37,11 +36,12 @@ func (ms *ModuleState) correct(place int32, g *Graph) bool {
 // the model expected the learner to know at least half of its answers — the sum of their P above
 // the guessing floor, R̄ · σ, from the state before it, is at least half their number, so that a
 // choice of two, whose P is never below ½, is not fitting by its guessing alone —, and fewer than
-// half of the items with an answer were solved at the end of the attempt. An item is solved when its final verdict is right, or,
-// with no final verdict recorded, its first one; an item the step reads as "not solved", the
-// solution shown, is not. So a wrong first answer the learner put right on a rung of the ladder is
-// no failure, nor is a task the model already took for too hard: the guard is for tasks the model
-// gave as fitting and the learner was stuck on, which tell that the level stands too high.
+// half of the items with an answer were solved at the end of the attempt. An item is solved when
+// its final verdict is right, or, with no final verdict recorded, its first one; an item the step
+// reads as "not solved", the solution shown, is not. So a wrong first answer the learner put right
+// on a rung of the ladder is no failure, nor is a task the model already took for too hard: the
+// guard is for tasks the model gave as fitting and the learner was stuck on, which tell that the
+// level stands too high.
 func stuck(items []item, answers []answer) bool {
 	var expected float64
 	for _, a := range answers {

@@ -7,10 +7,10 @@ import (
 	"strings"
 )
 
-// The state is a fold of the evidence log (docs/architecture.md, section 3.5): Recompute folds the
-// whole log from the empty state, and Append is one step of the fold over the cache, the same
-// step. So the state an appended piece of evidence gives is the state recomputed from the log, bit
-// for bit, as long as the cache is kept without loss, which the codec does.
+// The state is a fold of the evidence log (R08): Recompute folds the whole log from the empty
+// state, and Append is one step of the fold over the cache, the same step. So the state an
+// appended piece of evidence gives is the state recomputed from the log, bit for bit, as long as
+// the cache is kept without loss, which the codec does.
 
 // Append appends a piece of evidence to a state — the cache api keeps — against the graphs of the
 // current versions of the modules, and gives the new state and the evidence with the start band
@@ -19,11 +19,10 @@ import (
 // StateKind and shares no memory with s, while the evidence it gives shares e's lists.
 //
 // The step reads only the graph of the evidence's module, and gives the evidence of a skill that
-// graph retired to each skill that replaced it, in full (docs/architecture.md, section 3.5). A
-// module whose entry says it has no current version moves nothing: its evidence waits in the log.
-// Evidence with no answer moves nothing either, and gives a module no state; nor does evidence
-// whose key or skill tags came from AI, or whose provenance is not given or one this version does
-// not know (docs/architecture.md, section 3.3).
+// graph retired to each skill that replaced it, in full (R08). A module whose entry says it has no
+// current version moves nothing: its evidence waits in the log. Evidence with no answer moves
+// nothing either, and gives a module no state; nor does evidence whose key or skill tags came from
+// AI, or whose provenance is not given or one this version does not know (R06).
 //
 // It refuses, with ErrInvalid:
 //   - a state of a kind outside 1 to StateKind, unless it is the zero State, one not in its

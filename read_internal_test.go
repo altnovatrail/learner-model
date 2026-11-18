@@ -2,11 +2,10 @@ package learnermodel
 
 import "testing"
 
-// Readout.Task gives the P the step takes of evidence at the time of reading
-// (docs/architecture.md, section 3.2): in the trial series and past it, with a pause and with the
-// transfer, P read at the evidence's practice time is the step's P to the bit. The learner starts
-// at the second band, θ₀ = 2.5, so that the first evidence of the module, read before it, holds
-// the step to the same start.
+// Readout.Task gives the P the step takes of evidence at the time of reading (R04): in the trial
+// series and past it, with a pause and with the transfer, P read at the evidence's practice time is
+// the step's P to the bit. The learner starts at the second band, θ₀ = 2.5, so that the first
+// evidence of the module, read before it, holds the step to the same start.
 func TestTaskIsTheStepsChance(t *testing.T) {
 	const module = "example/workbook"
 	s := func(name string) string { return module + "/skill/" + name }

@@ -188,8 +188,8 @@ func TestTaskAllocatesOnce(t *testing.T) {
 }
 
 // TestTaskConcurrently calls Task on one Readout from several goroutines at once, as a caller
-// choosing for many requests may: Task only reads the Readout (docs/architecture.md, section 3.6,
-// rule 7), so -race sees no race and every call gives the bits of a call alone.
+// choosing for many requests may: Task only reads the Readout (R09), so -race sees no race and
+// every call gives the bits of a call alone.
 func TestTaskConcurrently(t *testing.T) {
 	g, tasks := poolGraphs(t)
 	states := poolStates(t, g, tasks)

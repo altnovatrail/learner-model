@@ -9,9 +9,8 @@ import (
 	lm "github.com/altnovatrail/learner-model"
 )
 
-// The transfer by retired_skills (docs/architecture.md, section 3.5): the evidence of a retired
-// skill counts for each skill that replaced it, in full, by the graph of the module's current
-// version, while the log stays as it is.
+// The transfer by retired_skills (R08): the evidence of a retired skill counts for each skill that
+// replaced it, in full, by the graph of the module's current version, while the log stays as it is.
 
 // versionGraphs gives the graphs of a version of the workbook: skills with a verdict, each taught
 // at band 1 but those in untaught; essay and the skills in rubric, with a rubric; and the retired
@@ -150,10 +149,10 @@ func TestTransfer(t *testing.T) {
 	}
 }
 
-// A split (docs/architecture.md, section 3.5): each part gets the whole history of the skill it
-// came from, beside another primary skill, and θ, n and the other skill move as before the split,
-// bit for bit, since the mean of two equal corrections is the correction. The mastery comes anew,
-// by the bands each part is taught at now: a part no task trains is mastered never.
+// A split (R08): each part gets the whole history of the skill it came from, beside another primary
+// skill, and θ, n and the other skill move as before the split, bit for bit, since the mean of two
+// equal corrections is the correction. The mastery comes anew, by the bands each part is taught at
+// now: a part no task trains is mastered never.
 func TestTransferSplit(t *testing.T) {
 	add, sub, carry, place := skill("addition"), skill("subtraction"), skill("carry"), skill("place")
 	log := transferLog([]string{add, sub}, []string{add, sub}, []string{add}, []string{sub}, []string{add, sub}, []string{add})
@@ -196,9 +195,8 @@ func TestWeightThresholdsTransferred(t *testing.T) {
 	}
 }
 
-// Anchor skills among the supporting skills go as they are, and the model reads none of them
-// (docs/architecture.md, section 3.5): a log whose pages name some gives the bytes of the log
-// without them.
+// Anchor skills among the supporting skills go as they are, and the model reads none of them (R08):
+// a log whose pages name some gives the bytes of the log without them.
 func TestAnchorSkills(t *testing.T) {
 	g := workbookGraphs(t)
 	log := transferLog([]string{skill("addition")}, []string{skill("addition"), skill("subtraction")}, []string{skill("subtraction")})
@@ -212,11 +210,10 @@ func TestAnchorSkills(t *testing.T) {
 	}
 }
 
-// Evidence of a kind later than this version's, as its bytes come from the log
-// (docs/architecture.md, section 3.5): a field this version does not know is skipped, an item of
-// an unknown kind of check or an unknown verdict gives no answer, and an unknown outcome reads as
-// "unchecked". The state is the one the same evidence gives without what this version does not
-// know.
+// Evidence of a kind later than this version's, as its bytes come from the log (R08): a field this
+// version does not know is skipped, an item of an unknown kind of check or an unknown verdict gives
+// no answer, and an unknown outcome reads as "unchecked". The state is the one the same evidence
+// gives without what this version does not know.
 func TestReadKinds(t *testing.T) {
 	g := workbookGraphs(t)
 	e := page(4, 2, []string{skill("addition")}, 200)

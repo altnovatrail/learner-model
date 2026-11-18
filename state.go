@@ -27,8 +27,7 @@ type TrialAnswer struct {
 	Weight     float64 // u, the answer's weight in its series
 }
 
-// SkillState is the state of one skill of the module whose assessability is verdict
-// (docs/architecture.md, sections 3.1–3.3).
+// SkillState is the state of one skill of the module whose assessability is verdict (R03).
 type SkillState struct {
 	Skill         string
 	Correction    float64 // δ
@@ -59,8 +58,8 @@ type ModuleState struct {
 	// FailuresInARow is the count of the guard (R45): the pieces of evidence in a row, past the
 	// trial series, on which the model expected the learner to know at least half of the answers,
 	// above the guessing floor, and fewer than half of the items with an answer were solved at the
-	// end of the attempt. The third lowers the level by a band; the
-	// count goes on until a piece of evidence that is no such failure.
+	// end of the attempt. The third lowers the level by a band; the count goes on until a piece of
+	// evidence that is no such failure.
 	FailuresInARow int32
 	// TrialEndedByAdult tells whether an adult's correction of the level ended the trial series
 	// before its five answers (R45): the series is then over whatever the weight of answers.

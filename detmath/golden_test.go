@@ -16,12 +16,11 @@ import (
 	"github.com/altnovatrail/learner-model/detmath"
 )
 
-// The golden files of detmath, one for every build (docs/architecture.md, section 3.6): they tell
-// a difference in this arithmetic from a difference in the model. testdata/golden.txt holds
-// inputs and the bits of the results; testdata/sweep.txt holds, for each function, the SHA-256 of
-// the bits of its results over a long run of inputs drawn by PCG with fixed seeds, the same on
-// every build. Both change only with a version of learner-model: DETMATH_UPDATE=1 writes them
-// anew, from the build it runs on.
+// The golden files of detmath, one for every build (R09): they tell a difference in this arithmetic
+// from a difference in the model. testdata/golden.txt holds inputs and the bits of the results;
+// testdata/sweep.txt holds, for each function, the SHA-256 of the bits of its results over a long
+// run of inputs drawn by PCG with fixed seeds, the same on every build. Both change only with a
+// version of learner-model: DETMATH_UPDATE=1 writes them anew, from the build it runs on.
 
 const update = "DETMATH_UPDATE"
 
@@ -88,8 +87,8 @@ func goldenInputs(f function) [][]float64 {
 			in = append(in, []float64{uniform(r, 0.5, 2)})
 		}
 	case "pow":
-		// The rule of τ of docs/architecture.md, section 3.3: (1 + g · (1 − R))^S̄ with g = 15 and
-		// (1/2)^(1 − S̄), with S̄ within [0, 1]; and the exact branches and the edges.
+		// The rule of τ (R06): (1 + g · (1 − R))^S̄ with g = 15 and (1/2)^(1 − S̄), with S̄ within
+		// [0, 1]; and the exact branches and the edges.
 		for _, a := range []float64{0.5, 1, 1.5, 2.5, 16, 0x1p-1022, math.MaxFloat64, 0, -1, nan} {
 			for _, s := range []float64{0, 1, 0.5, -1, 2, math.Inf(1), math.Inf(-1), nan} {
 				in = append(in, []float64{a, s})
@@ -118,7 +117,7 @@ func goldenInputs(f function) [][]float64 {
 }
 
 // uniform draws from [lo, hi), with every * held by float64(), so that the inputs are the same on
-// every build (rule 1 holds in tests too: R09, the amendment of 2026-11-07).
+// every build: the rule of float64() holds in tests too (R09).
 func uniform(r *rand.Rand, lo, hi float64) float64 {
 	u := r.Float64()
 	return lo + float64((hi-lo)*u)
@@ -273,8 +272,8 @@ func TestSweep(t *testing.T) {
 	}
 }
 
-// The NaN that math.NaN gives, and the float just below a positive one: rule 2 keeps tests to the
-// functions of math with an exact result, and these need none.
+// The NaN that math.NaN gives, and the float just below a positive one, by their bits: the tests
+// take math.NaN and math.Nextafter no more than the code does (R09).
 var nan = math.Float64frombits(0x7FF8000000000001)
 
 func below(x float64) float64 { return math.Float64frombits(math.Float64bits(x) - 1) }

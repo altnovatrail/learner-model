@@ -11,13 +11,12 @@ import (
 	lm "github.com/altnovatrail/learner-model"
 )
 
-// Reading the state at a time t₀ (docs/architecture.md, sections 3.1–3.4 and 3.7): Read and
-// Readout.Task. Every value here is synthetic.
+// Reading the state at a time t₀: Read and Readout.Task. Every value here is synthetic.
 
 const day = 86400
 
-// The anchor skills of the examples of docs/architecture.md, section 3.4: school maths of grade 3
-// teaches division with remainder and fractions of a whole, and olympiad maths relies on them.
+// The anchor skills of the examples of docs/architecture.md (R07): school maths of grade 3 teaches
+// division with remainder and fractions of a whole, and olympiad maths relies on them.
 const (
 	school   = "example/school"
 	division = "core.division-with-remainder"
@@ -97,7 +96,7 @@ func wantAnchor(t *testing.T, what string, a lm.AnchorReadout, status lm.AnchorS
 	}
 }
 
-// The examples of docs/architecture.md, section 3.4, with each status and reason.
+// The examples of anchor skills of docs/architecture.md, with each status and reason (R07).
 func TestAnchors(t *testing.T) {
 	g := anchorGraphs(t)
 	grade3 := lm.Grade{Value: 3, Known: true}
@@ -162,9 +161,9 @@ func TestAnchors(t *testing.T) {
 	}
 }
 
-// A module of the engine with no tasks may have no bands (the format's section 11): read with no
-// state, it gives no starting point rather than an error, so that the engine still gets its
-// reading, and its skills still teach their anchors (Д15 in RUN.md).
+// A module of the engine with no tasks may have no bands: read with no state, it gives no starting
+// point rather than an error, so that the engine still gets its reading, and its skills still teach
+// their anchors (R07).
 func TestReadModuleWithNoBands(t *testing.T) {
 	const lessons = "example/lessons"
 	spoken := "core.spoken-numbers"
@@ -232,8 +231,8 @@ func TestTrialFlags(t *testing.T) {
 	flags("after it", s, true, false)
 }
 
-// mastered is the skill of the example of docs/architecture.md, section 3.2: mastered at the band
-// `3-4`, θ + δ = 4.5, n = 100, m = 20 and τ = 10, practised at t₀.
+// mastered is the skill of the example of forgetting of docs/architecture.md (R04): mastered at the
+// band `3-4`, θ + δ = 4.5, n = 100, m = 20 and τ = 10, practised at t₀.
 func mastered(t0 int64) lm.State {
 	return lm.State{Kind: lm.StateKind, Modules: []lm.ModuleState{{Module: olympiad, Level: 4, AnswerWeight: 100,
 		StartBand: ladderBand(2), Skills: []lm.SkillState{{Skill: topic("a"), Correction: 0.5, AnswerWeight: 20,
@@ -263,7 +262,7 @@ func near3(t *testing.T, what string, got, want float64) {
 	}
 }
 
-// The example of docs/architecture.md, section 3.2, read: at its last practice and after the
+// The example of forgetting of docs/architecture.md, read: at its last practice and after the
 // summer break of 60 days.
 func TestReadSkill(t *testing.T) {
 	g := olympiadGraphs(t, map[string][]int32{topic("a"): {1, 2, 3}})
@@ -320,7 +319,7 @@ func TestReadTask(t *testing.T) {
 	g := olympiadGraphs(t, map[string][]int32{topic("a"): {1, 2, 3}})
 
 	// A learner of grade 5, of the band 5-6, starts a band below it, at θ₀ = 2.5 (R45): on the task
-	// of the band 3-4, P = 0.2 + 0.8 · σ(0) = 0.6 (section 3.1).
+	// of the band 3-4, P = 0.2 + 0.8 · σ(0) = 0.6.
 	r := mustRead(t, lm.State{}, g, 0, lm.Grade{Value: 5, Known: true}, olympiad)
 	task := candidate(topic("a"))
 	task.Items = append(task.Items,

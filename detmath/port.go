@@ -1,13 +1,12 @@
-// This file ports exp, expmulti and log from package math of Go 1.27.3 — the pure Go code that
-// math itself runs on wasm and 386 — with every float * and / held by float64(), so that no build
-// fuses them (docs/architecture.md, section 3.6, rule 1). Beside those, four changes, none of which
-// changes a bit: the functions of math are called by their package; int(…) of a float is truncate,
-// which checks its range (rule 5); f1 *= 2 is f1 = float64(f1 * 2), since *= cannot be held; and
-// NaN() is the same bits by Float64frombits, since math.NaN is not on the list of rule 2. The
-// constants, the order of the operations and the special cases are Go's, and on wasm and 386 the
-// port gives math.Exp and math.Log bit for bit (R09). Its notices are kept below as both licenses
-// ask; they are the notices of package math itself, which every Go binary that imports math
-// carries already.
+// This file ports exp, expmulti and log from package math of Go 1.27.3 — the pure Go code that math
+// itself runs on wasm and 386 — with every float * and / held by float64(), so that no build fuses
+// them. Beside those, four changes, none of which changes a bit: the functions of math are called
+// by their package; int(…) of a float is truncate, which checks its range; f1 *= 2 is
+// f1 = float64(f1 * 2), since *= cannot be held; and NaN() is the same bits by Float64frombits,
+// since math.NaN is not among the functions of math the code may call. The constants, the order of
+// the operations and the special cases are Go's, and on wasm and 386 the port gives math.Exp and
+// math.Log bit for bit (R09). Its notices are kept below as both licenses ask; they are the notices
+// of package math itself, which every Go binary that imports math carries already.
 //
 // Copyright 2009 The Go Authors.
 //

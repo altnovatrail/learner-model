@@ -7,13 +7,13 @@ import (
 	"testing"
 )
 
-// The reference of Readout.Task (T40 in RUN.md): Task as v0.1.5 had it, which copied the tags and
-// the items of each candidate, split its ID, and worked out R of its skills at t₀ anew. Its text
-// and that of its checks are v0.1.5's word for word, but for their names and for two lines: which
-// modules Read has checked comes from the field that holds them now, and P comes of chanceOf as
-// the step calls it — R worked out anew into an empty list, and the shares gathered —, the very
-// count v0.1.5 made on reading. So TestTaskIsReference holds Task's checks and its R and start,
-// which Read now works out once, to v0.1.5's, and its P to the step's, bit for bit.
+// The reference of Readout.Task (R29): Task as v0.1.5 had it, which copied the tags and the items
+// of each candidate, split its ID, and worked out R of its skills at t₀ anew. Its text and that of
+// its checks are v0.1.5's word for word, but for their names and for two lines: which modules Read
+// has checked comes from the field that holds them now, and P comes of chanceOf as the step calls
+// it — R worked out anew into an empty list, and the shares gathered —, the very count v0.1.5 made
+// on reading. So TestTaskIsReference holds Task's checks and its R and start, which Read now works
+// out once, to v0.1.5's, and its P to the step's, bit for bit.
 
 // TaskReference is Readout.Task of v0.1.5, for the tests outside the package.
 func (r Readout) TaskReference(t Task) (TaskReadout, error) {

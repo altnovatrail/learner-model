@@ -1,9 +1,8 @@
 package learnermodel
 
-// The types the library speaks with api, engine and sim (R10 in docs/decisions.md;
-// docs/architecture.md, section 3.7). They are values: a field that may be absent by its meaning
-// is a value with a flag beside it, never a pointer, so that a state is copied by assignment and
-// appending shares nothing with the state it started from.
+// The types the library speaks with api, engine and sim (R10). They are values: a field that may
+// be absent by its meaning is a value with a flag beside it, never a pointer, so that a state is
+// copied by assignment and appending shares nothing with the state it started from.
 
 // Grade is a learner's school grade, or no grade: Known is false for a learner without one, and
 // Value is then 0. "No grade" is a case of its own, not grade 0.
@@ -65,7 +64,7 @@ type Graph struct {
 }
 
 // ModuleGraph is the entry of a module in Graphs: the graph of its current version, or no
-// current version, when Current is false and Graph is empty (docs/architecture.md, section 3.5).
+// current version, when Current is false and Graph is empty (R08).
 type ModuleGraph struct {
 	Graph   Graph
 	Current bool
@@ -96,7 +95,7 @@ type Slot struct {
 	HasOptions bool
 }
 
-// Provenance is where a key or the skill tags of a task came from (concepts 9.4 of spec).
+// Provenance is where a key or the skill tags of a task came from.
 type Provenance int32
 
 const (
