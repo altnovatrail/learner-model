@@ -23,17 +23,17 @@ concurrency:
 jobs:
   secrets:
     name: Secrets
-    uses: altnovatrail/.github/.github/workflows/secrets.yml@93c848fb51a10a245968cf730b99cc709a7748bf # v0.1.31
+    uses: altnovatrail/.github/.github/workflows/secrets.yml@f1c7e9e6f8245fdbdbc23c4091f3c26350e3a44e # v0.1.33
 
   # A pull request's commits are what it checks; a push to main has been checked as one.
   dco:
     name: DCO
     if: github.event_name == 'pull_request'
-    uses: altnovatrail/.github/.github/workflows/dco.yml@93c848fb51a10a245968cf730b99cc709a7748bf # v0.1.31
+    uses: altnovatrail/.github/.github/workflows/dco.yml@f1c7e9e6f8245fdbdbc23c4091f3c26350e3a44e # v0.1.33
 
   documents:
     name: Documents
-    uses: altnovatrail/.github/.github/workflows/documents.yml@93c848fb51a10a245968cf730b99cc709a7748bf # v0.1.31
+    uses: altnovatrail/.github/.github/workflows/documents.yml@f1c7e9e6f8245fdbdbc23c4091f3c26350e3a44e # v0.1.33
 
   # The repository's Go code, by its own ci- recipes in its toolchain stage, and the coverage of
   # its tests, which the shared workflow sends to Codecov (R16 .github). same-bits holds the bits
@@ -47,7 +47,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    uses: altnovatrail/.github/.github/workflows/go.yml@93c848fb51a10a245968cf730b99cc709a7748bf # v0.1.31
+    uses: altnovatrail/.github/.github/workflows/go.yml@f1c7e9e6f8245fdbdbc23c4091f3c26350e3a44e # v0.1.33
     with:
       same-bits: true
 
@@ -65,16 +65,19 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      # The toolchain stage from the cache of GitHub Actions, by the steps of the job arm64 of the
-      # shared go.yml of v0.1.31 word for word (R36, R42, R47 .github; R43): the same file, image,
-      # path and key, so on this amd64 runner the entry is the one go.yml's job toolchain fills and
-      # reads, and the image is built from the Dockerfile only on a miss. This job is not one of
-      # go.yml's and gets no artifact of its job toolchain: on a miss it builds the image itself.
-      # It saves nothing: on a push to main go.yml's job toolchain saves the entry of a miss, and a
-      # second save of the same key would race it for nothing; a pull request reads main's entry. The
-      # stage is toolchain: learner-model's adds nothing to its toolchain-core, so go.yml keeps the
-      # one entry of toolchain for every job, and this one shares it (R47 .github). buf, tar and
-      # gzip are all this job runs: it takes no cache of Go.
+      # The toolchain stage from the cache of GitHub Actions, by the restore and the script of the
+      # two image steps of the composite action toolchain of .github v0.1.33, which the job arm64 of
+      # its go.yml takes, word for word but SAVE (R36, R42, R47, R49 .github; R43, R48): the same
+      # file, image, path and key, so on this amd64 runner the entry is the one go.yml's job
+      # toolchain fills and reads, and the image is built from the Dockerfile only on a miss. Not
+      # the action itself: it is for a job that runs Go, and would take Go caches and save the
+      # image on main (R48). This job is not one of go.yml's and gets no artifact of its job
+      # toolchain: on a miss it builds the image itself. It saves nothing: on a push to main
+      # go.yml's job toolchain saves the entry of a miss, and a second save of the same key would
+      # race it for nothing; a pull request reads main's entry. The stage is toolchain:
+      # learner-model's adds nothing to its toolchain-core, so go.yml keeps the one entry of
+      # toolchain for every job, and this one shares it (R47 .github). buf, tar and gzip are all
+      # this job runs: it takes no cache of Go.
       - name: Toolchain image from the cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
