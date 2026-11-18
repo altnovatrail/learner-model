@@ -54,8 +54,8 @@ type ModuleReadout struct {
 	LevelBand    BandRef
 	HasLevelBand bool
 	// TrialOver tells whether the module's trial series is over, and LastInTrial whether the last
-	// evidence that moved the module was still in it, the evidence that ended it too (R104
-	// spec). Both are false before the module's first evidence.
+	// evidence that moved the module was still in it, the evidence that ended it too
+	// (R104 spec). Both are false before the module's first evidence.
 	TrialOver   bool
 	LastInTrial bool
 	// Traps are the traps the program found that have no skill with a state, counted at the module
