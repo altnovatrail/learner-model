@@ -2,7 +2,7 @@ package learnermodel
 
 import "math"
 
-// The rules of R157 of spec in place of a calibration of the model's constants (R45;
+// The rules of R157 spec in place of a calibration of the model's constants (R45;
 // docs/architecture.md, section 3.1): the start a band below the band of the learner's grade —
 // startLevel in model.go —, an adult's correction of a module's level, and a guard that lowers the
 // level after three failures of the module in a row.

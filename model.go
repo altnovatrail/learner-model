@@ -42,7 +42,7 @@ const (
 	// failuresToLose is how many failed pieces of evidence in a row take a mastery away.
 	failuresToLose = 2
 
-	// The rules of R157 of spec in place of a calibration (R45): startBelow is how far below the
+	// The rules of R157 spec in place of a calibration (R45): startBelow is how far below the
 	// band of the learner's grade a module's level starts, a band's width; guardFailures is how
 	// many failures of a module in a row, past its trial series — tasks the model gave as fitting and
 	// the learner left unsolved, rules.go —, lower its level by a band, bandStep, but not below

@@ -9,7 +9,7 @@ import (
 // Reading the state at a time t₀ (docs/architecture.md, sections 3.1–3.4 and 3.7): what the
 // engine, api and the skill map read of the model. Reading writes nothing into the cache: what
 // depends on the time, the learner's grade and the modules of the engine is worked out here, from
-// the state as the fold left it (R08 of api; the amendment of 2026-11-02 to R80 of spec).
+// the state as the fold left it (R08 api; the amendment of 2026-11-02 to R80 spec).
 
 // ReviewDate is when a mastered skill is due for review: At, in whole seconds of Unix time, UTC,
 // or Already, when it is due whatever the time.
@@ -54,7 +54,7 @@ type ModuleReadout struct {
 	LevelBand    BandRef
 	HasLevelBand bool
 	// TrialOver tells whether the module's trial series is over, and LastInTrial whether the last
-	// evidence that moved the module was still in it, the evidence that ended it too (R104 of
+	// evidence that moved the module was still in it, the evidence that ended it too (R104
 	// spec). Both are false before the module's first evidence.
 	TrialOver   bool
 	LastInTrial bool

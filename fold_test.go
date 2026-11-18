@@ -199,7 +199,7 @@ func encodeState(t *testing.T, s lm.State) []byte {
 	return b
 }
 
-// The property of R80 of spec: for random synthetic logs and graphs, appending one piece of
+// The property of R80 spec: for random synthetic logs and graphs, appending one piece of
 // evidence at a time, with the state encoded and decoded between the steps as api keeps it, gives
 // the bytes Recompute gives — of the evidence Append gave back, which api stores, and of the
 // evidence as it came, since the step takes the start band of a module with a state from it.
