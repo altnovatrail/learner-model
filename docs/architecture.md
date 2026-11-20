@@ -40,9 +40,9 @@
 
 ## 2. To decide when detailed
 
-The card's items "To decide when detailed" that are `learner-model`'s, a subsection for each, 2.1–2.6: each is decided by an entry of the log, built as section 3 says, and names what is deliberately deferred; the card carries the decisions (architecture 3.8 spec). Subsections 2.7 and 2.8 are not items of the card but questions of `spec` that reach the model — О-25 and format 0.4 —, each decided as its subsection says.
+The card's questions of detailing that are `learner-model`'s, a subsection for each, 2.1–2.6: each is decided by an entry of the log, built as section 3 says, and names what is deliberately deferred; the card carries the decisions (architecture 3.8 spec). Subsections 2.7 and 2.8 are not items of the card but questions of `spec` that reach the model — О-25 and format 0.4 —, each decided as its subsection says.
 
-`learner-model` and `engine` have one card (architecture 3.8 spec). It names the level and forgetting — subsections 2.1 and 2.2 (R03, R04) — as decided rows of `learner-model`, and has seven items:
+`learner-model` and `engine` have one card (architecture 3.8 spec). Its rows of `learner-model` carry the level, forgetting, the weights of evidence and knowing an anchor skill — subsections 2.1, 2.2, 2.3 and 2.6 (R03, R04, R06, R07) —, and its "To decide when detailed", everything decided, the rest. Beyond the level and forgetting they are seven questions:
 - the weights of evidence, subsection 2.3 (R06);
 - the repetition rule, an item of `engine` (R06 engine): repetition is a task on a mastered skill whose date has come, on the module's turn of repetition — once in three of its choices —, and when the others have nothing to give, outside the turn too; the rule does not read the daily goal (R107 spec). The model gives it the review date — subsection 2.2 (R04);
 - evidence: what is in it and how much it weighs, on the condition that the state appended with a new piece of evidence matches the state recomputed from the log (R80 spec), — subsection 2.4 (R08);
@@ -77,7 +77,7 @@ Items 2.4 and 2.5 concern both libraries, and 2.4 also `api`. Т-10 is a questio
 ### 2.3. The weights of evidence
 
 - **Gist:** how much a piece of evidence weighs depending on the outcome of the attempt and on key provenance, how a series of items of one type is reduced to evidence and how a piece of evidence is divided between the task's skills. An item of the card (architecture 3.8 spec).
-- **Decided:** R06. The step takes the first verdict of each item, while help — a rung of the ladder before it, a technique on request, a leading question (R21), a solution already seen — only keeps "mastered" from being set. The answers of one attempt weigh 1/(1 + (N − 1)/3) each, one piece of evidence is one step, and "mastered" is decided by the evidence. The item's primary skills get 1/J of the step each, the supporting ones nothing. The outcomes, key provenance, the facts of evidence, traps and the probe are section 3.3. The 2026-11-02 amendment to R82 spec, concepts 9.4 and 11 spec and the cards architecture 3.8 and 3.9 spec carry it.
+- **Decided:** R06. The step takes the first verdict of each item, while help — a rung of the ladder before it, a technique on request, a leading question (R21), a solution already seen — only keeps "mastered" from being set. The answers of one attempt weigh 1/(1 + (N − 1)/3) each, one piece of evidence is one step, and "mastered" is decided by the evidence. The item's primary skills get 1/J of the step each, the supporting ones nothing. The outcomes, key provenance, the facts of evidence, traps and the probe are section 3.3. R82 spec, concepts 9.4 and 11 spec and the cards architecture 3.8 and 3.9 spec carry it.
 - **Deferred:**
   - partial credit — the item's answers after the first verdict, by the number of hints. The log carries the number of incorrect answers before the first verdict, and a new version will read more by recomputation, if the harness shows a benefit;
   - a reduced weight of an answer with help and of a repeat of a task: now their weight is full, and a correct answer with a technique or from memory raises the estimate a little;
@@ -90,7 +90,7 @@ Items 2.4 and 2.5 concern both libraries, and 2.4 also `api`. Т-10 is a questio
 ### 2.4. Evidence and recomputation from the log
 
 - **Gist:** what a piece of evidence carries and how much it weighs, what the library takes and what it gives, and how the state is recomputed from the evidence log — on a change of the version of `learner-model`, of the release of `modules` or of `api`'s window of format versions (the fourth 2026-11-02 amendment to R80 spec), on the withdrawal of a module's version because of `wrong_key` and on a module's major version —, so that the state appended with a new piece of evidence matches the state recomputed from the log (R80 spec). An item of the card (architecture 3.8 spec). How `api` keeps it is its own (R06, R08 api), and the engine choice is repeated from the same log (architecture 1 spec), so the question is shared with `api` and `engine`.
-- **Decided:** R08. The state is a fold of the log: appending is the same step as recomputation and gives the same bits on any build of one version of `learner-model`, and there is no snapshot. A piece of evidence carries observations — everything R82 spec names and everything the model reads —, and its kind only grows, and an earlier version reads a new kind, skipping what it does not know. The transfer by `retired_skills` gives each replacement the retired skill's share in full, skills merged in one item are one skill, and "mastered" is derived anew from the transferred evidence. The band's place is as recorded, and the library writes the start band when appending. All this is section 3.5. The 2026-11-02 amendment to R82 spec, architecture 1 spec and the band rule of format 0.3 (the 2026-11-02 amendment to R89 spec) carry it.
+- **Decided:** R08. The state is a fold of the log: appending is the same step as recomputation and gives the same bits on any build of one version of `learner-model`, and there is no snapshot. A piece of evidence carries observations — everything R82 spec names and everything the model reads —, and its kind only grows, and an earlier version reads a new kind, skipping what it does not know. The transfer by `retired_skills` gives each replacement the retired skill's share in full, skills merged in one item are one skill, and "mastered" is derived anew from the transferred evidence. The band's place is as recorded, and the library writes the start band when appending. All this is section 3.5. R82 spec, architecture 1 spec and the band rule of format 0.3 (the 2026-11-02 amendment to R89 spec) carry it.
 - **Deferred:**
   - the fields of stage 5 — the provenance of the band and the difficulty of a task from paper, which an adult or a catalogue gives (the 2026-11-02 addition to О-11), — as a new kind of evidence, when it comes to them;
   - partial credit: the log carries the item's verdict at the end and the number of incorrect answers before the first "correct", and a new version will read it by recomputation, if the harness shows a benefit (section 2.3; Д7 in table 4 of [run/DEBT.md](../run/DEBT.md));
@@ -127,11 +127,11 @@ Items 2.4 and 2.5 concern both libraries, and 2.4 also `api`. Т-10 is a questio
 ### 2.8. Format 0.4: the leading question and the check kind `time`
 
 - **Gist:** two parts of format 0.4 concern the model (R108 and R111 spec; [format text](../spec/format/README.md), section 2):
-  - a task's optional closed leading question, `leading_question`, — a question of the author that breaks the task down. `api` gives it on "Hint" before the first wrong answer, together with the task's techniques, and the evidence carries that the learner got it (the 2026-11-08 amendment to R82 spec);
+  - a task's optional closed leading question, `leading_question`, — a question of the author that breaks the task down. `api` gives it on "Hint" before the first wrong answer, together with the task's techniques, and the evidence carries that the learner got it (R82 spec);
   - the check kind `time`: the key is a time of day `H:MM`, hours from 0 to 23 and minutes from 00 to 59, and the answer is compared with it by hours and minutes, each as a number, without a 12-hour dial (R111 spec; [format text](../spec/format/README.md), section 15).
 
   The word flag of a choice by hand and the substitutions in the path of a template's picture do not concern the model: a choice by hand stays a choice of k options, and the model does not read pictures.
-- **Decided:** `time` is a free answer, a value of `CheckKind` with guessing 0, by R03 (R19). The leading question is help, as a technique on request, by a field of its own of the evidence, a fact of the attempt; `api` writes it only from a release of `learner-model` that has the field (R21; the 2026-11-09 amendment to R82 spec). They are `CHECK_KIND_TIME = 5` and `leading_question_on_request = 20` of evidence kind 2 (R28) — sections 3.1, 3.3, 3.5 and 3.7.
+- **Decided:** `time` is a free answer, a value of `CheckKind` with guessing 0, by R03 (R19). The leading question is help, as a technique on request, by a field of its own of the evidence, a fact of the attempt; `api` writes it only from a release of `learner-model` that has the field (R21; R82 spec). They are `CHECK_KIND_TIME = 5` and `leading_question_on_request = 20` of evidence kind 2 (R28) — sections 3.1, 3.3, 3.5 and 3.7.
 
 ## 3. How it is built
 
@@ -454,7 +454,7 @@ A task from paper that AI itself tagged and solved does not move the rating: its
 | Fact | What the model does with it |
 |---|---|
 | traps that the program found | counts them, below |
-| items correct to the end, with their verdict | does not read: it reads the items' first verdicts, and the evidence carries both (R08; the 2026-11-02 amendment to R82 spec) |
+| items correct to the end, with their verdict | does not read: it reads the items' first verdicts, and the evidence carries both (R08; R82 spec) |
 | technique at a step | nothing: it is not help |
 | technique on request | help |
 | leading question on request — from format 0.4 (R108 spec) | help, by its own field `leading_question_on_request` of evidence of kind 2 (R21, R28; subsection 2.8); `technique_on_request` is only the technique on request |
