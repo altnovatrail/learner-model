@@ -40,7 +40,7 @@
 
 ## 2. To decide when detailed
 
-The card's questions of detailing that are `learner-model`'s, a subsection for each, the first six: each is decided by an entry of the log, built as the third section says, and names what is deliberately deferred; the card carries the decisions. The last two subsections are not items of the card but questions of `spec` that reach the model — О-25 and format 0.4 —, each decided as its subsection says.
+The card's questions of detailing that are `learner-model`'s, a subsection for each, the first six: each is decided by an entry of the log, built as described below, with how the component is built, and names what is deliberately deferred; the card carries the decisions. The last two subsections are not items of the card but questions of `spec` that reach the model — О-25 and format 0.4 —, each decided as its subsection says.
 
 `learner-model` and `engine` have one card. Its rows of `learner-model` carry the level, forgetting, the weights of evidence and knowing an anchor skill — a subsection each —, and its "To decide when detailed", everything decided, the rest. Beyond the level and forgetting they are seven questions:
 - the weights of evidence, a subsection below;
@@ -49,7 +49,7 @@ The card's questions of detailing that are `learner-model`'s, a subsection for e
 - a task — not a template — whose solution has already gone to the learner's device: the engine does not give it again at once. An item of `engine`: for 24 hours it is not a candidate, and when the choice gave nothing, the second pass gives it too. Here there is only how much an attempt at such a task weighs, with the weights of evidence;
 - the build for the device (Т-10) — a subsection below: the build and the same bits, and with them the types and the encoding;
 - how knowing an anchor skill is derived from the skills that teach it — a subsection below. It is last, so that the numbers of the subsections before it keep. The second half of the item — what the engine does with "does not know" and with a cycle of prerequisites between modules through anchor skills — is `engine`'s;
-- lessons, an item of `engine`: when to give a lesson and how to choose between lessons. It has no subsection here — a lesson gives the learner model only what the first section says.
+- lessons, an item of `engine`: when to give a lesson and how to choose between lessons. It has no subsection here — a lesson gives the learner model only the evidence of its tasks, attempts like any other.
 
 The items of the evidence and of the build concern both libraries, and the evidence also `api`. Т-10 is a question of `spec`'s register and open, and its recommendation carries what is decided here. The item of the evidence holds `spec`'s condition that the appended state matches the recomputed one.
 
@@ -172,7 +172,7 @@ Here is what to build. Each subsection below builds what an item above decided: 
 
 **How the tests and CI check what is built:** the appended equals the recomputed byte for byte on random logs, the transfer vectors, the boundary of the thresholds, reading the kinds and standalone's test vectors with the tolerance 1e-4; the golden vectors of the state and of reading on all builds, the rules of code and the differential check of the assembler — by the shared jobs of `go.yml`; buf — the schema and the codec.
 
-**What is deliberately deferred** — "Deferred" in the subsections of the second section and the debts Д5–Д11 in table 4 of [run/DEBT.md](../run/DEBT.md).
+**What is deliberately deferred** — "Deferred" in the subsections of the card's items above and the debts Д5–Д11 in table 4 of [run/DEBT.md](../run/DEBT.md).
 
 ### 3.1. The learner's state, the scale and "mastered"
 

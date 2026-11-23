@@ -2,7 +2,8 @@
 // values both name. The bytes of these messages are written by learner-model's own codec,
 // canonically, and this schema describes them. A field is never renumbered or removed: the schema
 // only grows. A learner's export holds the evidence log and the state as the JSON of these
-// messages, with the fields' names as here, beside this file.
+// messages, with the fields' names as here, beside this file, as spec's `export/README.md` lays the
+// export out.
 syntax = "proto3";
 
 package novatrail.learnermodel.v1;
