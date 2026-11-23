@@ -396,31 +396,31 @@ For architecture 3.5.
 
 ### 6.3. The `sim` harness after the judgement `model-2`
 
-For architecture 1 and 3.6; the 2026-11-13 amendment to R20; the 2026-11-13 amendment to R32.
+For architecture 1 and 3.6, R20 and the 2026-11-13 amendment to R32.
 
 - [altnovatrail/sim at `v0.1.13`](https://github.com/altnovatrail/sim/tree/v0.1.13), read 2026-11-13: the release is immutable, of 2026-11-13, the latest, the tag lightweight, on the commit `7c3201622165070519a489f7dfd2066dbf06d189`, the merge of pull request #58 of `sim` (`gh release view v0.1.13 -R altnovatrail/sim`, `gh release list`, `git ls-remote`, `gh release verify` — "Release v0.1.13 verified!"). `gate.json` — `learner-model` at a063835 without a version, `engine` v0.1.6 at 57e0ab8, `modules` v0.2.5, `spec` v0.16.3, 69 numbers, the bands written anew — `"T47: the judgement model-2 chose theta, learner-model a063835, and the held-out learners confirmed it (judgements/model-2/report.md; R46)"`; `go.mod` — `learner-model` `v0.1.7-0.20261113040121-a063835087c7`. The report of the judgement is `judgements/model-2/report.md`: "Chosen and confirmed: theta." Between `v0.1.10` and `v0.1.13` the recipe `just gate` and `internal/gate/` did not change, `Learners` is 250, and in the README, "Gate" and "Taking a release" only "bench" became "simulator" (`git diff v0.1.10 v0.1.13`).
 
 ### 6.4. The `sim` harness with the sizes after `learner-model` v0.1.6
 
-For architecture 1 and 3.6; the 2026-11-12 amendment to R20.
+For architecture 1 and 3.6 and R20.
 
 - [altnovatrail/sim at `v0.1.10`](https://github.com/altnovatrail/sim/tree/v0.1.10), read 2026-11-12: the release is immutable, of 2026-11-12, the latest, the tag lightweight, on the commit `ff921be033917605b7be9d8d194a3c41a90c280c` (`gh release view v0.1.10 -R altnovatrail/sim`, `gh release list`, `git ls-remote`, `gh release verify` — "Release v0.1.10 verified!"). `gate.json` — `learner-model` v0.1.6 at 7d796e2, `engine` v0.1.6 at 57e0ab8, `modules` v0.2.5 — `olympiad-math` and `grade-3-math` 0.3.0, `english-essays` 0.2.0, — `spec` v0.15.0, 69 numbers with bands written anew on 250 learners, — "T46: the gate takes 250 learners a cell, not 150, after learner-model v0.1.6 made its readout faster". `internal/gate/gate.go` — `const Learners = 250`: "250 keep the slowest run of the job on 150, scaled, at about ten minutes at every caller, whose gate keeps no cache of Go, within the twelve that 300 would only just meet"; the recipe `just decisive` — `-learners 2000`. Between `v0.1.8` and `v0.1.10` there are two tags: `v0.1.9` — `time` and the leading question of format 0.4 (T42, R41 `sim`), the packages of `modules` v0.2.5 with them (T43, R42 `sim`) and the base on `learner-model` v0.1.6 (T45, R43 `sim`), and `v0.1.10` — the sizes (T46; the 2026-11-12 amendments to R31 and R33 `sim`). The README section "Gate", the input `GATE_LEARNER_MODEL` and the section "Taking a release" are the same (`git diff d957fc7 ff921be -- README.md justfile`): in the README only "Status" and the size of the deciding run in "Judging a candidate" changed.
 
 ### 6.5. The `sim` harness on `spec` v0.15.0
 
-For architecture 1 and 3.6; the second 2026-11-11 amendment to R20.
+For architecture 1 and 3.6 and R20.
 
 - [altnovatrail/sim at `v0.1.8`](https://github.com/altnovatrail/sim/tree/v0.1.8), read 2026-11-11: the release is immutable, of 2026-11-11, the latest, the tag lightweight, on the commit `d957fc7e9ab411fb1f2e9442b99e2a888d8d6775` (`gh release view v0.1.8 -R altnovatrail/sim`, `gh release list`, `git ls-remote`, `gh release verify` — "Release v0.1.8 verified!"). Between `v0.1.6` and `v0.1.8` — the move of `sim` to `spec` v0.15.0 (T38, R39 `sim`) and the judgement that holds a candidate of one library to the second library of the base (T40, R40 `sim`); in `gate.json` only the dependency `spec` changed, and the libraries, the packages, the bands and the recipe `just gate` are the same (`git diff v0.1.6 v0.1.8`).
 
 ### 6.6. The `sim` harness on `engine` v0.1.6
 
-For architecture 1 and 3.6; the 2026-11-11 amendment to R20.
+For architecture 1 and 3.6 and R20.
 
 - [altnovatrail/sim at `v0.1.6`](https://github.com/altnovatrail/sim/tree/v0.1.6), read 2026-11-11: the release is immutable, of 2026-11-11, the latest, the tag on the commit `a97be529249042595e544da6192555fa783ff9ec` (`gh release view v0.1.6 -R altnovatrail/sim`, `gh release list`, `git ls-remote`, `gh release verify` — "Release v0.1.6 verified!"). `gate.json` — `engine` v0.1.6 at 57e0ab8, `learner-model` v0.1.4 at acfc4f2, `modules` v0.2.0, `spec` v0.12.0, 150 learners a cell (T41 `sim`; the 2026-11-11 amendments to R26 and R31 `sim`). The recipe `just gate` writes the workspace by the hidden recipe `workspace`, and `GATE_LEARNER_MODEL` takes a folder, as before, or a commit by its full SHA; README, "Gate" — "A caller puts its own code in place of a library with `GATE_LEARNER_MODEL` or `GATE_ENGINE`: a folder, or a commit by its full SHA" (`git diff v0.1.2 v0.1.6`). `sim`'s measurement on the slowest runner — "Gate" of `learner-model` on 150 learners about 11.2 minutes against a budget of 15 (the 2026-11-11 amendment to R31 `sim`).
 
 ### 6.7. The `sim` harness on a new pin
 
-For architecture 1 and 3.6; the 2026-11-09 amendment to R20.
+For architecture 1 and 3.6 and R20.
 
 - [altnovatrail/sim at `v0.1.2`](https://github.com/altnovatrail/sim/tree/v0.1.2), read 2026-11-09: the release is immutable, of 2026-11-09, the tag on the commit `e61f90aa1bd894d1ce8f35547e0757d38f28c0b2` (`gh release view v0.1.2 -R altnovatrail/sim`, `git ls-remote`, `gh release verify` — "Release v0.1.2 verified!"). The recipe `just gate` and the input `GATE_LEARNER_MODEL` are the same as at `v0.1.0`, and "Taking a release" of the README did not change (`git diff v0.1.0 v0.1.2`). `gate.json` — `modules` `v0.1.4`, `olympiad-math` 0.1.1, the cell `A-linked` on two maths modules, 100 learners a cell; the libraries in it are still `learner-model` `v0.1.0` at d2620a1 and `engine` `v0.1.0` at c6c5bb9, as in `go.mod`. `sim`'s own CI on pull request #40 of `sim` — "Gate / amd64" 11 minutes, "Gate / arm64" 6 minutes (RUN.md of `sim`, T30, «Сделано»). "Gate" here on pull request #41 — 7 min 10 s, of which the build of the `toolchain` stage is 23 s (RUN.md, T29).
 
@@ -447,7 +447,7 @@ For architecture 3.6.
 
 ### 6.11. The `sim` harness on the release of `theta`
 
-For architecture 1 and 3.6; the second 2026-11-13 amendment to R20.
+For architecture 1 and 3.6 and R20.
 
 - [altnovatrail/sim at `v0.1.14`](https://github.com/altnovatrail/sim/tree/v0.1.14), read 2026-11-13: the release is immutable, of 2026-11-13, the latest, the tag lightweight, on the commit `9c8f782189a4d1d8c2fef59d496f324c03e3cb82`, the merge of pull request #59 of `sim` (`gh release view v0.1.14 -R altnovatrail/sim`, `gh api repos/altnovatrail/sim/releases/latest`, `git ls-remote`, `gh release verify` — "Release v0.1.14 verified!"). `gate.json` — `learner-model` v0.1.8 at ab688b2, `engine` v0.1.6 at 57e0ab8, `modules` v0.2.5, `spec` v0.16.3, 69 numbers; of the bands only the reason changed — `"T48: the base moves to the release of theta, learner-model v0.1.8 at ab688b2, with the code of a063835 and the same numbers to the bit (R46)"`; `go.mod` — `learner-model` `v0.1.8`; `internal/criterion/paths.json` — `learner-model` `v0.1.8` and the SHA-256 of the new runs. Between `v0.1.13` and `v0.1.14` the `justfile`, `internal/gate/` and `.devcontainer/` did not change, and in the README only "Status" changed — "learner-model at v0.1.8, the release of the candidate `theta`" (`git diff v0.1.13 v0.1.14`).
 
@@ -460,7 +460,7 @@ For measurements 5 and R41.
 
 ### 6.13. The `sim` harness with the criterion of the judgement `model-fair-1`
 
-For architecture 1 and 3.6; the 2026-11-16 amendment to R20.
+For architecture 1 and 3.6 and R20.
 
 - [altnovatrail/sim at `v0.1.23`](https://github.com/altnovatrail/sim/tree/v0.1.23), read 2026-11-16: the release is immutable, of 2026-11-16 04:55 UTC, the latest, the tag lightweight, on the commit `61ed988d788b2c6033001ed42f9a95a2c70ce5d2`, the merge of pull request #79 of `sim`, T71 (`gh release list -R altnovatrail/sim`, `gh release view v0.1.23 -R altnovatrail/sim`, `git ls-remote`, `gh release verify` — "Release v0.1.23 verified!"). R64 `sim` names it the tag T60 waits for — "it is the first tag with the criterion, since T70 changes only documents and releases none (R29), and so the tag that T60 and T61 of `learner-model` wait for" —, and R65 `sim` is the criterion: "Written down before the first candidate". `gate.json` — `learner-model` v0.1.8 at ab688b2, `engine` v0.1.6 at 57e0ab8, `spec` v0.18.3 in place of v0.16.3, 69 numbers, the bands and their reason those of `v0.1.14`; `go.mod` — `spec` v0.18.3; `internal/criterion/paths.json` — the base's SHA-256 `9e89cb7c…7763`, the run of 68 cells with the populations `D-` (R56, R58 and R60 `sim`). Between `v0.1.14` and `v0.1.23` the recipe `gate` of the `justfile` and `internal/gate/` did not change; the `justfile` gained `just rough` beside `just decisive`; the stage `toolchain` of `.devcontainer/Dockerfile` changed its base image, `devcontainers/base` 3.0.12 to 3.0.13, and its comments, with Go 1.27.4 the same; README's "Gate" gained the constraint `fair`, `equal_on`, the confirmation on the judgement's own held-out set, the rough look, `model-fair-1` and the evaluation, and "Taking a release" did not change (`git diff v0.1.14 v0.1.23`).
 
