@@ -7,16 +7,4 @@ Open tasks outside the current epic, each as its body, in Russian.
 
 ## Tasks outside an epic
 
-#### T93. Ссылки по R171 spec, источники, замеры и ключ `citations`
-
-- **Цель:** `docs/sources.md` и `docs/measurements.md` — по правилу ссылок R171 spec; `docs-budgets.json` — с ключом `"citations": true`, как в `spec/repo-template/files/docs-budgets.json`, и `docs-check-repo` с ним — зелёный по всему репозиторию.
-- **Почему:** R171 spec; последняя часть задачи T81, разбитой по правилу 11 RUN.md: части — T82–T93.
-- **Сделать:**
-  1. Замер «до»: `just -f spec/justfile docs-check-repo` с ключом `"citations": true` в `docs-budgets.json`, включённым на время замера и не закоммиченным, — находки в строках своих разделов; ссылки по видам — командами `measurements 1.18 spec` на клоне ветки.
-  2. Шапка `docs/sources.md` — по `spec/repo-template/files/docs/sources.md`, с тем, что держат решения журнала. Запись источника и замера держит свою дату и не держит номера задачи, в заголовке тоже (R171 spec).
-  3. Каждая ссылка — по строгому правилу (`spec/RULES.md`, Citations): внешний факт — одна запись `sources N` или `measurements N`, из `spec` — `sources N spec`; открытая работа — `О-`, `П-`, `Т-` и строки «Д…» и «В…»; номер решения в любом виде — свой, `spec`, другого репозитория, MathTrail — и ссылку на раздел или документ — убрать, сказав причину словами одной фразой, или убрать фразу, если она только отсылала; в журнале номер записи стоит только в её заголовке, и запись не ссылается на другие; номер задачи и датированную атрибуцию — убрать.
-  4. Смысл не менять: правка — только ссылок и того, что их окружает. Решение, которое при свёртке оказалось противоречивым, или ссылка, о которой есть настоящее сомнение, — строка [QUESTIONS.md](QUESTIONS.md) и статус `waiting`: правило не решается здесь.
-  5. `docs-budgets.json` — `"citations": true`; находки `docs-check-repo` вне своих файлов, если остались, — исправить по тому же правилу.
-- **Как проверить:** `just -f spec/justfile docs-check-repo` с ключом — зелёный; `/code-review high`, один круг; в отчёте — ссылок было и стало, по видам, командами `measurements 1.18 spec`: «было» — строка `learner-model` таблиц `measurements 1.18 spec`, замер на 1cc6e53, тот же, что T81 повторила до своих правок, «стало» — после этой задачи.
-- **Разделы:** R171 spec, R160 spec, R32 spec; RULES.md spec — The bar и Citations; `spec/repo-template/files/` — `docs/sources.md`, `docs-budgets.json`; свои `docs/sources.md`, `docs/measurements.md`.
-- **Зависит от:** T92.
+None open.

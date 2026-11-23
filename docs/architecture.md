@@ -880,4 +880,4 @@ An experiment confirmed this: `buf convert` with `use_proto_names=true` turned e
 
 ## 4. Sources
 
-The records of external facts are in [sources.md](sources.md), by topic: standalone, learner models and the assessment of answers, forgetting and repetition, Go, CI, GitHub and tools, other NovaTrail repositories; the first line of a record names the subsections it was read for, and a claim of this document cites it, `sources 1.1`. This section stays as a pointer, because the archives cite it. The results of measurements are in [measurements.md](measurements.md).
+The records of external facts are in [sources.md](sources.md), by topic: standalone, learner models and the assessment of answers, forgetting and repetition, Go, CI, GitHub and tools, other NovaTrail repositories; a claim of this document cites its record, `sources 1.1`. This section stays as a pointer, because the archives cite it. The results of measurements are in [measurements.md](measurements.md).
