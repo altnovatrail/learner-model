@@ -8,7 +8,8 @@ Table 3 of [RUN.md](../RUN.md): the author's open questions that tasks leave.
 
 ## Table 3. Questions to the author
 
-Numbers are not reused: next — В58.
+Numbers are not reused: next — В59.
 
 | ID | Question | From | Options | Recommendation |
 |---|---|---|---|---|
+| В58 | «Решено исполнителем по рекомендации, до проверки автора»: R01, R02 and R05 of [docs/decisions.md](../docs/decisions.md) record the moves to `spec` v0.2.9, v0.6.3 and v0.6.6, and their headings say the repository stands on those tags, while the log's opening, as the template has it, says a move to a tag is its commit with no entry, and the repository stands on v0.19.12. T82 rewrote them by the rule of citations alone, their meaning kept | T82 | (a) keep them as rewritten; removing or retiring them changes the log and is a task of its own on the author's word; (b) remove R01, R02 and R05 now: what they hold is the history of the moves, which their commits keep; (c) keep them, with headings in the past tense, "stood on" | (a): the task edits citations and keeps the meaning, and what the three still hold — why the container is `spec`'s, why a move takes the latest release — stays until the author decides |
