@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-// The kinds of error the library returns, as values and never by panicking (R10). errors.Is
+// The kinds of error the library returns, as values and never by panicking. errors.Is
 // tells them apart; the message says where.
 var (
 	// ErrInvalid is an input that breaks a rule the library relies on: a duplicate ID, a place

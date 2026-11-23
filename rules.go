@@ -2,14 +2,14 @@ package learnermodel
 
 import "math"
 
-// The rules of R157 spec in place of a calibration of the model's constants (R45): the start a
-// band below the band of the learner's grade — startLevel in model.go —, an adult's correction of
-// a module's level, and a guard that lowers the level after three failures of the module in a row.
+// The rules in place of a calibration of the model's constants: the start a band below the band of
+// the learner's grade — startLevel in model.go —, an adult's correction of a module's level, and a
+// guard that lowers the level after three failures of the module in a row (R45).
 
 // correct is an adult's correction of the module's level to the band at a place of its current
 // version, the step of evidence that LevelCorrection gives: the level goes to the band's middle,
 // where it stands in that band, unless it stands in it already. A place above the version's
-// highest band is that band: a correction logged on another version must fold (R08). It ends the
+// highest band is that band: a correction logged on another version must fold. It ends the
 // trial series, if it lasts, and starts the count of the guard anew; when the level stands in the
 // band already, past the series, with the count at 0, nothing changes and correct reports so. It
 // moves no skill, and its time is no practice.

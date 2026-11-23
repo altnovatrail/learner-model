@@ -1,6 +1,6 @@
 package learnermodel
 
-// The types the library speaks with api, engine and sim (R10). They are values: a field that may
+// The types the library speaks with api, engine and sim. They are values: a field that may
 // be absent by its meaning is a value with a flag beside it, never a pointer, so that a state is
 // copied by assignment and appending shares nothing with the state it started from.
 
@@ -64,7 +64,7 @@ type Graph struct {
 }
 
 // ModuleGraph is the entry of a module in Graphs: the graph of its current version, or no
-// current version, when Current is false and Graph is empty (R08).
+// current version, when Current is false and Graph is empty.
 type ModuleGraph struct {
 	Graph   Graph
 	Current bool

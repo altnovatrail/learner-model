@@ -19,10 +19,10 @@ import (
 // StateKind and shares no memory with s, while the evidence it gives shares e's lists.
 //
 // The step reads only the graph of the evidence's module, and gives the evidence of a skill that
-// graph retired to each skill that replaced it, in full (R08). A module whose entry says it has no
+// graph retired to each skill that replaced it, in full. A module whose entry says it has no
 // current version moves nothing: its evidence waits in the log. Evidence with no answer moves
 // nothing either, and gives a module no state; nor does evidence whose key or skill tags came from
-// AI, or whose provenance is not given or one this version does not know (R06).
+// AI, or whose provenance is not given or one this version does not know.
 //
 // It refuses, with ErrInvalid:
 //   - a state of a kind outside 1 to StateKind, unless it is the zero State, one not in its
@@ -98,8 +98,8 @@ func (s *State) append(e Evidence, in input) Evidence {
 	return e
 }
 
-// newModule is a module before its first evidence, at θ₀ of its start band — a band below it
-// (R45) —, as both the step and reading take it: the trial series gives θ from θ₀ anew, so the
+// newModule is a module before its first evidence, at θ₀ of its start band — a band below it —,
+// as both the step and reading take it: the trial series gives θ from θ₀ anew, so the
 // start changes no bit of the state, but the step's P of the first evidence is the P reading
 // gives.
 func newModule(module string, start BandRef) ModuleState {

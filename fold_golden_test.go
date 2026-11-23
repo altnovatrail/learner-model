@@ -12,7 +12,7 @@ import (
 	lm "github.com/altnovatrail/learner-model"
 )
 
-// The golden vectors of the fold (R09): synthetic logs, each piece of evidence with the bytes of
+// The golden vectors of the fold: synthetic logs, each piece of evidence with the bytes of
 // the state after it, one file for every build, testdata/fold. A line is "evidence <hex>" or "state
 // <hex>", the bytes of the codec; a line opening with # is a note. The test reads the evidence from
 // the file, appends it and holds the state's bytes to the next line, so that the file pins what

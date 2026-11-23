@@ -134,7 +134,7 @@ func TestGoldenEvidence(t *testing.T) {
 	}
 }
 
-// goldenCorrection is what LevelCorrection gives: evidence of its own kind beside an attempt (R45).
+// goldenCorrection is what LevelCorrection gives: evidence of its own kind beside an attempt.
 func goldenCorrection() lm.Evidence {
 	return lm.LevelCorrection(module, lm.BandRef{Place: 2, ID: "grade-3"}, lm.BandRef{Place: 1, ID: "grade-2"}, 1762300800)
 }

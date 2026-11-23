@@ -8,7 +8,8 @@ import (
 
 // Reading the state at a time t₀: what the engine, api and the skill map read of the model. Reading
 // writes nothing into the cache: what depends on the time, the learner's grade and the modules of
-// the engine is worked out here, from the state as the fold left it (R08 api; R80 spec).
+// the engine is worked out here, from the state as the fold left it, so that nothing in the cache
+// goes stale with them.
 
 // ReviewDate is when a mastered skill is due for review: At, in whole seconds of Unix time, UTC,
 // or Already, when it is due whatever the time.
@@ -45,25 +46,25 @@ type ModuleReadout struct {
 	StartBand   BandRef
 	// LevelBand is the band the module's level stands in, by the bands of its current version — of
 	// the starting point for a module with no evidence —: the band whose middle task is nearest the
-	// level, the highest band when the level is above it (R45). HasLevelBand is false, and LevelBand
+	// level, the highest band when the level is above it. HasLevelBand is false, and LevelBand
 	// the zero BandRef, when the level is more than half a band below the lowest band, as it starts
 	// for a learner of that band's grades, and when the module has no current version or one with no
 	// bands. An adult's correction sets the level in the band it names, where the next evidence
-	// moves it on; that the band is next to this one is for api to check (R45).
+	// moves it on; that the band is next to this one is for api to check.
 	LevelBand    BandRef
 	HasLevelBand bool
 	// TrialOver tells whether the module's trial series is over, and LastInTrial whether the last
-	// evidence that moved the module was still in it, the evidence that ended it too
-	// (R104 spec). Both are false before the module's first evidence.
+	// evidence that moved the module was still in it, the evidence that ended it too.
+	// Both are false before the module's first evidence.
 	TrialOver   bool
 	LastInTrial bool
-	// Traps are the traps the program found that have no skill with a state, counted at the module
-	// (R06).
+	// Traps are the traps the program found that have no skill with a state, counted
+	// at the module.
 	Traps  []TrapCount
 	Skills []SkillReadout // ordered by skill ID byte by byte
 }
 
-// AnchorStatus is whether a learner has an anchor skill (R07).
+// AnchorStatus is whether a learner has an anchor skill.
 type AnchorStatus int32
 
 const (
@@ -160,7 +161,7 @@ const anchorPrefix = "core."
 // and a current version gives the starting point by the grade, BandByGrade, or none when that
 // version has no bands, as a module with no tasks may have none; one with neither is left out.
 // Anchors are the anchor skills a graph of a module of the engine names as a prerequisite or a
-// skill it teaches, each with its status (R07): held, when a skill that teaches it is mastered in
+// skill it teaches, each with its status: held, when a skill that teaches it is mastered in
 // any of the modules with a current version; otherwise not held, when a skill of the engine's
 // modules that may be mastered teaches it — a skill with a verdict and a band it is taught at —,
 // not mastered when one of them has answers, no evidence otherwise; and unknown otherwise: no one
@@ -207,7 +208,7 @@ func Read(s State, g Graphs, at int64, grade Grade, engineModules []string) (Rea
 }
 
 // Task gives the probability of a right answer to each item of a candidate task at the time of
-// reading, by place: the P the step would take of evidence at that time (R03, R04), by the same
+// reading, by place: the P the step would take of evidence at that time, by the same
 // function — with the retention of the item's skills at t₀, and without it, R̄ = 1, while the
 // module's trial series lasts. A module with no state starts at the starting point by the grade. An
 // item with no slot, or with one of a kind of check this version does not know, has no verdict and
@@ -221,7 +222,7 @@ func Read(s State, g Graphs, at int64, grade Grade, engineModules []string) (Rea
 // current version has no bands: a task of it would have none to be in.
 //
 // It copies nothing it need not: tags and items already in their order are read as they are, and
-// R at t₀ and the start of a module Read has read come from Read (R29).
+// R at t₀ and the start of a module Read has read come from Read.
 func (r Readout) Task(t Task) (TaskReadout, error) {
 	if err := checkTaskTags(t); err != nil {
 		return TaskReadout{}, err
@@ -415,7 +416,7 @@ func (m moduleRead) readout(at int64, grade Grade) (ModuleReadout, bool, error) 
 	return out, true, nil
 }
 
-// skillReadout is what reading at t₀ gives of a skill with a state (R04): θ + δ, v and R at t₀, and
+// skillReadout is what reading at t₀ gives of a skill with a state: θ + δ, v and R at t₀, and
 // for a mastered skill R · q at t₀ and the review date, by the functions of model.go. g names the
 // mastery band; it is nil without a current version.
 func (ms *ModuleState) skillReadout(sk SkillState, g *Graph, at int64) SkillReadout {
@@ -483,7 +484,7 @@ func anchors(mods []moduleRead, at int64) []AnchorReadout {
 }
 
 // anchorOf gives the status of an anchor skill from the skills that teach it in the modules with
-// a current version (R07).
+// a current version.
 func anchorOf(anchor string, mods []moduleRead, at int64) AnchorReadout {
 	out := AnchorReadout{Anchor: anchor}
 	var held, engineTeaches, masterable, practised bool

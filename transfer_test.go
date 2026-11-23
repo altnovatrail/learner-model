@@ -9,7 +9,7 @@ import (
 	lm "github.com/altnovatrail/learner-model"
 )
 
-// The transfer by retired_skills (R08): the evidence of a retired skill counts for each skill that
+// The transfer by retired_skills: the evidence of a retired skill counts for each skill that
 // replaced it, in full, by the graph of the module's current version, while the log stays as it is.
 
 // versionGraphs gives the graphs of a version of the workbook: skills with a verdict, each taught
@@ -149,7 +149,7 @@ func TestTransfer(t *testing.T) {
 	}
 }
 
-// A split (R08): each part gets the whole history of the skill it came from, beside another primary
+// A split: each part gets the whole history of the skill it came from, beside another primary
 // skill, and θ, n and the other skill move as before the split, bit for bit, since the mean of two
 // equal corrections is the correction. The mastery comes anew, by the bands each part is taught at
 // now: a part no task trains is mastered never.
@@ -195,7 +195,7 @@ func TestWeightThresholdsTransferred(t *testing.T) {
 	}
 }
 
-// Anchor skills among the supporting skills go as they are, and the model reads none of them (R08):
+// Anchor skills among the supporting skills go as they are, and the model reads none of them:
 // a log whose pages name some gives the bytes of the log without them.
 func TestAnchorSkills(t *testing.T) {
 	g := workbookGraphs(t)
@@ -210,7 +210,7 @@ func TestAnchorSkills(t *testing.T) {
 	}
 }
 
-// Evidence of a kind later than this version's, as its bytes come from the log (R08): a field this
+// Evidence of a kind later than this version's, as its bytes come from the log: a field this
 // version does not know is skipped, an item of an unknown kind of check or an unknown verdict gives
 // no answer, and an unknown outcome reads as "unchecked". The state is the one the same evidence
 // gives without what this version does not know.

@@ -9,7 +9,7 @@ import (
 	"github.com/altnovatrail/learner-model/detmath"
 )
 
-// The step of one piece of evidence (R03, R06, R08): a function of the module's state before it,
+// The step of one piece of evidence: a function of the module's state before it,
 // the evidence and the graph of the module's current version, the same when appending and when
 // recomputing. Every P and K comes from the state before the evidence, and the moves of its answers
 // add up into one step. Sums run in the canonical order — items by place, skills by ID — so that
@@ -17,14 +17,14 @@ import (
 //
 // The first verdict of an item is its answer, each of an attempt's N answers weighs
 // u = 3 / (N + 2), a primary skill of an item gets 1/J of its step, and a failure is fewer than
-// half of a skill's answers right (R06). P carries the mean retention R̄ of the item's skills, each
+// half of a skill's answers right. P carries the mean retention R̄ of the item's skills, each
 // answer moves θ and δ with its weight w, and a skill's stability τ changes once per piece of
 // evidence, by the share of its answers right; after a pause of the module of 14 days its level
-// forgets: n falls back to 20, and the step of θ widens (R04). The evidence is read whole: the
+// forgets: n falls back to 20, and the step of θ widens. The evidence is read whole: the
 // outcome, where a shown solution makes an empty item "not solved"; help, which masters nothing;
 // the provenance of the key and the skill tags, by which evidence weighs 1 or nothing; and the
-// traps the program found, counted at their skills or at the module (R06). The transfer by
-// retired_skills (R08): each recorded primary skill of an item, and each skill of a trap, goes to
+// traps the program found, counted at their skills or at the module. The transfer by
+// retired_skills: each recorded primary skill of an item, and each skill of a trap, goes to
 // the skills transfer gives it by the graph of the module's current version, so that a retired
 // skill's evidence counts in full for each skill that replaced it, and skills merged in one item
 // count once.
@@ -100,7 +100,7 @@ func itemSkills(t Task, item TaskItem) []string {
 	return t.Primary
 }
 
-// transfer gives the skills of the graph a recorded skill goes to (R08), by ID: the skill itself,
+// transfer gives the skills of the graph a recorded skill goes to, by ID: the skill itself,
 // when it is a skill of the graph with a verdict; the replacements with a verdict of a retired
 // skill, which the graph names among its own skills, so that a chain of retirements is one step
 // already; and none for a skill that now has a rubric or none, and for one the graph does not know
@@ -127,7 +127,7 @@ func transfer(g *Graph, id string) []Skill {
 }
 
 // knownChecks tells whether every slot is of a kind of check this version knows: an item with
-// another gives no answer (R08).
+// another gives no answer.
 func knownChecks(slots []Slot) bool {
 	for _, s := range slots {
 		if s.Check < CheckKindNumber || s.Check > CheckKindTime {
@@ -137,7 +137,7 @@ func knownChecks(slots []Slot) bool {
 	return true
 }
 
-// answerOf gives the answer an item gives, by the outcome of the attempt (R06): its first verdict,
+// answerOf gives the answer an item gives, by the outcome of the attempt: its first verdict,
 // right or not yet; or, when the solution was shown, "not solved" — not yet, S = 0 — for an item
 // without one that was not submitted or only blank. An item that had only another "unreadable" or
 // "unchecked" gives none: neither is a mistake. Nor does an item with a verdict or a kind of check
@@ -171,11 +171,11 @@ func answerOf(e Evidence, it item) (Verdict, bool) {
 	return VerdictNotYet, true
 }
 
-// helped tells whether an item's answer was given with help (R06, R21): a rung of the ladder before
-// its first verdict — a wrong answer earlier in the attempt —, the technique or the leading
-// question on request anywhere in the attempt, the solution of this task sent to the device before,
-// or a sketch. The technique on the step and "explain again" are no help. An answer with help moves
-// the step, the counts and τ as it is, but masters nothing.
+// helped tells whether an item's answer was given with help: a rung of the ladder before its first
+// verdict — a wrong answer earlier in the attempt —, the technique or the leading question on
+// request anywhere in the attempt (R21), the solution of this task sent to the device before, or a
+// sketch. The technique on the step and "explain again" are no help. An answer with help moves the
+// step, the counts and τ as it is, but masters nothing.
 func helped(e Evidence, it item) bool {
 	// The codec keeps a count of wrong answers only beside a first verdict, and the solution seen
 	// only beside its fact.
@@ -183,11 +183,11 @@ func helped(e Evidence, it item) bool {
 		e.SolutionSeenBefore || e.Outcome.Kind == OutcomeWithSketch
 }
 
-// weighs tells whether the evidence weighs anything by where its key and skill tags came from
-// (R06): both from the author, the solver or an adult — not from AI. A key or tags from AI weigh 0,
-// and so does a provenance not given or one this version does not know: such evidence moves
-// nothing, as evidence with no answer does. An adult's key needs a band and a difficulty on the
-// module's scale too, and evidence always has them.
+// weighs tells whether the evidence weighs anything by where its key and skill tags came from: both
+// from the author, the solver or an adult — not from AI (R06). A key or tags from AI weigh 0, and
+// so does a provenance not given or one this version does not know: such evidence moves nothing, as
+// evidence with no answer does. An adult's key needs a band and a difficulty on the module's scale
+// too, and evidence always has them.
 func weighs(t Task) bool {
 	return trusted(t.KeyProvenance) && trusted(t.SkillTagsProvenance)
 }
@@ -378,7 +378,7 @@ func (ms *ModuleState) step(e Evidence, items []item, g *Graph) bool {
 }
 
 // inTrial tells whether the module is in its trial series: the weight of its answers is below 5,
-// within ε (R08), and no adult's correction has ended it (R45).
+// within ε, and no adult's correction has ended it.
 func (ms *ModuleState) inTrial() bool {
 	return ms.AnswerWeight < trialWeight-weightTolerance && !ms.TrialEndedByAdult
 }
@@ -451,7 +451,7 @@ func (ms *ModuleState) move(e Evidence, items []item, g *Graph, trial bool) bool
 	return true
 }
 
-// forgetLevel is the forgetting of the module's level (R04): after a pause of the module of at
+// forgetLevel is the forgetting of the module's level: after a pause of the module of at
 // least 14 days, from the latest practice of its skills to the evidence's practice time, the weight
 // of its answers n falls to 20, if it is above, so that the step of θ and v widen. A module with no
 // skill has no practice to count the pause from. In the trial series n is below 5, and so it
@@ -493,7 +493,7 @@ func (ms *ModuleState) judge(sk *SkillState, m skillMove, taskPlace int32) {
 }
 
 // countTraps counts the traps the program found in the evidence, once each per piece of evidence
-// however many items showed it (R06, R08): its skills go to skills by transfer, as an item's do,
+// however many items showed it: its skills go to skills by transfer, as an item's do,
 // and the trap goes to those of them that have a state after the step, each once, with the number
 // of pieces of evidence it was found in and the practice time of the latest; with no such skill, to
 // the module. A trap gives no skill a state of its own: a skill has one only once it is practised.

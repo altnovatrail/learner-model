@@ -6,8 +6,8 @@ import (
 	"github.com/altnovatrail/learner-model/detmath"
 )
 
-// The constants of this version of learner-model (R03, R06). Changing one is a new version, and
-// only through sim's judgement (R12; R103 spec).
+// The constants of this version of learner-model. Changing one is a new version, and
+// only through sim's judgement (R12).
 const (
 	// bandStep is how far a band of a module's scale stands above the one before it.
 	bandStep = 2.5
@@ -34,7 +34,7 @@ const (
 
 	// trialWeight is the weight of answers the trial series lasts, and masteryWeight the weight
 	// of answers a skill needs before it is mastered; weightTolerance is ε, with which a sum of
-	// weights is compared with either (R08).
+	// weights is compared with either.
 	trialWeight     = 5.0
 	masteryWeight   = 5.0
 	weightTolerance = 1e-9
@@ -42,7 +42,7 @@ const (
 	// failuresToLose is how many failed pieces of evidence in a row take a mastery away.
 	failuresToLose = 2
 
-	// The rules of R157 spec in place of a calibration (R45): startBelow is how far below the
+	// The rules in place of a calibration of the constants: startBelow is how far below the
 	// band of the learner's grade a module's level starts, a band's width; guardFailures is how
 	// many failures of a module in a row, past its trial series — tasks the model gave as fitting and
 	// the learner left unsolved, rules.go —, lower its level by a band, bandStep, but not below
@@ -62,7 +62,7 @@ const (
 	halvings = 128
 )
 
-// The constants of forgetting (R04): the retention is
+// The constants of forgetting: the retention is
 // R(Δt, τ) = (1 + F · Δt / τ)^(−C) with C = 1/2, so that R^(−1/C) is 1/R², and F =
 // detmath.RetentionFactor = 19/81, so that R(τ) = 0.9.
 const (
@@ -80,7 +80,7 @@ const (
 	// secondsPerDay turns a pause in whole seconds into days; time knows no calendar.
 	secondsPerDay = 86400
 	// maxPauseSeconds is the longest pause, 2⁵³ s, past which a difference of seconds would not
-	// convert to a float exactly (R09): some 285 million years.
+	// convert to a float exactly: some 285 million years.
 	maxPauseSeconds = 1 << 53
 )
 
@@ -105,13 +105,13 @@ func retentionAt(sk SkillState, t int64) float64 {
 
 // chance is P = c + (1 − c) · R̄ · σ of a right answer, given σ = σ(θ + δ̄ − β) and the mean
 // retention R̄ of the item's skills. At R̄ = 1 it is c + (1 − c) · σ to the bit, since (1 − c) · 1
-// is 1 − c exactly (R03).
+// is 1 − c exactly.
 func chance(c, sigma, rbar float64) float64 {
 	return c + float64((1-c)*rbar*sigma)
 }
 
 // retentionWeight is w = R̄ · P₁ · (1 − P₁) / (P · (1 − P)), how much less an answer tells of the
-// skill than it would without forgetting, P₁ being P at R̄ = 1 (R04). Both 1 − P₁ and 1 − P carry
+// skill than it would without forgetting, P₁ being P at R̄ = 1. Both 1 − P₁ and 1 − P carry
 // the factor 1 − c, which is cancelled, so that the weight is R̄ · P₁ · (1 − σ) / (P · (1 − R̄σ));
 // with no guessing, P₁ / P is 1/R̄ and it is (1 − σ) / (1 − R̄σ), with no small number divided by
 // another. At R̄ = 1 it is 1 exactly. p1 and p are P₁ and P, as chance gives them, so that the
@@ -127,7 +127,7 @@ func retentionWeight(c, sigma, rbar, p1, p float64) float64 {
 }
 
 // stabilityAfter is τ after a piece of evidence in which share of the skill's answers are right, at
-// retention r: max(τ₀, τ · (1 + g · (1 − r))^S̄ · (1/2)^(1 − S̄)) (R04, R06). At S̄ = 1 and 0 the
+// retention r: max(τ₀, τ · (1 + g · (1 − r))^S̄ · (1/2)^(1 − S̄)). At S̄ = 1 and 0 the
 // powers are 1 and their bases exactly, so it is τ · (1 + g · (1 − r)) after right answers and
 // max(τ₀, τ / 2) after wrong ones. It is kept below the largest float, which no real pause comes
 // near, so that no infinity comes out of a state whatever it holds.
@@ -138,7 +138,7 @@ func stabilityAfter(tau, r, share float64) float64 {
 }
 
 // masteryChance is q = σ(λ − shift), the cautious chance of the middle task of the band a skill is
-// mastered at, without forgetting (R04).
+// mastered at, without forgetting.
 func masteryChance(level, n float64, sk SkillState) float64 {
 	return detmath.Sigmoid(cautiousLevel(level, sk.Correction, n, sk.AnswerWeight) - shift(sk.MasteryBand))
 }
@@ -176,7 +176,7 @@ func reviewDate(q, tau float64, last int64) ReviewDate {
 }
 
 // addSeconds adds a whole number of seconds, a non-negative float, to a time, converting it only
-// within the range where every build converts alike and saturating at the largest int64 (R09).
+// within the range where every build converts alike and saturating at the largest int64.
 func addSeconds(t int64, seconds float64) int64 {
 	const limit = 1 << 62
 	if !(seconds < limit) {
@@ -196,7 +196,7 @@ func shift(place int32) float64 {
 
 // startLevel is θ₀, where the level of a module starts from its start band, the band of the
 // learner's grade: a band's width below that band on the scale, and so below the lowest band too
-// for a learner of its grades (R45).
+// for a learner of its grades.
 func startLevel(start int32) float64 {
 	return shift(start) - startBelow
 }
@@ -204,7 +204,7 @@ func startLevel(start int32) float64 {
 // levelBand is the band a level stands in on the scale of a module's bands, given by place from 1:
 // the band whose middle task is nearest it, within half a band's width, the upper of two as near;
 // the highest band when the level is above it; and none, false, when the level is more than half
-// a band below the lowest band, or there are no bands (R45).
+// a band below the lowest band, or there are no bands.
 func levelBand(level float64, bands []Band) (Band, bool) {
 	for i := len(bands) - 1; i >= 0; i-- {
 		if level >= shift(bands[i].Place)-halfBand {
@@ -279,7 +279,8 @@ func masteryBand(taught []int32, taskPlace int32, lambda float64) (int32, bool) 
 }
 
 // gridCells converts the number of cells of the trial series' grid to an int, checking its range
-// (R09): the cells of a sum of weights below 8 are at most 2000, and a larger x saturates.
+// within what every build converts alike: the cells of a sum of weights below 8 are at most 2000,
+// and a larger x saturates.
 func gridCells(x float64) int {
 	const limit = 1 << 20
 	if x >= 0 && x <= limit {

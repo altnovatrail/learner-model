@@ -1,7 +1,7 @@
 package learnermodel
 
 // EvidenceKind is the kind of evidence this version writes. It reads every kind up to it, and a
-// later one too, skipping what it does not know (R08). Kind 2 adds LeadingQuestionOnRequest, which
+// later one too, skipping what it does not know. Kind 2 adds LeadingQuestionOnRequest, which
 // kind 1 does not record, and kind 3 LevelSetByAdult, which kinds 1 and 2 do not.
 const EvidenceKind = 3
 
@@ -82,8 +82,8 @@ type FoundTrap struct {
 	ItemPlaces []int32  // where it was found, ascending
 }
 
-// Evidence is the evidence of one finished attempt: its observations, not the model's conclusions
-// (R08).
+// Evidence is the evidence of one finished attempt: its observations, not the model's conclusions,
+// so that a later version recomputes the state from it.
 type Evidence struct {
 	Kind      int32
 	Task      Task
@@ -104,7 +104,7 @@ type Evidence struct {
 	Items []ItemAnswer
 	Traps []FoundTrap // ordered by ID byte by byte
 	// LevelSetByAdult tells that the evidence is no attempt but an adult's correction of the
-	// module's level, as LevelCorrection gives it (R45). Kinds 1 and 2 do not record it, and it is
+	// module's level, as LevelCorrection gives it. Kinds 1 and 2 do not record it, and it is
 	// false there.
 	LevelSetByAdult bool
 }
@@ -114,7 +114,7 @@ type Evidence struct {
 const levelKind = "/level/"
 
 // LevelCorrection gives the evidence of an adult's correction of the level of a module, by its
-// full ID (R45; R157 spec): the band the adult set, by its place and ID in the module's current
+// full ID: the band the adult set, by its place and ID in the module's current
 // version, at a time in whole seconds of Unix time, UTC, with the start band api gives any evidence
 // of the module, by BandByGrade. Append sets the module's level in that band in one step, or keeps
 // it when it stands there already, ends the trial series and starts the guard's count anew, so
@@ -122,7 +122,7 @@ const levelKind = "/level/"
 // no task: its ID is `<module>/level/<band ID>`, its band the band set and its difficulty 3, the
 // band's middle, where the level goes, and the adult its provenance; it has no skills and no
 // items, so that a version before kind 3, which does not know LevelSetByAdult, reads it as
-// evidence with no answer, which moves nothing (R08).
+// evidence with no answer, which moves nothing.
 func LevelCorrection(module string, band, start BandRef, at int64) Evidence {
 	return Evidence{
 		Kind: EvidenceKind,

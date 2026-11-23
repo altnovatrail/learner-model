@@ -8,7 +8,7 @@ import (
 	lm "github.com/altnovatrail/learner-model"
 )
 
-// The rules of R157 spec in place of a calibration (R45): the start a band below the band of the
+// The rules in place of a calibration: the start a band below the band of the
 // grade, the band the level stands in, an adult's correction and the guard.
 
 // settled is a learner of olympiad maths past the trial series, at a level, with one skill a.

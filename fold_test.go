@@ -13,7 +13,7 @@ import (
 	lm "github.com/altnovatrail/learner-model"
 )
 
-// The fold of the log (R08): appending a piece of evidence gives, byte for byte, the state
+// The fold of the log: appending a piece of evidence gives, byte for byte, the state
 // recomputed from the log, and the rules of the step around it. Every value here is synthetic.
 
 // world is a set of modules with their graphs, for the random logs of the property.
@@ -198,10 +198,11 @@ func encodeState(t *testing.T, s lm.State) []byte {
 	return b
 }
 
-// The property of R80 spec: for random synthetic logs and graphs, appending one piece of
-// evidence at a time, with the state encoded and decoded between the steps as api keeps it, gives
-// the bytes Recompute gives — of the evidence Append gave back, which api stores, and of the
-// evidence as it came, since the step takes the start band of a module with a state from it.
+// The property that appending equals recomputing: for random synthetic logs and graphs, appending
+// one piece of evidence at a time, with the state encoded and decoded between the steps as api
+// keeps it, gives the bytes Recompute gives — of the evidence Append gave back, which api stores,
+// and of the evidence as it came, since the step takes the start band of a module with a state from
+// it.
 // The logs name skills of earlier versions, which go to their replacements, and lose any of their
 // evidence, as api cuts that of a version withdrawn for a wrong key.
 func TestAppendIsRecompute(t *testing.T) {
@@ -289,7 +290,7 @@ func mustAppend(t *testing.T, s lm.State, e lm.Evidence, g lm.Graphs) lm.State {
 	return s
 }
 
-// The thresholds of the sums of weights (R08): pages of 8 and 13 items weigh 2.4 and 2.6, and the
+// The thresholds of the sums of weights: pages of 8 and 13 items weigh 2.4 and 2.6, and the
 // two make n = 5 and m = 5 within ε, whatever the float sum gives. The pages are of difficulty 5,
 // so that answering them all right masters the skill.
 func TestWeightThresholds(t *testing.T) {
@@ -316,7 +317,7 @@ func TestWeightThresholds(t *testing.T) {
 	}
 }
 
-// One step per piece of evidence (R06): its answers weigh u = 3 / (N + 2) each, a skill's by its
+// One step per piece of evidence: its answers weigh u = 3 / (N + 2) each, a skill's by its
 // own N_s, and a primary skill of an item with two gets half of the item's move; skills that are
 // not skills of the graph with a verdict get nothing, and count in neither J nor δ̄.
 func TestWeightsAndShares(t *testing.T) {
@@ -548,7 +549,7 @@ func hard(e lm.Evidence) lm.Evidence {
 	return e
 }
 
-// The example page of docs/architecture.md (R04, R06): 10 items of a number slot with one primary
+// The example page of docs/architecture.md: 10 items of a number slot with one primary
 // skill, band 1, difficulty 3, so β = 0; before it θ = δ = 0.5, n = 20, m = 8 and τ = 1, and the
 // skill was practised a day before, R = 0.9. 8 first verdicts are right and 2 not yet. The document
 // prints three decimals, and τ two.
@@ -608,7 +609,7 @@ func TestForgettingTrial(t *testing.T) {
 	}
 }
 
-// The forgetting of the level (R04): after a pause of the module of 14 days since the latest
+// The forgetting of the level: after a pause of the module of 14 days since the latest
 // practice of its skills, n falls to 20 before the step, so that the state after it is the state a
 // learner with n = 20 would have; below 20 n stays. Evidence with no answer and evidence that
 // weighs nothing move nothing after a pause either, and a module with no skill has no pause to
@@ -703,7 +704,7 @@ func ready(t *testing.T) lm.State {
 	}}}
 }
 
-// Help (R06, R21): an answer with help moves the step, the counts and τ as it is, but masters
+// Help: an answer with help moves the step, the counts and τ as it is, but masters
 // nothing; the leading question on request is help, as the technique on request is; the technique
 // on the step and "explain again" are no help.
 func TestHelp(t *testing.T) {
@@ -747,7 +748,7 @@ func TestHelp(t *testing.T) {
 	}
 }
 
-// The outcomes (R06): a shown solution makes an item not submitted or only blank "not solved",
+// The outcomes: a shown solution makes an item not submitted or only blank "not solved",
 // S = 0; another "unreadable" or "unchecked" gives nothing; left unfinished, unchecked and an
 // outcome of a later version read only the verdicts there were.
 func TestOutcomes(t *testing.T) {
@@ -786,7 +787,7 @@ func TestOutcomes(t *testing.T) {
 	}
 }
 
-// The provenance (R06): a key and skill tags from the author, the solver or an adult weigh 1 — an
+// The provenance: a key and skill tags from the author, the solver or an adult weigh 1 — an
 // adult's key counts when the skills are not from AI; a key or tags from AI, a provenance not given
 // and one of a later version weigh 0, and such evidence moves nothing, nor gives a module a state.
 func TestProvenance(t *testing.T) {
@@ -820,7 +821,7 @@ func TestProvenance(t *testing.T) {
 	}
 }
 
-// The traps (R06): a trap found goes to its skills that have a state, once per piece of evidence,
+// The traps: a trap found goes to its skills that have a state, once per piece of evidence,
 // with the time of the latest; with none such, to the module.
 func TestTraps(t *testing.T) {
 	g := workbookGraphs(t)

@@ -9,7 +9,7 @@ import (
 
 // Where math.Exp and math.Log run the same pure Go as the port, it must give their bits; elsewhere
 // they run assembler of their own, and the two may differ in the last bits: both are within 1 ulp
-// of e**x, so within 2 of each other (R09).
+// of e**x, so within 2 of each other.
 func sameCodeAsMath() bool { return runtime.GOARCH == "wasm" || runtime.GOARCH == "386" }
 
 const mathULPs = 2
@@ -107,7 +107,7 @@ func TestBuiltOnThePort(t *testing.T) {
 }
 
 // The NaN that math.NaN gives, and the float just below a positive one, by their bits: the tests
-// take math.NaN and math.Nextafter no more than the code does (R09).
+// take math.NaN and math.Nextafter no more than the code does.
 var nan = math.Float64frombits(uvnan)
 
 func below(x float64) float64 { return math.Float64frombits(math.Float64bits(x) - 1) }
