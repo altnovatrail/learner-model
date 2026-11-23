@@ -288,7 +288,7 @@ For architecture 3.6 and 3.7.
 
 ### 4.6. Build constraints by file name in Go 1.27.3
 
-For architecture 3.6; the 2026-11-07 amendment to R09.
+For architecture 3.6 and R09.
 
 - the directory `src` in the container, read 2026-11-07: `go/build/build.go`, `goodOSArchFile`, — the name of a file up to the first dot, without the first word and without `_test`, ends in `_GOOS`, `_GOARCH` or `_GOOS_GOARCH`; the lists of systems and architectures are `KnownOS` and `KnownArch` in `internal/syslist/syslist.go`. A build with `-gcflags='-S -d=fmahash=n'` prints, at every place where a fusion rule would fire, the line "fmahash triggered [DISABLED]" with a hash, but without the file's name and line — where exactly is shown by the difference of the assembler.
 
