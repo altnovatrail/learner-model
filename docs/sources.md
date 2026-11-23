@@ -396,7 +396,7 @@ For architecture 3.5.
 
 ### 6.3. The `sim` harness after the judgement `model-2`
 
-For architecture 1 and 3.6, R20 and the 2026-11-13 amendment to R32.
+For architecture 1 and 3.6, R20 and R32.
 
 - [altnovatrail/sim at `v0.1.13`](https://github.com/altnovatrail/sim/tree/v0.1.13), read 2026-11-13: the release is immutable, of 2026-11-13, the latest, the tag lightweight, on the commit `7c3201622165070519a489f7dfd2066dbf06d189`, the merge of pull request #58 of `sim` (`gh release view v0.1.13 -R altnovatrail/sim`, `gh release list`, `git ls-remote`, `gh release verify` — "Release v0.1.13 verified!"). `gate.json` — `learner-model` at a063835 without a version, `engine` v0.1.6 at 57e0ab8, `modules` v0.2.5, `spec` v0.16.3, 69 numbers, the bands written anew — `"T47: the judgement model-2 chose theta, learner-model a063835, and the held-out learners confirmed it (judgements/model-2/report.md; R46)"`; `go.mod` — `learner-model` `v0.1.7-0.20261113040121-a063835087c7`. The report of the judgement is `judgements/model-2/report.md`: "Chosen and confirmed: theta." Between `v0.1.10` and `v0.1.13` the recipe `just gate` and `internal/gate/` did not change, `Learners` is 250, and in the README, "Gate" and "Taking a release" only "bench" became "simulator" (`git diff v0.1.10 v0.1.13`).
 
