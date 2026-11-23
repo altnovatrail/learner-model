@@ -69,7 +69,7 @@ func checkEvidenceContent(e Evidence) error {
 // that is not what LevelCorrection gives, but for its kind, its band, its start band and its time:
 // its task is `<module>/level/<band ID>` of the band set, of difficulty 3, by the adult, and it
 // holds nothing else of an attempt, so that a version before kind 3 reads it as evidence with no
-// answer (R45).
+// answer.
 func checkCorrection(e Evidence) error {
 	if !e.LevelSetByAdult {
 		return nil
@@ -237,7 +237,7 @@ func utf8Strings(ss ...string) error {
 }
 
 // shownBytes shows a string byte by byte, as \xNN past ASCII, without strconv.Quote, which
-// reads Unicode tables (R09).
+// reads Unicode tables, which change with the version of Go.
 func shownBytes(s string) string {
 	const hex = "0123456789abcdef"
 	var b strings.Builder

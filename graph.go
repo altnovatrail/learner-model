@@ -7,9 +7,9 @@ import (
 )
 
 // NewGraph builds the graph of a module version from its bands, its skills, its retired skills
-// and the descriptions of its tasks, so that api and sim build one graph of one module alike
-// (R10). It derives each skill's BandsTaught — the BandsTaught given is ignored — and orders
-// every list canonically. It copies what it is given: the graph shares nothing with its input.
+// and the descriptions of its tasks, so that api and sim build one graph of one module alike.
+// It derives each skill's BandsTaught — the BandsTaught given is ignored — and orders every list
+// canonically. It copies what it is given: the graph shares nothing with its input.
 //
 // A skill is taught at the band of a task where it is a primary skill of an item: of the item's
 // own skills, or of the task's for an item without its own, or for a task without items.

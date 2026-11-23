@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// The reference of Readout.Task (R29): Task as v0.1.5 had it, which copied the tags and the items
+// The reference of Readout.Task: Task as v0.1.5 had it, which copied the tags and the items
 // of each candidate, split its ID, and worked out R of its skills at t₀ anew. Its text and that of
 // its checks are v0.1.5's word for word, but for their names and for two lines: which modules Read
 // has checked comes from the field that holds them now, and P comes of chanceOf as the step calls

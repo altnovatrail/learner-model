@@ -5,7 +5,7 @@
 // f1 = float64(f1 * 2), since *= cannot be held; and NaN() is the same bits by Float64frombits,
 // since math.NaN is not among the functions of math the code may call. The constants, the order of
 // the operations and the special cases are Go's, and on wasm and 386 the port gives math.Exp and
-// math.Log bit for bit (R09). Its notices are kept below as both licenses ask; they are the notices
+// math.Log bit for bit. Its notices are kept below as both licenses ask; they are the notices
 // of package math itself, which every Go binary that imports math carries already.
 //
 // Copyright 2009 The Go Authors.

@@ -163,7 +163,7 @@ func TestTaskIsReference(t *testing.T) {
 	}
 }
 
-// TestTaskAllocatesOnce holds the fast path of Task (R29): on the pool, whose tags and items are in
+// TestTaskAllocatesOnce holds the fast path of Task: on the pool, whose tags and items are in
 // their order, a call allocates only the slice it gives. A skill transfer gives whose R at t₀ Read
 // had not worked out would be inserted into a copy, and this test would see it.
 func TestTaskAllocatesOnce(t *testing.T) {
@@ -188,7 +188,7 @@ func TestTaskAllocatesOnce(t *testing.T) {
 }
 
 // TestTaskConcurrently calls Task on one Readout from several goroutines at once, as a caller
-// choosing for many requests may: Task only reads the Readout (R09), so -race sees no race and
+// choosing for many requests may: Task only reads the Readout, so -race sees no race and
 // every call gives the bits of a call alone.
 func TestTaskConcurrently(t *testing.T) {
 	g, tasks := poolGraphs(t)

@@ -19,7 +19,7 @@ const (
 )
 
 // RetentionFactor is F in the retention R = 1 / √(1 + F · Δt / τ): 0.9^(−1/C) − 1 at C = 1/2,
-// 19/81, so that the retention after a pause of τ is 0.9 (R04).
+// 19/81, so that the retention after a pause of τ is 0.9.
 const RetentionFactor = 19.0 / 81
 
 // Exp returns e**x for x within [-708, 708], and the value at the nearer bound outside it; NaN
@@ -48,7 +48,7 @@ func Sigmoid(x float64) float64 {
 
 // Pow returns a**s as e**(s · ln a), with a kept within the bounds of Log, s within the finite
 // floats and s · ln a within the bounds of Exp; NaN goes to the lower bound of each. Its two exact
-// branches keep the rules built on it exact at their ends: a**0 is 1 and a**1 is a (R09). With both
+// branches keep the rules built on it exact at their ends: a**0 is 1 and a**1 is a. With both
 // kept finite, s · ln a is never 0 · ∞: 1**s is 1 for every s.
 func Pow(a, s float64) float64 {
 	a = clamp(a, minNormal, math.MaxFloat64)
@@ -63,7 +63,7 @@ func Pow(a, s float64) float64 {
 }
 
 // Retention returns R(Δt, τ) = 1 / √(1 + F · Δt / τ), the retention of a skill dt days after its
-// last practice, at stability tau days (R04). dt is kept within [0, the largest float64], so that a
+// last practice, at stability tau days. dt is kept within [0, the largest float64], so that a
 // negative dt — a time that came back — and NaN give the retention right after practice, 1; tau is
 // kept within the positive normal numbers, so that 0, a negative tau and NaN give the stability of
 // 2**-1022 days, and the retention of any pause after practice almost 0; and F · Δt / τ is kept
@@ -87,7 +87,7 @@ func clamp(x, lo, hi float64) float64 {
 }
 
 // truncate converts x to an int toward zero, as int(x) does, but only within ±2**30, where every
-// build converts alike; outside it, it saturates, and NaN gives 0 (R09). The port calls it with
+// build converts alike; outside it, it saturates, and NaN gives 0. The port calls it with
 // |x| < 1100.
 func truncate(x float64) int {
 	const limit = 1 << 30

@@ -3,7 +3,7 @@ package learnermodel
 import "strconv"
 
 // BandByGrade gives the start band of a module for a learner's grade, from the bands of the
-// version the attempt ran on, in their order (R03): the band whose grades name the grade; for a
+// version the attempt ran on, in their order: the band whose grades name the grade; for a
 // grade no band names, the band nearest by the distance to its nearest grade, and the lower of two
 // as near; without a grade, or in a module without grades, the first band. api puts it in the
 // evidence it builds, and Append keeps it only for a module with no state yet.

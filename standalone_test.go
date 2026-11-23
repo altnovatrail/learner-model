@@ -7,7 +7,7 @@ import (
 	lm "github.com/altnovatrail/learner-model"
 )
 
-// The test vectors of standalone (R12): the worked examples of SPEC.md of
+// The test vectors of standalone: the worked examples of SPEC.md of
 // mathtrail/mathtrail-standalone, at commit 6b29dd9 of its main. They hold to the four decimals
 // printed there, 1e-4, as SPEC.md asks: a module of olympiad maths whose tasks are a choice of
 // five, c = 0.2, counts exactly as standalone while retention is 1. Each answer of a table is
@@ -111,7 +111,7 @@ type standaloneRow struct {
 
 // Three failures: a settled child fails difficulty 3 of `1-2` three times, then answers one of
 // difficulty 2. Each failure is put right on the first rung of the ladder, so that the guard, which
-// counts the tasks a learner is stuck on, does not lower the level (R45); TestGuard leaves the
+// counts the tasks a learner is stuck on, does not lower the level; TestGuard leaves the
 // three unsolved.
 func TestStandaloneThreeFailures(t *testing.T) {
 	a := topic("combinatorics.enumeration")
@@ -150,7 +150,7 @@ func TestStandaloneThreeFailures(t *testing.T) {
 }
 
 // The trial series of a child of grade 3, who starts at θ₀ = 2.5 and stands about a level lower;
-// every topic is new, and no δ moves. The start is a band below the band of the grade (R45), so
+// every topic is new, and no δ moves. The start is a band below the band of the grade, so
 // θ₀ = 2.5 is the start of a learner of grade 5, whose band 5-6 stands at 5.
 func TestStandaloneTrialSeries(t *testing.T) {
 	start, err := lm.BandByGrade(lm.Grade{Value: 5, Known: true}, ladder())

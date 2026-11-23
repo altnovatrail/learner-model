@@ -12,7 +12,7 @@ import (
 	lm "github.com/altnovatrail/learner-model"
 )
 
-// The golden vectors of reading (R09): the logs of the golden files of the fold, testdata/fold,
+// The golden vectors of reading: the logs of the golden files of the fold, testdata/fold,
 // folded and read at three times, with what Read and Readout.Task give written out as text, every
 // float as its bits, testdata/read. The test takes the evidence from the fold's file, so that the
 // two files pin one log. LEARNERMODEL_UPDATE=1 writes the files anew, and they change only with the

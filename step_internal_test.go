@@ -97,7 +97,7 @@ func TestStandaloneTenAnswers(t *testing.T) {
 }
 
 // The numbers of standalone's SPEC.md — the scale, the step and the floor of θ's step — and of the
-// example of the scale of docs/architecture.md (R03), that the tests through Append cannot see.
+// example of the scale of docs/architecture.md, that the tests through Append cannot see.
 func TestModelNumbers(t *testing.T) {
 	// A child of grade 3 at θ₀ = 2.5 on difficulty 3 of `3-4` with five options: P = 0.6.
 	nearTo(t, "P at the start", probability(0.2, shift(2)-beta(2, 3)), 0.6)
@@ -110,7 +110,7 @@ func TestModelNumbers(t *testing.T) {
 	nearTo(t, "K_δ at m = 9", correctionStep(9), 0.2759)
 	nearTo(t, "v at n = 80, m = 10", uncertainty(80, 10), 0.3045)
 	nearTo(t, "√v at n = 80, m = 10", math.Sqrt(uncertainty(80, 10)), 0.5518)
-	// The weight of an attempt: the table of docs/architecture.md (R06).
+	// The weight of an attempt: the table of docs/architecture.md.
 	for n, want := range map[int]float64{1: 1, 2: 1.5, 4: 2, 10: 2.5} {
 		if got := float64(float64(n) * seriesWeight(n)); math.Abs(got-want) > 1e-12 {
 			t.Errorf("an attempt of %d answers weighs %v, want %v", n, got, want)
@@ -141,7 +141,7 @@ func TestModelNumbers(t *testing.T) {
 	}
 }
 
-// The example of forgetting of docs/architecture.md (R04): a skill mastered at the band `3-4`,
+// The example of forgetting of docs/architecture.md: a skill mastered at the band `3-4`,
 // shift 2.5, with θ + δ = 4.5, n = 100 and m = 20. The document prints three decimals.
 func TestForgettingExample(t *testing.T) {
 	const day = 86400
@@ -190,7 +190,7 @@ func TestForgettingExample(t *testing.T) {
 	nearTo(t, "R after two minutes", retentionAt(SkillState{Stability: 1}, 120), 0.99984)
 }
 
-// The example of forgetting of docs/architecture.md, with the forgetting of the level (R04): the
+// The example of forgetting of docs/architecture.md, with the forgetting of the level: the
 // learner of the example, mastered at `3-4`, comes back to the module after 60 days and answers
 // difficulty 3 of `3-4` with five options right. The pause of the module is 60 days, so n falls
 // from 100 to 20 before the step: K_θ is 0.1, not its floor of 0.05, and θ moves twice as far,

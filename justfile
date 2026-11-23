@@ -1,6 +1,6 @@
 # learner-model's own recipes. The ci- ones are what .github's shared go.yml runs, one job each, in
-# the toolchain stage of .devcontainer/Dockerfile (R16 .github; R13): their names are the same in
-# every Go repository of NovaTrail, and what they run is this repository's own.
+# the toolchain stage of .devcontainer/Dockerfile: their names are the same in every Go repository
+# of NovaTrail, and what they run is this repository's own.
 
 # The tools only the checks need, at exact versions. Each is a Go program run straight from its
 # module, as module-kit's justfile runs them, so nothing is installed for it and go.mod gains no
@@ -42,29 +42,29 @@ ci-lint:
     arg="$(sed -n 's/^ARG GOPLS_VERSION=\(.*\)$/\1/p' .devcontainer/Dockerfile)"
     if [ -z "$lock" ] || [ "$arg" != "$lock" ]; then
         echo "ci-lint: .devcontainer/gopls/go.mod names gopls ${lock:-at no version} and" \
-            ".devcontainer/Dockerfile has GOPLS_VERSION ${arg:-unset}; raise them together (R19)" >&2
+            ".devcontainer/Dockerfile has GOPLS_VERSION ${arg:-unset}; raise them together" >&2
         exit 1
     fi
 
 # Two runs of every test, each a check of its own, and the recipe fails if either does: first with
 # the race detector, then without it for the coverage, which goes into coverage/go.out, one Go
-# profile, which the job coverage of .github's shared go.yml sends to Codecov (R48 spec; R13). The
-# race detector and coverage in one run, -covermode=atomic, take four times as long as the two apart
-# (R43). Without -race the profile needs no atomic counters: -covermode=set says whether a statement
-# ran, all that Codecov reads, and marks the same statements. Go counts statements and leaves the
-# tests themselves out; a package that no test runs is in it too, its statements at zero. Every test
-# counts for every package of the module, -coverpkg=./...: a test of golden vectors runs the code of
-# other packages, and its lines count where they are. The checks of the same bits on every build —
-# the tests on the targets, the comparison of the assembler and the rules of code — are go.yml's, by
-# its input same-bits, with the lists of .github/coderules.json (R09; R18), and its job arm64 runs
-# this recipe too, on arm64 hardware: what it runs must run on every host.
+# profile, which the job coverage of .github's shared go.yml sends to Codecov. The race detector and
+# coverage in one run, -covermode=atomic, take four times as long as the two apart. Without -race
+# the profile needs no atomic counters: -covermode=set says whether a statement ran, all that
+# Codecov reads, and marks the same statements. Go counts statements and leaves the tests themselves
+# out; a package that no test runs is in it too, its statements at zero. Every test counts for every
+# package of the module, -coverpkg=./...: a test of golden vectors runs the code of other packages,
+# and its lines count where they are. The checks of the same bits on every build — the tests on the
+# targets, the comparison of the assembler and the rules of code — are go.yml's, by its input
+# same-bits, with the lists of .github/coderules.json, and its job arm64 runs this recipe too, on
+# arm64 hardware: what it runs must run on every host.
 # Run the tests with the race detector, then again for their coverage.
 ci-test:
     go test -race -count=1 ./...
     mkdir -p coverage
     go test -count=1 -covermode=set -coverpkg=./... -coverprofile=coverage/go.out ./...
 
-# The schema of the evidence and the state, by buf of the container (R10): buf lint by buf.yaml; buf
+# The schema of the evidence and the state, by buf of the container: buf lint by buf.yaml; buf
 # breaking, category FILE, against the latest tag v* of this repository, and before the first tag
 # nothing to compare with; and buf convert of each golden run of bytes of the codec,
 # testdata/wire/*.binpb, to JSON by the schema, which must be the JSON beside it, and of that JSON
@@ -127,10 +127,10 @@ ci-licenses:
     go run {{ GO_LICENSES }} check ./... --allowed_licenses="$ALLOWED_LICENSES"
 
 # What .github's shared release.yml runs to build a release, in the toolchain stage of the commit it
-# releases, from that commit's tree with no git in it, and then signs every file (R16; R18 .github).
+# releases, from that commit's tree with no git in it, and then signs every file.
 # Go code takes the library as a Go module, by the tag, through the module proxy and the checksum
 # database; the release's one file is the schema of the evidence and the state, for what reads them
-# without Go: the export of a learner's data, say (R135 spec). dist/ is made afresh and holds
+# without Go: the export of a learner's data, say. dist/ is made afresh and holds
 # learner-model-proto-<version>.tar.gz: LICENSE, buf.yaml and every .proto file of proto/ in a
 # folder of that name, in a tar every build writes alike — names sorted, no times or owners, modes
 # 0644 — and gzip without a name or a time.

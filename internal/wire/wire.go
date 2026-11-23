@@ -1,5 +1,5 @@
 // Package wire writes and reads the binary form of protobuf, the part of it the schema of
-// learner-model uses, on Go's standard library alone (R10): varints, 64-bit fixed numbers in
+// learner-model uses, on Go's standard library alone: varints, 64-bit fixed numbers in
 // little-endian, and length-delimited strings, messages and packed lists. What the fields mean, in
 // what order they go and which are required is the caller's.
 package wire

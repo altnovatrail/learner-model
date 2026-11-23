@@ -6,7 +6,7 @@ import (
 	"github.com/altnovatrail/learner-model/detmath"
 )
 
-// The level of the trial series (R03, R06): after every piece of evidence of the series, θ is the
+// The level of the trial series: after every piece of evidence of the series, θ is the
 // maximum of the weighted likelihood of all its answers so far, with a normal prior of spread σ₀
 // around the starting point θ₀,
 //
@@ -77,7 +77,7 @@ func trialLevel(start float64, answers []TrialAnswer) float64 {
 
 // logLikelihood is L at a level. The term of an answer takes its branch by the outcome, not by a
 // factor (1 − S), and ln(1 − P) is ln(1 − c) + ln σ(−x), formed without 1 − P: far above a task σ
-// is exactly 1, and 0 · ln 0 would be NaN (R09).
+// is exactly 1, and 0 · ln 0 would be NaN.
 func logLikelihood(level, start float64, points []trialPoint) float64 {
 	d := level - start
 	sum := -float64(d * d / (2 * startSpread2))
