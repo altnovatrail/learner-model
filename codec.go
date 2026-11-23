@@ -10,10 +10,10 @@ import (
 )
 
 // The codec of the evidence and the state: protobuf's binary form by the schema in
-// proto/novatrail/learnermodel/v1/, written by this code alone (R10). One value gives one run of
-// bytes: the fields go in ascending order of their numbers, a scalar with a value is written even
-// when it is 0, lists of scalars are packed, and the elements of a repeated field go in their
-// canonical order, which the writer sets itself.
+// proto/novatrail/learnermodel/v1/, written by this code alone, on the standard library without the
+// protobuf runtime. One value gives one run of bytes: the fields go in ascending order of their
+// numbers, a scalar with a value is written even when it is 0, lists of scalars are packed, and the
+// elements of a repeated field go in their canonical order, which the writer sets itself.
 //
 // The reader is strict, as only this writer writes: it skips a field it does not know by its wire
 // type and keeps an enum value it does not know as its number, and it refuses bytes cut short, a

@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// The state is a fold of the evidence log (R08): Recompute folds the whole log from the empty
+// The state is a fold of the evidence log: Recompute folds the whole log from the empty
 // state, and Append is one step of the fold over the cache, the same step. So the state an
 // appended piece of evidence gives is the state recomputed from the log, bit for bit, as long as
 // the cache is kept without loss, which the codec does.

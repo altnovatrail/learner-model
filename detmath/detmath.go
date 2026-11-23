@@ -2,7 +2,7 @@
 // on different builds: exp, log, the logistic function σ, a power and the retention of a skill. It
 // gives the same bits on every build of the gc compiler — every architecture, GOAMD64 level and
 // processor, WebAssembly included — so that the state the model folds from the log is the same
-// wherever it is computed (R09).
+// wherever it is computed.
 //
 // exp and log are a port of the pure Go code of package math (port.go), which math.Exp and
 // math.Log run on wasm and 386 but not where they have assembler of their own. Every function here

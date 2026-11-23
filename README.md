@@ -21,4 +21,4 @@ It is a component of [NovaTrail](https://github.com/altnovatrail/spec), a univer
 - `engine` reads its estimates to pick the next lesson or task;
 - `sim`, the learner simulator, judges every change of the model before it is released.
 
-Its card is [architecture 3.8 spec](https://github.com/altnovatrail/spec/blob/main/docs/architecture.md#38-learner-model-and-engine); the detail, the decisions and how to work on it are in [docs/](docs/README.md).
+Its card is in the architecture of [spec](https://github.com/altnovatrail/spec); the detail, the decisions and how to work on it are in [docs/](docs/README.md).

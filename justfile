@@ -34,7 +34,7 @@ ci-lint:
     go vet ./...
     # gopls comes into the devcontainer image from its lock file, .devcontainer/gopls/, which the go
     # kind of spec's template gives, and the image's build stops when the gopls it built does not
-    # name GOPLS_VERSION (R19). CI never builds that stage, so the two are held to each other here:
+    # name GOPLS_VERSION. CI never builds that stage, so the two are held to each other here:
     # a pull request that raises one alone, or a move to a new tag of spec that loses the step or
     # the lock file, fails here.
     lock="$(sed -n 's/^[[:space:]]*\(require[[:space:]]\{1,\}\)\{0,1\}golang\.org\/x\/tools\/gopls[[:space:]]\{1,\}v\([^[:space:]]\{1,\}\).*$/\2/p' \
@@ -49,7 +49,7 @@ ci-lint:
 # Two runs of every test, each a check of its own, and the recipe fails if either does: first with
 # the race detector, then without it for the coverage, which goes into coverage/go.out, one Go
 # profile, which the job coverage of .github's shared go.yml sends to Codecov. The race detector and
-# coverage in one run, -covermode=atomic, take four times as long as the two apart (R43). Without
+# coverage in one run, -covermode=atomic, take four times as long as the two apart. Without
 # -race the profile needs no atomic counters: -covermode=set says whether a statement ran, all that
 # Codecov reads, and marks the same statements. Go counts statements and leaves the tests themselves
 # out; a package that no test runs is in it too, its statements at zero. Every test counts for every

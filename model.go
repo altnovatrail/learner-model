@@ -7,7 +7,7 @@ import (
 )
 
 // The constants of this version of learner-model. Changing one is a new version, and
-// only through sim's judgement (R12).
+// only through sim's judgement.
 const (
 	// bandStep is how far a band of a module's scale stands above the one before it.
 	bandStep = 2.5
