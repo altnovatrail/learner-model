@@ -1,8 +1,8 @@
 package learnermodel
 
-// StateKind is the kind of state this version writes. It reads every kind up to it. Kind 2 adds
-// a module's FailuresInARow and TrialEndedByAdult, the state of the guard and of the adult's correction,
-// which kind 1 does not record.
+// StateKind is the kind of state this version writes. It reads every kind up to it. Kind 2 adds a
+// module's FailuresInARow and TrialEndedByAdult, the state of the guard and of the adult's
+// correction, which kind 1 does not record.
 const StateKind = 2
 
 // guardKind is the kind of state that adds FailuresInARow and TrialEndedByAdult of a module, fields

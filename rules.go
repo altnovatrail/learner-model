@@ -2,9 +2,9 @@ package learnermodel
 
 import "math"
 
-// The rules in place of a calibration of the model's constants (R45): the start a band below the
-// band of the learner's grade — startLevel in model.go —, an adult's correction of a module's
-// level, and a guard that lowers the level after three failures of the module in a row.
+// The rules in place of a calibration of the model's constants: the start a band below the band of
+// the learner's grade — startLevel in model.go —, an adult's correction of a module's level, and a
+// guard that lowers the level after three failures of the module in a row (R45).
 
 // correct is an adult's correction of the module's level to the band at a place of its current
 // version, the step of evidence that LevelCorrection gives: the level goes to the band's middle,

@@ -146,7 +146,7 @@ jobs:
   # bit: a learner comes from its seeds alone, and sim's merge refuses a part missing, repeated or
   # of another run. Every job runs on one kind of runner, since a part splits its share by the
   # runner's processors: arm64, standard and free for a public repository, where sim's gate runs
-  # about a minute faster than on amd64, and whose numbers sim's CI holds to the same bits as
+  # about a minute faster than on amd64 (R43), and whose numbers sim's CI holds to the same bits as
   # amd64's. The limit, 15 minutes a job as in sim's gate.yml, is a guard against a hung run. The
   # release waits for this job too: it follows a green CI on main.
   gate-part:

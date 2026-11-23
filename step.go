@@ -171,11 +171,11 @@ func answerOf(e Evidence, it item) (Verdict, bool) {
 	return VerdictNotYet, true
 }
 
-// helped tells whether an item's answer was given with help (R21): a rung of the ladder before
-// its first verdict — a wrong answer earlier in the attempt —, the technique or the leading
-// question on request anywhere in the attempt, the solution of this task sent to the device before,
-// or a sketch. The technique on the step and "explain again" are no help. An answer with help moves
-// the step, the counts and τ as it is, but masters nothing.
+// helped tells whether an item's answer was given with help: a rung of the ladder before its first
+// verdict — a wrong answer earlier in the attempt —, the technique or the leading question on
+// request anywhere in the attempt (R21), the solution of this task sent to the device before, or a
+// sketch. The technique on the step and "explain again" are no help. An answer with help moves the
+// step, the counts and τ as it is, but masters nothing.
 func helped(e Evidence, it item) bool {
 	// The codec keeps a count of wrong answers only beside a first verdict, and the solution seen
 	// only beside its fact.
@@ -183,11 +183,11 @@ func helped(e Evidence, it item) bool {
 		e.SolutionSeenBefore || e.Outcome.Kind == OutcomeWithSketch
 }
 
-// weighs tells whether the evidence weighs anything by where its key and skill tags came from
-// (R06): both from the author, the solver or an adult — not from AI. A key or tags from AI weigh 0,
-// and so does a provenance not given or one this version does not know: such evidence moves
-// nothing, as evidence with no answer does. An adult's key needs a band and a difficulty on the
-// module's scale too, and evidence always has them.
+// weighs tells whether the evidence weighs anything by where its key and skill tags came from: both
+// from the author, the solver or an adult — not from AI (R06). A key or tags from AI weigh 0, and
+// so does a provenance not given or one this version does not know: such evidence moves nothing, as
+// evidence with no answer does. An adult's key needs a band and a difficulty on the module's scale
+// too, and evidence always has them.
 func weighs(t Task) bool {
 	return trusted(t.KeyProvenance) && trusted(t.SkillTagsProvenance)
 }

@@ -198,10 +198,11 @@ func encodeState(t *testing.T, s lm.State) []byte {
 	return b
 }
 
-// The property that appending equals recomputing: for random synthetic logs and graphs, appending one piece of
-// evidence at a time, with the state encoded and decoded between the steps as api keeps it, gives
-// the bytes Recompute gives — of the evidence Append gave back, which api stores, and of the
-// evidence as it came, since the step takes the start band of a module with a state from it.
+// The property that appending equals recomputing: for random synthetic logs and graphs, appending
+// one piece of evidence at a time, with the state encoded and decoded between the steps as api
+// keeps it, gives the bytes Recompute gives — of the evidence Append gave back, which api stores,
+// and of the evidence as it came, since the step takes the start band of a module with a state from
+// it.
 // The logs name skills of earlier versions, which go to their replacements, and lose any of their
 // evidence, as api cuts that of a version withdrawn for a wrong key.
 func TestAppendIsRecompute(t *testing.T) {

@@ -49,8 +49,8 @@ ci-lint:
 # Two runs of every test, each a check of its own, and the recipe fails if either does: first with
 # the race detector, then without it for the coverage, which goes into coverage/go.out, one Go
 # profile, which the job coverage of .github's shared go.yml sends to Codecov. The race detector and
-# coverage in one run, -covermode=atomic, take four times as long as the two apart. Without -race
-# the profile needs no atomic counters: -covermode=set says whether a statement ran, all that
+# coverage in one run, -covermode=atomic, take four times as long as the two apart (R43). Without
+# -race the profile needs no atomic counters: -covermode=set says whether a statement ran, all that
 # Codecov reads, and marks the same statements. Go counts statements and leaves the tests themselves
 # out; a package that no test runs is in it too, its statements at zero. Every test counts for every
 # package of the module, -coverpkg=./...: a test of golden vectors runs the code of other packages,
