@@ -283,202 +283,202 @@ To change them is a new version, and only through the harness.
 
 ### 3.2. Forgetting and repetition
 
-Decided by R04. Forgetting is the retention of a skill whose stability grows with spaced practice. So spaced repetition is built — SM-2, the Leitner system, HLR, FSRS (sources — sources 3.1–3.3), — and here it is reduced to four constants and lies on top of the model of section 3.1. The module's level θ is forgotten only through n: after a pause of the module the step of θ is wider — below, "Forgetting of the module's level" —, and time does not remove "mastered".
+Forgetting is the retention of a skill whose stability grows with spaced practice. So spaced repetition is built — SM-2, the Leitner system, HLR, FSRS (sources 3.1–3.3), — and here it is reduced to four constants and lies on top of the model of the learner's state, above. The module's level θ is forgotten only through n: after a pause of the module the step of θ is wider — below, "Forgetting of the module's level" —, and time does not remove "mastered".
 
-**The time of practice** of a piece of evidence, t, is the time of the attempt's last action, which `api` keeps, not the time of its closing: an abandoned attempt is closed by a job after 7 days (R10 api). The evidence carries t in whole seconds of UTC (R08; section 3.5). Times are instants of UTC, and Δt is their difference in days of 86,400 s. The model knows neither calendar days nor the time zone, and it does not need the family's zone: forgetting adds no new data of the learner (privacy 4 spec).
+**The time of practice** of a piece of evidence, t, is the time of the attempt's last action, which `api` keeps, not the time of its closing: an abandoned attempt is closed by a job of `api` after 7 days. The evidence carries t in whole seconds of UTC. Times are instants of UTC, and Δt is their difference in days of 86,400 s. The model knows neither calendar days nor the time zone, and it does not need the family's zone: forgetting adds no new data of the learner.
 
-**A skill's state** (section 3.1) adds the stability τ, in days. The time of the last practice t_last is already in it. τ and t_last are set by the times of practice in the log, and they go into the cache (R80 spec; R08 api).
+**A skill's state**, above, adds the stability τ, in days. The time of the last practice t_last is already in it. τ and t_last are set by the times of practice in the log, and they go into the cache.
 
 **Retention** is R(Δt, τ) = (1 + F · Δt / τ)^(−C), C = 0.5, F = 0.9^(−1/C) − 1 = 19/81, where Δt is the days since the skill's last practice:
 - R(0) = 1, and R(τ) = 0.9: τ is the pause after which retention is 0.9;
 - the law is a power law: retention first falls fast, then slowly;
 - a skill without practice is not forgotten: it has no τ, and R = 1.
 
-Stability here is τ: in FSRS it is S, and S in section 3.1 is the outcome of an answer.
+Stability here is τ: in FSRS it is S, and S above is the outcome of an answer.
 
-**The probability of a correct answer of an item:** P = c + (1 − c) · R̄ · σ(θ + δ̄ − β), where R̄ is the mean R of the item's primary skills, as δ̄ is (section 3.1). The learner solves an item if they remember its skills and the task is within their power; guessing is as before. At R̄ = 1 this is the formula of section 3.1.
+**The probability of a correct answer of an item:** P = c + (1 − c) · R̄ · σ(θ + δ̄ − β), where R̄ is the mean R of the item's primary skills, as δ̄ is. The learner solves an item if they remember its skills and the task is within their power; guessing is as before. At R̄ = 1 this is the formula without forgetting, above.
 
-**A piece of evidence with the time of practice t.** For each skill that it moves (section 3.3):
+**A piece of evidence with the time of practice t.** For each skill that it moves, by the weights of evidence below:
 1. Δt = max(0, t − t_last) and R = R(Δt, τ) — one per skill for a piece of evidence, however many items carry it, so the order of a page's items changes nothing;
-2. the step of section 3.1 with the weight w: θ += K_θ · w · (S − P) and δ += K_δ · w · (S − P), where P is with this R̄, P₁ is the same P at R̄ = 1, and w = R̄ · P₁ · (1 − P₁) / (P · (1 − P)). For a piece of evidence of many items the step is the sum of such steps over its answers, with the weight of the series (section 3.3);
+2. the step above with the weight w: θ += K_θ · w · (S − P) and δ += K_δ · w · (S − P), where P is with this R̄, P₁ is the same P at R̄ = 1, and w = R̄ · P₁ · (1 − P₁) / (P · (1 − P)). For a piece of evidence of many items the step is the sum of such steps over its answers, with the weight of the series, below;
 3. stability — no more often than once per skill for a piece of evidence:
    - the skill's first answer — τ = τ₀ = 1 day;
    - a correct answer — τ := τ · (1 + g · (1 − R)), g = 15;
    - "not yet" — τ := max(τ₀, τ / 2).
 
-   When not all of the skill's answers in a piece of evidence are correct, τ changes by the share of correct answers — section 3.3;
+   When not all of the skill's answers in a piece of evidence are correct, τ changes by the share of correct answers, by the weights of evidence below;
 4. t_last := max(t_last, t): a time that came backwards does not turn the clock back.
 
-In the trial series P is without retention, R̄ = 1 and w = 1: its answers lie in the module's state without time (section 3.1), and the skills that it finds are almost all new. τ and t_last in the series are written as usual — with R by the time of practice: a piece of evidence always has a time of practice.
+In the trial series P is without retention, R̄ = 1 and w = 1: its answers lie in the module's state without time, and the skills that it finds are almost all new. τ and t_last in the series are written as usual — with R by the time of practice: a piece of evidence always has a time of practice.
 
-w is how many times less an answer tells about the skill than without forgetting: the step of R03 is (S − P), and w · (S − P) is what it turns into if retention is taken into account in the derivative of the log-likelihood of the answer by θ + δ̄. w ≤ 1, and at R̄ = 1 w = 1 — and the step of section 3.1. An incorrect answer after a long pause moves θ and δ little — forgetting explains it —, and halves τ, and the skill soon comes for review again. A correct one moves θ and δ almost as without forgetting, and grows τ strongly. Without w a correct answer after a pause would raise θ and δ many times more strongly than without it, though the skill was not in doubt.
+w is how many times less an answer tells about the skill than without forgetting: the step without forgetting is (S − P), and w · (S − P) is what it turns into if retention is taken into account in the derivative of the log-likelihood of the answer by θ + δ̄. w ≤ 1, and at R̄ = 1 w = 1 — and the step without forgetting. An incorrect answer after a long pause moves θ and δ little — forgetting explains it —, and halves τ, and the skill soon comes for review again. A correct one moves θ and δ almost as without forgetting, and grows τ strongly. Without w a correct answer after a pause would raise θ and δ many times more strongly than without it, though the skill was not in doubt.
 
 Within a session R ≈ 1 — two minutes after an answer at τ = 1 day R = 0.99984, — and τ hardly grows: practice in a row does not hold for long (Rohrer & Taylor 2006, sources 3.7). τ grows from a correct answer after a pause: at R = 0.9 by 2.5 times, at R = 0.6 by 7 times.
 
-**Forgetting of the module's level** (R04). The module's pause is from the greatest t_last of its skills to the time of practice of the evidence. If it is no less than d₀ = 14 days, before the step n := min(n, N), N = 20:
-- K_θ = max(0.2 / (1 + 0.05 · n), 0.05) after a pause is 0.1, if n was greater than 20, not the floor 0.05, at which the step stands at n > 60. Answers after a break move θ more strongly, and the model catches up with the fall of the level faster: without this the step with retention explains it for a long time by the forgetting of skills, since an answer after a pause with a low R̄ tells little about the level (R31);
+**Forgetting of the module's level.** The module's pause is from the greatest t_last of its skills to the time of practice of the evidence. If it is no less than d₀ = 14 days, before the step n := min(n, N), N = 20:
+- K_θ = max(0.2 / (1 + 0.05 · n), 0.05) after a pause is 0.1, if n was greater than 20, not the floor 0.05, at which the step stands at n > 60. Answers after a break move θ more strongly, and the model catches up with the fall of the level faster: without this the step with retention explains it for a long time by the forgetting of skills, since an answer after a pause with a low R̄ tells little about the level;
 - with n, v is wider too for each skill of the module, not only for the one that came back, and the cautious level λ and q are lower: "mastered" comes later, and the review date is nearer. `engine` reads this too — the estimate, the uncertainty and "mastered" through `Readout`;
-- the rule stands in the step after the check "no answers". A piece of evidence without an answer and a piece of evidence that weighs nothing change nothing after a pause either (section 3.5). At reading there is no rule: `Read` after a pause gives v by the former n until a piece of evidence comes;
-- there is no new field: the module's time is derived from the skills' t_last, and the rule lasts through n, which is already in the state. A module without skills knows no pause. A piece of evidence whose answers have no primary skills in the graph, J = 0, moves θ and narrows n, but does not set t_last (section 3.5), so the pause of the next piece of evidence is still counted from the skills: while only such evidence comes into the module, each narrows n again, and it stays at 20;
+- the rule stands in the step after the check "no answers". A piece of evidence without an answer and a piece of evidence that weighs nothing change nothing after a pause either. At reading there is no rule: `Read` after a pause gives v by the former n until a piece of evidence comes;
+- there is no new field: the module's time is derived from the skills' t_last, and the rule lasts through n, which is already in the state. A module without skills knows no pause. A piece of evidence whose answers have no primary skills in the graph, J = 0, moves θ and narrows n, but does not set t_last, so the pause of the next piece of evidence is still counted from the skills: while only such evidence comes into the module, each narrows n again, and it stays at 20;
 - in the trial series n < 5 ≤ N, and the rule changes nothing. N is no less than 5, otherwise the module would return into the series.
 
-d₀ = 14 days is the threshold of a skill's pause in `sim`'s measures. N = 20 stands between N = 10, which breaks "no worse" by `M5.caught` on `F-none` of school maths, and N = 40, which hardly moves the catching up (R32).
+d₀ = 14 days is the threshold of a skill's pause in `sim`'s measures. N = 20 stands between N = 10, which breaks "no worse" by `M5.caught` on `F-none` of school maths, and N = 40, which hardly moves the catching up.
 
-**"Mastered"** is set and removed as in section 3.1: the check comes after the answer, when t_last = t and R = 1. Time does not remove "mastered".
+**"Mastered"** is set and removed as without forgetting, above: the check comes after the answer, when t_last = t and R = 1. Time does not remove "mastered".
 
 **The review date** — for a mastered skill, in the mastery band p:
-- q = σ(λ − 2.5 · (p − 1)) is the cautious probability of solving the average task of the mastery band, without forgetting; λ = θ + δ − √v (section 3.1);
+- q = σ(λ − 2.5 · (p − 1)) is the cautious probability of solving the average task of the mastery band, without forgetting; λ = θ + δ − √v;
 - Δt* is the pause after which R(Δt*, τ) · q = 0.71875: R* = 0.71875 / q and Δt* = τ · (R*^(−1/C) − 1) / F;
 - if q < 0.71875, the threshold does not hold even without forgetting — "already", and Δt* = 0. This happens when θ went down through other skills of the module;
 - the date is t_last + max(Δt*, τ₀): no earlier than a day after the last practice. A repetition on the same day hardly grows τ, and a skill mastered just barely would otherwise come for review every few minutes — at q = 0.72 and τ = 1 Δt* = 21 minutes.
 
 A power law has no floor, and there is always a date. The date depends on the module's θ and v, and any piece of evidence of the module moves them, so the model computes it at reading — from the cache and without the current time. The date is the nearer, the smaller the margin of q above the threshold.
 
-**At reading for the time t₀** — it comes from outside, and for the engine choice it is the time that the choice keeps (the 2026-11-02 amendment to R06 api; architecture 1 spec), — the model gives:
-- P of an item with R̄ at t₀ — for the corridor. This is the P that the step would take for a piece of evidence at t₀, so in the trial series it is without retention, R̄ = 1, as in the step (R07);
+**At reading for the time t₀** — it comes from outside, and for the engine choice it is the time that the choice keeps, — the model gives:
+- P of an item with R̄ at t₀ — for the corridor. This is the P that the step would take for a piece of evidence at t₀, so in the trial series it is without retention, R̄ = 1, as in the step;
 - for a skill with practice — θ + δ, v and R at t₀;
 - for a mastered skill also "mastered" with the mastery band — as it is, the cautious probability with retention R · q at t₀ and the review date.
 
-This is not written into the cache: «Время тоже не перенос» (R08 api).
+This is not written into the cache: it depends on t₀, and the cache is a fold of the log alone.
 
-**What `engine` reads** — all this. "Time to review" is t₀ no earlier than the date. When to give a skill with a date, how many repetitions a day and how they share the queue with new skills, consolidation and probes, `engine` decides, and so say the 2026-11-02 amendment to R23 spec and concepts 12 spec; R06 engine decided it (architecture 3.8 spec; R107 spec).
+**What `engine` reads** — all this. "Time to review" is t₀ no earlier than the date. When to give a skill with a date, how many repetitions a day and how they share the queue with new skills, consolidation and probes, `engine` decides: the platform leaves the schedule of repetitions to the engine.
 
 **Example.** A learner in the olympiad maths module mastered a skill in band "3–4", with the offset 2.5. θ + δ = 4.5, n = 100 and m = 20, so v = 0.2327, λ = 4.018 and q = σ(1.518) = 0.820. Then R* = 0.876 and Δt* = 1.288 · τ:
 - at τ = 1 the date is in 1.3 days. The learner came back after a day and answered correctly: R(1, 1) = 0.9, τ = 1 · (1 + 15 · 0.1) = 2.5, and the next date is in 3.2 days, if θ, δ and v hardly moved;
 - at τ = 10 the date is in 12.9 days. The learner came back after a summer break of 60 days: R(60, 10) = 0.645. A task of band "3–4" of difficulty 3 with five options, β = 2.5, would give without forgetting P = 0.2 + 0.8 · σ(2) = 0.905 — above the corridor, — and with forgetting P = 0.2 + 0.8 · 0.645 · 0.881 = 0.654, and the engine will give an easier task. Here w = 0.246: a correct answer will move θ and δ by 0.085 · K instead of 0.095 · K without forgetting and raise τ to 10 · (1 + 15 · 0.355) = 63.3 days, and "not yet" will move them by −0.161 · K instead of −0.905 · K and lower τ to 5. If the module had no practice at all for 60 days, the module's pause is 60 days, and before the step n := min(100, 20) = 20: K_θ = 0.1 instead of the floor 0.05, so a correct answer will move θ by 0.0085, not by 0.0043, and δ, as without the rule, by 0.017. After it n = m = 21, v = 0.465 instead of 0.228 and q = 0.793 instead of 0.824, and the next date is in 58.7 days after the answer instead of 84.9.
 
-**How the harness checks this.** On the two maths modules of the first slice: the virtual learners have days, sessions and breaks, and their forgetting goes by a family of laws different from the model's law, — with learners who do not forget, and with a fall of the level after a break. The measures are the calibration of P by the length of the pause, in how many answers the model catches up with the real fall, the share of repetitions over time and a false "mastered" after a break. The populations and the criterion are `sim`'s: its card names the populations of virtual learners with a calendar and forgetting and the model's criterion with measures of forgetting, and which of the measures the criterion takes is recorded in `sim` (architecture 3.9 spec; R03–R05 sim; R11, R15). standalone's harness did not know time: "every tenth answer starts a new day", and the learners G3-drop lose their level "as after a long break" by the number of the answer (sources 1.3).
+**How the harness checks this.** On the two maths modules of the first slice: the virtual learners have days, sessions and breaks, and their forgetting goes by a family of laws different from the model's law, — with learners who do not forget, and with a fall of the level after a break. The measures are the calibration of P by the length of the pause, in how many answers the model catches up with the real fall, the share of repetitions over time and a false "mastered" after a break. The populations and the criterion are `sim`'s: its card names the populations of virtual learners with a calendar and forgetting and the model's criterion with measures of forgetting, and which of the measures the criterion takes is recorded in `sim`. standalone's harness did not know time: "every tenth answer starts a new day", and the learners G3-drop lose their level "as after a long break" by the number of the answer (sources 1.3).
 
-**Numbers** — the constants of the version of `learner-model`: C = 0.5 and F = 19/81, τ₀ = 1 day — both the first stability and the smallest pause before the date, — g = 15 and halving τ after "not yet"; for the forgetting of the level, the module's pause d₀ = 14 days and N = 20. They are one for all modules, and a module's own ones are a field of the next format version, if the harness or the first language module shows the need (R44 spec; Д6 in table 4 of [run/DEBT.md](../run/DEBT.md)). To change them is a new version, and only through the harness (concepts 11 spec; R163 standalone).
+**Numbers** — the constants of the version of `learner-model`: C = 0.5 and F = 19/81, τ₀ = 1 day — both the first stability and the smallest pause before the date, — g = 15 and halving τ after "not yet"; for the forgetting of the level, the module's pause d₀ = 14 days and N = 20. They are one for all modules, and a module's own ones are a field of the next format version, if the harness or the first language module shows the need (Д6 in table 4 of [run/DEBT.md](../run/DEBT.md)). To change them is a new version, and only through the harness.
 
-**In code** (R04):
+**In code**:
 - in the step, R of each primary skill is one per piece of evidence, from its last practice to the time of practice, and for a skill without practice R = 1. R̄ of an item is the mean over its J skills, and at J = 0 R̄ = 1. P = c + (1 − c) · R̄ · σ, and θ and δ are moved by w · (S − P). In the trial series R̄ = 1 and w = 1;
 - the weight is R̄ · P₁ · (1 − σ) / (P · (1 − R̄σ)), with (1 − c) cancelled, and without guessing (1 − σ) / (1 − R̄σ): so there is no division of a small number by a small number. At R̄ = 1, w = 1 and P = P₁ exactly, by a separate branch, and a piece of evidence without a pause has the bits as without forgetting;
-- stability — the skill's first answer gives τ = τ₀, and after that τ changes once per skill for a piece of evidence by the rule of section 3.3 with the share of correct answers S̄, in the trial series too. At S̄ = 1 and 0 the exact branches of `detmath.Pow` give exactly the rules of this section. τ is kept below the greatest `float64`;
+- stability — the skill's first answer gives τ = τ₀, and after that τ changes once per skill for a piece of evidence by the rule of the weights of evidence, below, with the share of correct answers S̄, in the trial series too. At S̄ = 1 and 0 the exact branches of `detmath.Pow` give exactly the rules of this section. τ is kept below the greatest `float64`;
 - Δt is from whole seconds: the difference is taken without overflow and no greater than 2⁵³ s, and then divided by 86,400;
 - `Append` rejects a state with a skill whose τ is less than τ₀: a skill has a state only when it has had practice;
 - the forgetting of the level is `forgetLevel` in `step.go`, and the step calls it after the check "no answers". The constants `levelPause` = 14 days and `levelWeight` = 20 stand in `model.go`, among the constants of forgetting. The pause is `pauseDays` from the greatest `LastPractice` of the module's skills; exactly 14 days already turns the rule on, and a time that came backwards does not turn it on;
 - at reading, for `Read`, the functions of `model.go`: a skill's retention at t₀, q of a mastered skill and the review date. The date is computed without a power: R* = 0.71875 / q and Δt* = τ · (1/R*² − 1) / F. It turns into seconds by rounding up, with saturation at the greatest `int64`, and retention itself checks this second: while R · q there holds the threshold, the date moves by a second, no more than four times and only while it is less than 2⁵³ seconds; the date itself is bounded only by the saturation at `int64`. At q < 0.71875 — "already";
 - the checks:
-  - the example of this section and the page example of section 3.3 — as vectors, and the example with a break of the module, where "without the rule" is the same answer of a learner for whom another skill of the module had practice the day before;
+  - the example of this section and the page example of the weights of evidence — as vectors, and the example with a break of the module, where "without the rule" is the same answer of a learner for whom another skill of the module had practice the day before;
   - the edges — the pause, the weight, τ and the date;
   - the edges of the forgetting of the level through `Append`: a second before 14 days and exactly 14, n no greater than 20, the pause from the latest skill, time backwards, a piece of evidence without an answer and a piece of evidence that weighs nothing, J = 0 and a module without skills. The state after the rule is checked against the state of a learner who has n = 20 before the step, to the byte;
-  - standalone's vectors — without a pause, as section 3.1 requires;
+  - standalone's vectors — without a pause, as the learner's state above requires;
   - the golden vectors of the fold — with a break of 60 days, after which "mastered" is set again;
   - the golden log `break` of the fold and of reading: more than 20 answers, a break of 30 days, and n after it is 20 and four answers. The other golden logs and standalone's vectors have no pause of a module of 14 days or more at n > 20.
 
 ### 3.3. Weights of evidence
 
-Decided by R06. A piece of evidence is one finished attempt (R80 spec), and the model reads the items' answers in it: which answer goes into the step, how much it weighs and what it does to "mastered" and to the stability. A task of one item, solved without help, counts exactly as in sections 3.1 and 3.2, and at R̄ = 1 as in standalone.
+A piece of evidence is one finished attempt, and the model reads the items' answers in it: which answer goes into the step, how much it weighs and what it does to "mastered" and to the stability. A task of one item, solved without help, counts exactly as above, with the learner's state and forgetting, and at R̄ = 1 as in standalone.
 
-**An item's answer is its first verdict.** The step takes the item's first verdict in the attempt — "correct", S = 1, or "not yet", S = 0. Later answers of the same item, after rungs of the ladder, do not go into the step, and the hint number k does not change the step. The guessing floor c describes the first try, and after a wrong answer and a hint the probability is no longer the one in P. So in standalone too an answer is recorded once (R101 standalone), and KDD Cup 2010 measured models by "Correct First Attempt" (sources 2.5).
-- "Unreadable" and "unchecked" give no answer: they are not an error (R04 spec), and the item's first verdict will be the next one — "correct" or "not yet".
-- When the solution is shown, an item that was empty or not submitted before the showing is "not solved", S = 0: О-7 names the showing so (R82 spec), and in standalone "I don't know" is a wrong answer (R93 standalone). An item that had only the verdict "unreadable" before the showing gives nothing.
-- The input method does not change the weight: an answer in an answer slot with a number by keyboard or by digit buttons, when the format introduces them, weighs as an answer in handwriting. A submission whose verdict the learner saw the model always counts: it cannot be cancelled, and if it is the first with a verdict, its verdict is the item's first verdict. One cancelled before the verdict does not reach the evidence (О-25; section 2.7).
+**An item's answer is its first verdict.** The step takes the item's first verdict in the attempt — "correct", S = 1, or "not yet", S = 0. Later answers of the same item, after rungs of the ladder, do not go into the step, and the hint number k does not change the step. The guessing floor c describes the first try, and after a wrong answer and a hint the probability is no longer the one in P. So in standalone too an answer is recorded once (sources 1.8), and KDD Cup 2010 measured models by "Correct First Attempt" (sources 2.5).
+- "Unreadable" and "unchecked" give no answer: they are not an error, and the item's first verdict will be the next one — "correct" or "not yet".
+- When the solution is shown, an item that was empty or not submitted before the showing is "not solved", S = 0: О-7 names the showing so, and in standalone "I don't know" is a wrong answer (sources 1.8). An item that had only the verdict "unreadable" before the showing gives nothing.
+- The input method does not change the weight: an answer in an answer slot with a number by keyboard or by digit buttons, when the format introduces them, weighs as an answer in handwriting. A submission whose verdict the learner saw the model always counts: it cannot be cancelled, and if it is the first with a verdict, its verdict is the item's first verdict. One cancelled before the verdict does not reach the evidence (О-25).
 
 **Help.** An item's answer is with help if the attempt had any of these:
-- a rung of the ladder before its first verdict — the attempt already had a wrong answer (R82 spec);
+- a rung of the ladder before its first verdict — the attempt already had a wrong answer;
 - the task's technique on request — anywhere in the attempt, before the item's first verdict or after: it is a fact of the attempt, not of the item;
-- the task's leading question on request — from format 0.4, by the field `leading_question_on_request` of evidence of kind 2: "hint" gives it only before the first wrong answer, but, like the technique, it is a fact of the attempt, not of the item (R21, R28);
-- the solution of this task — not of the template — has already gone to their device earlier (R82 spec), and the learner could have remembered the key. The solution goes there when the attempt is closed by a correct answer or by the solution shown (R82 spec), so this is almost any repeat of a solved task. A repeat after an attempt that the learner left or that was closed "unchecked" does not count as help: the learner did not see the key;
-- the sketch "how to start", when it appears in the format (R57 spec).
+- the task's leading question on request — from format 0.4, by the field `leading_question_on_request` of evidence of kind 2: "hint" gives it only before the first wrong answer, but, like the technique, it is a fact of the attempt, not of the item;
+- the solution of this task — not of the template — has already gone to their device earlier, and the learner could have remembered the key. The solution goes there when the attempt is closed by a correct answer or by the solution shown, so this is almost any repeat of a solved task. A repeat after an attempt that the learner left or that was closed "unchecked" does not count as help: the learner did not see the key;
+- the sketch "how to start", when it appears in the format.
 
-An answer with help goes into the step, into the counters and into the stability as it is, but does not set "mastered" — like a hint in standalone: "The hint would make the answer measure the hint" (SPEC 2.5 standalone; R187 standalone). A technique at a step does not count as help: a new profile goes "step by step" by default (concepts 10 spec), and otherwise a learner of this mode would master nothing. A request after a wrong answer gives the words of the current rung, and "explain differently" the same rung in other words (R82 spec): the rung is already there, and they add nothing to the help.
+An answer with help goes into the step, into the counters and into the stability as it is, but does not set "mastered" — like a hint in standalone: "The hint would make the answer measure the hint" (sources 1.8). A technique at a step does not count as help: a new profile goes "step by step" by default, and otherwise a learner of this mode would master nothing. A request after a wrong answer gives the words of the current rung, and "explain differently" the same rung in other words: the rung is already there, and they add nothing to the help.
 
-**Series.** The answers of one attempt depend on each other: ten fractions in five minutes are not ten independent pieces of evidence (concepts 11 spec). A model that counts such answers as independent overstates the precision of the estimate and stops checking too early — so it goes with items of one stem, testlets (Bradlow, Wainer & Wang 1999, sources 2.6). So for N answers of an attempt each weighs u = 1 / (1 + (N − 1) · ρ), ρ = 1/3, that is u = 3 / (N + 2), and the whole attempt N · u answers. This is the effective sample size of N observations of one cluster at intraclass correlation ρ (Kalton, Brick & Lê 2005, sources 2.7):
+**Series.** The answers of one attempt depend on each other: ten fractions in five minutes are not ten independent pieces of evidence. A model that counts such answers as independent overstates the precision of the estimate and stops checking too early — so it goes with items of one stem, testlets (Bradlow, Wainer & Wang 1999, sources 2.6). So for N answers of an attempt each weighs u = 1 / (1 + (N − 1) · ρ), ρ = 1/3, that is u = 3 / (N + 2), and the whole attempt N · u answers. This is the effective sample size of N observations of one cluster at intraclass correlation ρ (Kalton, Brick & Lê 2005, sources 2.7):
 
 | Items with an answer, N | 1 | 2 | 4 | 10 | 20 | without limit |
 |---|---|---|---|---|---|---|
 | The attempt weighs, N · u | 1 | 1.5 | 2 | 2.5 | 2.73 | 3 |
 
-- For θ and n, N is all items of the evidence with an answer. For δ and m of skill s, it is N_s, the items with an answer where s is the primary skill, and the weight u_s is by N_s. After a major version of the module, s is the skill after the transfer by `retired_skills`, and its share in the item is the share of the recorded skill it replaced (R08; section 3.5).
+- For θ and n, N is all items of the evidence with an answer. For δ and m of skill s, it is N_s, the items with an answer where s is the primary skill, and the weight u_s is by N_s. After a major version of the module, s is the skill after the transfer by `retired_skills`, and its share in the item is the share of the recorded skill it replaced.
 - A series is the items of one attempt, whether of one type or not, and the format needs no mark of being of one type. Items with different skills get the discount on θ together, and on δ each skill by its own items.
 - For a task of one item, u = 1.
 
 **One step per piece of evidence.** All P, w and K are computed from the state before the evidence, and the shifts add up:
 - Δθ = K_θ · u · Σᵢ wᵢ · (Sᵢ − Pᵢ) over all answers of the evidence, and n += N · u;
 - Δδ_s = K_δ,s · u_s · Σᵢ wᵢ · (Sᵢ − Pᵢ) / Jᵢ over the answers where s is primary, and m_s += N_s · u_s. Jᵢ is the number of primary skills of item i;
-- K_θ and K_δ are by n and m before the evidence, as in section 3.1, and the uncertainty v by them after;
-- the order of the items changes nothing, as with R in section 3.2. The sums are computed in a canonical order — items by place, skills by ID — so that what is appended matches what is recomputed bit for bit (sections 2.5 and 3.5).
+- K_θ and K_δ are by n and m before the evidence, as above, and the uncertainty v by them after;
+- the order of the items changes nothing, as with R in forgetting. The sums are computed in a canonical order — items by place, skills by ID — so that what is appended matches what is recomputed bit for bit.
 
-The 1/J of the step is because P holds the mean δ̄ of the item's primary skills (section 3.1): the derivative of the log-likelihood of an answer by the δ of one of J skills is 1/J of the derivative by δ̄. And m grows by the whole u: m is the number of answers where the skill is primary (section 3.1), and a skill that always stands in a pair would otherwise need twice as many tasks to "mastered".
+The 1/J of the step is because P holds the mean δ̄ of the item's primary skills: the derivative of the log-likelihood of an answer by the δ of one of J skills is 1/J of the derivative by δ̄. And m grows by the whole u: m is the number of answers where the skill is primary, and a skill that always stands in a pair would otherwise need twice as many tasks to "mastered".
 
-**The trial series** is whole pieces of evidence of the module while n < 5: a piece of evidence that found n < 5 enters the series whole. The maximum is sought of the weighted likelihood — L(θ) from section 3.1 with the sum Σᵢ uᵢ · [Sᵢ · ln Pᵢ + (1 − Sᵢ) · ln(1 − Pᵢ)], — and for each answer of the series the module's state keeps its u. A page of ten items weighs 2.5 answers, so the series of a workbook module is two pages, and of an olympiad maths module five tasks, as in standalone.
+**The trial series** is whole pieces of evidence of the module while n < 5: a piece of evidence that found n < 5 enters the series whole. The maximum is sought of the weighted likelihood — L(θ) of the trial series above with the sum Σᵢ uᵢ · [Sᵢ · ln Pᵢ + (1 − Sᵢ) · ln(1 − Pᵢ)], — and for each answer of the series the module's state keeps its u. A page of ten items weighs 2.5 answers, so the series of a workbook module is two pages, and of an olympiad maths module five tasks, as in standalone.
 
-**"Mastered" by evidence.** A piece of evidence fails a skill if fewer than half of the skill's answers in it are correct. `engine` reads this rule too — by the facts of the summary of issues, with its own code: the rule "failure" is one for the model and for the engine (R107 spec). A new boundary, a candidate through the gate, will need an edit of `engine` too; how to release them together R103 spec names only for the pair of the threshold and the target of the corridor, and it is decided with the first such candidate — Д7 in table 4 of [run/DEBT.md](../run/DEBT.md) (R17). The skill's state has failures in a row instead of "not yet" answers in a row (section 3.1). After a piece of evidence, for each skill that has an answer in it:
+**"Mastered" by evidence.** A piece of evidence fails a skill if fewer than half of the skill's answers in it are correct. `engine` reads this rule too — by the facts of the summary of issues, with its own code: the rule "failure" is one for the model and for the engine. A new boundary, a candidate through the gate, will need an edit of `engine` too; how to release them together the platform names only for the pair of the threshold and the target of the corridor, and for the boundary it is decided with the first such candidate — Д7 in table 4 of [run/DEBT.md](../run/DEBT.md). The skill's state has failures in a row instead of "not yet" answers in a row. After a piece of evidence, for each skill that has an answer in it:
 1. a failure adds to the failures in a row, and evidence without a failure resets them; two failures in a row remove "mastered";
-2. evidence without a failure where the skill has a correct answer without help sets "mastered" by the rule of section 3.1, if m ≥ 5 with this evidence.
+2. evidence without a failure where the skill has a correct answer without help sets "mastered" by the rule above, if m ≥ 5 with this evidence.
 
-One piece of evidence cannot both remove and set "mastered": a failure removes it, and only evidence without one sets it. For a task of one item this is exactly the rule of section 3.1: a correct answer is not a failure, "not yet" is a failure.
+One piece of evidence cannot both remove and set "mastered": a failure removes it, and only evidence without one sets it. For a task of one item this is exactly the rule above: a correct answer is not a failure, "not yet" is a failure.
 
 **Skills.**
 - An item's primary skills get the step and the count, as above.
-- The supporting ones — and an anchor skill in this role — get nothing: no step, no counters, no stability. They do not enter P (section 3.1), and the answer tells the model nothing about them, while a shift only upward, on a correct answer, would pull their estimate up without measure. The model derives mastery of an anchor skill from the skills that teach it (section 3.4).
+- The supporting ones — and an anchor skill in this role — get nothing: no step, no counters, no stability. They do not enter P, and the answer tells the model nothing about them, while a shift only upward, on a correct answer, would pull their estimate up without measure. The model derives mastery of an anchor skill from the skills that teach it, below.
 
-**Stability and practice** — to section 3.2. The stability τ, the time of the last practice and the number of pieces of evidence change for a skill that has an answer in the evidence — an item's primary skill. τ changes once per skill per piece of evidence, by the share of correct ones S̄ among the skill's answers:
+**Stability and practice** — to forgetting, above. The stability τ, the time of the last practice and the number of pieces of evidence change for a skill that has an answer in the evidence — an item's primary skill. τ changes once per skill per piece of evidence, by the share of correct ones S̄ among the skill's answers:
 
 τ := max(τ₀; τ · (1 + g · (1 − R))^S̄ · (1/2)^(1 − S̄)).
 
-At S̄ = 1 and S̄ = 0 these are the rules of section 3.2. At R = 0.9 eight correct out of ten grow τ by 1.81 times, half by 1.12, and one miss on a page does not halve τ. The skill's first answer is τ = τ₀, as before.
+At S̄ = 1 and S̄ = 0 these are the rules of forgetting, above. At R = 0.9 eight correct out of ten grow τ by 1.81 times, half by 1.12, and one miss on a page does not halve τ. The skill's first answer is τ = τ₀, as before.
 
-**Outcomes** (concepts 11 spec):
+**Outcomes:**
 
 | Outcome | What goes into the step |
 |---|---|
 | from the first submission | the items' first verdicts — all "correct"; there was no rung, but a technique on request or a repeat of the task make them answers with help |
 | after hint number k | the items' first verdicts; an item first answered after a rung is with help |
 | solution shown | the items' first verdicts, and empty and not submitted items are "not solved", S = 0 |
-| left | only the first verdicts of the items that there were: "left" is not "not solved" (R82 spec) |
+| left | only the first verdicts of the items that there were: "left" is not "not solved" |
 | unchecked | the first verdicts of the items given before it; the outcome itself weighs nothing |
-| with a sketch hint | the items' first verdicts, all with help: the sketch is help for all answers of the attempt, like a technique on request (R06) |
+| with a sketch hint | the items' first verdicts, all with help: the sketch is help for all answers of the attempt, like a technique on request |
 
-Practice is for the skills that have an answer in the evidence, whatever the outcome. An attempt that was left or abandoned without wrong answers, and an attempt of a task with a rubric, give no evidence (the 2026-11-02 amendment to R80 spec; О-17), and evidence without a single answer moves nothing. An attempt of a lesson that the run end "not suitable" closed is, for evidence, like a left one: with wrong answers its outcome is "left", without them there is no evidence (the third 2026-11-02 amendment to R80 spec). The weight needs no fact "segment of a lesson", and the evidence does not carry it (section 3.5).
+Practice is for the skills that have an answer in the evidence, whatever the outcome. An attempt that was left or abandoned without wrong answers, and an attempt of a task with a rubric, give no evidence (О-17), and evidence without a single answer moves nothing. An attempt of a lesson that the run end "not suitable" closed is, for evidence, like a left one: with wrong answers its outcome is "left", without them there is no evidence. The weight needs no fact "segment of a lesson", and the evidence does not carry it.
 
-**Provenance** (concepts 9.4 spec):
+**Provenance:**
 
 | What | Provenance | Weight |
 |---|---|---|
 | key or stem | from the author | 1 |
-| key | checked by the solver — a template (R60, R61 spec) | 1 |
-| key | entered by an adult — a task from paper, stage 5 | 1 when the task has a band and a difficulty on the module's scale and the skills are not from AI, and otherwise 0 (the 2026-11-02 addition to О-11) |
+| key | checked by the solver — a template | 1 |
+| key | entered by an adult — a task from paper, stage 5 | 1 when the task has a band and a difficulty on the module's scale and the skills are not from AI, and otherwise 0 (О-11) |
 | key | derived by AI | 0: there is no verdict (О-11) |
 | skill tags | from the author | 1 |
 | skill tags | derived by AI | 0 |
 | trap | by a wrong value, the program found it | 1 in the count of traps |
-| trap | AI supposed it | 0: the evidence does not carry it, and the tutor needs it for the words (R82 spec; concepts 9.4 spec). `engine` does not take it: the items' traps in its candidate are by `trap_values` (architecture 3.8 spec; R107 spec) |
+| trap | AI supposed it | 0: the evidence does not carry it, and the tutor needs it for the words. `engine` does not take it: the items' traps in its candidate are by `trap_values` |
 
-A task from paper that AI itself tagged and solved does not move the rating: its key and skills are from AI, and its weight is 0 (concepts 9.4 spec; О-11). In a module everything is from the author, and a template's key is computed by the program (concepts 9.4 spec), so in the first slice the weight by provenance is always 1.
+A task from paper that AI itself tagged and solved does not move the rating: its key and skills are from AI, and its weight is 0 (О-11). In a module everything is from the author, and a template's key is computed by the program, so in the first slice the weight by provenance is always 1.
 
-**Facts of evidence** beyond the outcome (R82 spec):
+**Facts of evidence** beyond the outcome:
 
 | Fact | What the model does with it |
 |---|---|
 | traps that the program found | counts them, below |
-| items correct to the end, with their verdict | does not read: it reads the items' first verdicts, and the evidence carries both (R08; R82 spec) |
+| items correct to the end, with their verdict | does not read: it reads the items' first verdicts, and the evidence carries both |
 | technique at a step | nothing: it is not help |
 | technique on request | help |
-| leading question on request — from format 0.4 (R108 spec) | help, by its own field `leading_question_on_request` of evidence of kind 2 (R21, R28; subsection 2.8); `technique_on_request` is only the technique on request |
+| leading question on request — from format 0.4 | help, by its own field `leading_question_on_request` of evidence of kind 2; `technique_on_request` is only the technique on request |
 | how many times the learner asked "explain differently" | nothing |
 | the task's solution has already gone to the device | help |
-| the task is a segment of a lesson (R13 api) | nothing: a task of a lesson is the same kind of attempt (R58 spec), and the evidence does not carry it (R08) |
+| the task is a segment of a lesson | nothing: a task of a lesson is the same kind of attempt, and the evidence does not carry it |
 
-That the learner saw "givens and unknown" is not recorded (R82 spec). The facts of R82 spec that the model does not read now the evidence carries all the same — as observations, so that a new version can read them by recomputation, — but it does not carry the segment of a lesson (R08; section 3.5).
+That the learner saw "givens and unknown" is not recorded. The facts of an attempt that the model does not read now the evidence carries all the same — as observations, so that a new version can read them by recomputation, — but it does not carry the segment of a lesson.
 
-**Frequent traps.** A trap that the program found goes to the skills that the evidence names for it — by its `skills` in the trap catalog ([the format's text](../spec/format/README.md), section 16). A skill has, for each trap, the number of pieces of evidence where it was found, once per piece of evidence, however many items showed it, and the time of the last. A trap without `skills` or with skills without a state counts with the module. Traps do not change the step: an answer with a trap is already "not yet". Which traps are frequent the reader decides — `engine`, — and the contract `app` ↔ `api` does not give the skill map the model's frequent traps (R99 spec). It can choose as in standalone, where the rule takes the two most frequent from the topic's count "ever" (`04-profile.md` standalone; architecture 3.8 spec).
+**Frequent traps.** A trap that the program found goes to the skills that the evidence names for it — by its `skills` in the trap catalog of [the format's text](../spec/format/README.md). A skill has, for each trap, the number of pieces of evidence where it was found, once per piece of evidence, however many items showed it, and the time of the last. A trap without `skills` or with skills without a state counts with the module. Traps do not change the step: an answer with a trap is already "not yet". Which traps are frequent the reader decides — `engine`, — and the contract `app` ↔ `api` does not give the skill map the model's frequent traps. It can choose as in standalone, where the rule takes the two most frequent from the topic's count "ever" (sources 1.8).
 
-**A probe** — without a lift. The evidence does not know whether the task was a probe — that is a reason of the engine choice, — and the model counts it as any task. In standalone a correct answer to a probe lifted δ beyond the formula (R299 standalone), and a probe was recognized by the state of the choice rule: "Whether a task is a probe is read off where the child stands when it is answered" (SPEC 2.2 standalone). A pause is a rule of `engine`, and whether to bring a skill back from a pause on a correct answer to a probe it decides, while a correct answer at a low P lifts δ strongly anyway (architecture 3.8 spec).
+**A probe** — without a lift. The evidence does not know whether the task was a probe — that is a reason of the engine choice, — and the model counts it as any task. In standalone a correct answer to a probe lifted δ beyond the formula, and a probe was recognized by the state of the choice rule: "Whether a task is a probe is read off where the child stands when it is answered" (sources 1.8). A pause is a rule of `engine`, and whether to bring a skill back from a pause on a correct answer to a probe it decides, while a correct answer at a low P lifts δ strongly anyway.
 
-**Feedback by a rubric** — there is no place for its weight: an attempt of a task with a rubric gives no evidence (R80 spec; О-17), and the weight of feedback will come with a new version together with the answer to О-17.
+**Feedback by a rubric** — there is no place for its weight: an attempt of a task with a rubric gives no evidence (О-17), and the weight of feedback will come with a new version together with the answer to О-17.
 
-**Who sets the weights.** All of them are constants of the version of `learner-model`. The format has no fields of weights (R44 spec), and nothing is needed from the next format version.
+**Who sets the weights.** All of them are constants of the version of `learner-model`. The format has no fields of weights, and nothing is needed from the next format version.
 
-**How this differs from standalone:**
-- first verdict: in standalone an answer was also recorded once (R101 standalone), but a task there has one answer, and here items and submissions;
-- help does not change the step and does not set "mastered", like a hint there (SPEC 2.2 and R187 standalone), but help here is also the rungs of the ladder and a repeat of the task;
-- the solution shown is "not solved", like "I don't know" there (R93 standalone);
-- "left" with wrong answers moves the model by these answers, and without them there is no evidence, as with a skip there: "Nothing that reads answers reads it" (R98 standalone);
+**How this differs from standalone** (sources 1.8):
+- first verdict: in standalone an answer was also recorded once, but a task there has one answer, and here items and submissions;
+- help does not change the step and does not set "mastered", like a hint there, but help here is also the rungs of the ladder and a repeat of the task;
+- the solution shown is "not solved", like "I don't know" there;
+- "left" with wrong answers moves the model by these answers, and without them there is no evidence, as with a skip there: "Nothing that reads answers reads it";
 - the discount of a series and the division among skills are new: in standalone a task has one answer and one topic;
-- there is no lift of a probe (R299 standalone);
+- there is no lift of a probe;
 - a trap also has the time of the last, not only the number.
 
 **Example.** A workbook page: 10 items `number` (c = 0), all with one primary skill; the band is in first place of `bands`, difficulty 3, so β = 0. Before the evidence θ = δ = 0.5, n = 20, m = 8 and τ = 1, and the skill's last practice was a day ago, R = 0.9. The first verdicts are 8 "correct" and 2 "not yet", without help.
@@ -489,20 +489,20 @@ That the learner saw "givens and unknown" is not recorded (R82 spec). The facts 
 - there is no failure: 8 of 10 correct. There is a correct answer without help, and m ≥ 5, but v = 0.502, λ = 1.108 − 0.708 = 0.400 and σ(0.400) = 0.599 < 0.71875: no "mastered" yet;
 - τ = 1 · 2.5^0.8 · 0.5^0.2 = 1.81.
 
-Without the discount θ and δ would shift four times as much, and m would grow by 10: a new skill would gain m ≥ 5 in one page, and "mastered" could come with the very first — the very early "mastered" that concepts 11 spec and Bradlow, Wainer & Wang 1999 warn about. With the discount, not before the second page.
+Without the discount θ and δ would shift four times as much, and m would grow by 10: a new skill would gain m ≥ 5 in one page, and "mastered" could come with the very first — the very early "mastered" that Bradlow, Wainer & Wang 1999 warn about (sources 2.6). With the discount, not before the second page.
 
-**The numbers** are constants of the version of `learner-model`: ρ = 1/3, so an attempt weighs no more than three answers, and the failure boundary ½. There are no data under them: they, the full weight of an answer with help and the rule of τ for a page the harness will check — Д7 in table 4 of [run/DEBT.md](../run/DEBT.md). Changing them is a new version, and only through the harness (concepts 11 spec; R163 standalone).
+**The numbers** are constants of the version of `learner-model`: ρ = 1/3, so an attempt weighs no more than three answers, and the failure boundary ½. There are no data under them: they, the full weight of an answer with help and the rule of τ for a page the harness will check — Д7 in table 4 of [run/DEBT.md](../run/DEBT.md). Changing them is a new version, and only through the harness.
 
-**In code** (R06):
+**In code**:
 - an item's answer is `answerOf` in `step.go`: the first verdict "correct" or "not yet", and when the solution is shown, "not solved", S = 0, for an item without a verdict that was not submitted or was submitted only empty. Only another "unreadable", "unchecked", an unknown verdict or check kind give no answer, and an unknown outcome is read as "unchecked". "Not solved" is an answer: it goes into N, u and the failure, and without answer slots `Append` rejects it;
 - help is `helped`:
   - a wrong answer in the attempt before the item's first verdict;
   - a technique or a leading question on request;
   - a solution that has already gone to the device;
-  - the outcome "with a sketch" — help for all answers of the attempt (R06).
+  - the outcome "with a sketch" — help for all answers of the attempt.
 
   Help does not set "mastered", and does not change the step, the counters and τ;
-- provenance is `weighs`: weight 1 for a key and skill tags from the author, the solver or an adult: an adult's key moves the rating when the skills are not from AI (concepts 9.4 spec). A key or tags from AI, "not specified" and an unknown value weigh 0 (R06), and such evidence moves nothing, like evidence without answers;
+- provenance is `weighs`: weight 1 for a key and skill tags from the author, the solver or an adult: an adult's key moves the rating when the skills are not from AI. A key or tags from AI, "not specified" and an unknown value weigh 0, and such evidence moves nothing, like evidence without answers;
 - traps are `countTraps` after the step, once per piece of evidence for each one found: for the skills from its `skills` that have a state after the step, and without them for the module, with the number and the time of the last. A trap does not create a state for a skill;
 - the checks:
   - the tables of outcomes, help and provenance — by tests;
@@ -512,60 +512,60 @@ Without the discount θ and δ would shift four times as much, and m would grow 
 
 ### 3.4. Knowing an anchor skill
 
-Decided by R07. An anchor skill `core.<name>` belongs to no module, and it has no state of its own. Whether the learner knows it, the model derives at reading from the state of the skills that teach it — by the field `teaches` of the graph ([the format's text](../spec/format/README.md), section 12). This does not go into the cache: knowing depends on the connections and on the graphs that `api` gives at reading, not on the log (R08 api; the 2026-11-02 amendment to R80 spec). There are no new constants.
+An anchor skill `core.<name>` belongs to no module, and it has no state of its own. Whether the learner knows it, the model derives at reading from the state of the skills that teach it — by the field `teaches` of the graph, in [the format's text](../spec/format/README.md). This does not go into the cache: knowing depends on the connections and on the graphs that `api` gives at reading, not on the log. There are no new constants.
 
 **Inputs at reading:**
-- the skills' state — the cache (sections 3.1–3.3);
-- the graphs that `api` gave: of the current versions of all modules of the log, connected or not, and of the connected modules about which there is no evidence yet (the 2026-11-02 amendment to R07 api; R08 api). A skill in the graph has `teaches` and the assessability, and by the module's tasks the bands where it is taught (section 3.1);
-- the set of the engine's modules — connected and suiting the learner, whose graphs `engine` gets (the 2026-11-02 amendment to R07 api). A repeat of a choice restores it by the digests of the graphs that the choice keeps (R08 api), as the card says (architecture 3.8 spec).
+- the skills' state — the cache, above;
+- the graphs that `api` gave: of the current versions of all modules of the log, connected or not, and of the connected modules about which there is no evidence yet. A skill in the graph has `teaches` and the assessability, and by the module's tasks the bands where it is taught;
+- the set of the engine's modules — connected and suiting the learner, whose graphs `engine` gets. A repeat of a choice restores it by the digests of the graphs that the choice keeps.
 
-**A skill that teaches** is a module's skill whose `teaches` names the anchor skill. It can be mastered only if its assessability is `verdict` and there is a band where it is taught — the band of a task where it is a primary skill of the task or of an item (section 3.1). A skill with `rubric` or `none` and a skill with `verdict` without such a band cannot be mastered.
+**A skill that teaches** is a module's skill whose `teaches` names the anchor skill. It can be mastered only if its assessability is `verdict` and there is a band where it is taught — the band of a task where it is a primary skill of the task or of an item. A skill with `rubric` or `none` and a skill with `verdict` without such a band cannot be mastered.
 
 **The state of an anchor skill** — for each anchor skill that a graph of an engine's module names as a prerequisite or in `teaches` — is one of three, in order:
-1. **"Knows"** — at least one skill that teaches it has "mastered", in any module whose graph came, and at any band. A disconnected module does not take knowing away: evidence derived "mastered", and it holds until two failures in a row remove it (section 3.3).
+1. **"Knows"** — at least one skill that teaches it has "mastered", in any module whose graph came, and at any band. A disconnected module does not take knowing away: evidence derived "mastered", and it holds until two failures in a row remove it.
 2. **"Does not know"** — otherwise, if the engine's modules have a skill that teaches it and can be mastered. The cause:
    - "not mastered" — at least one such skill has answers;
    - "no evidence" — none has answers.
 3. **"Unknown"** — in all other cases. The cause:
-   - "nobody to teach" — no engine's module teaches the anchor skill, as in concepts 4 spec;
+   - "nobody to teach" — no engine's module teaches the anchor skill;
    - "taught only by skills without a verdict" — in the engine's modules it is taught only by skills that cannot be mastered.
 
-With each state the model gives the skills that teach — by full ID (concepts 3 spec), with their estimate, "mastered" and the mastery band, the highest band where they are taught, the retention and the review date (sections 3.1 and 3.2).
+With each state the model gives the skills that teach — by full ID, with their estimate, "mastered" and the mastery band, the highest band where they are taught, the retention and the review date.
 
-**The threshold** is the same as for "mastered" of a module's skill (section 3.1): knowing has no number of its own. Each skill that teaches teaches the anchor skill whole — "a learner who has the skill can do what the description of each says" ([the format's text](../spec/format/README.md), section 12). So there can be any number of skills and modules that teach, and any of them gives knowing.
+**The threshold** is the same as for "mastered" of a module's skill: knowing has no number of its own. Each skill that teaches teaches the anchor skill whole — "a learner who has the skill can do what the description of each says", in [the format's text](../spec/format/README.md). So there can be any number of skills and modules that teach, and any of them gives knowing.
 
-**The band** is any. The bands of different modules are not comparable (section 3.1), and which band a module that relies on the anchor skill expects, the format does not say. The model gives the mastery band and the highest band where the skill is taught, and knowing that takes the band into account is Д8 in table 4 of [run/DEBT.md](../run/DEBT.md).
+**The band** is any. The bands of different modules are not comparable, and which band a module that relies on the anchor skill expects, the format does not say. The model gives the mastery band and the highest band where the skill is taught, and knowing that takes the band into account is Д8 in table 4 of [run/DEBT.md](../run/DEBT.md).
 
-**Forgetting** does not remove knowing: knowing is a function of "mastered", and time does not remove "mastered" (section 3.2). The retention and the review date of a skill that teaches the model gives together with it.
+**Forgetting** does not remove knowing: knowing is a function of "mastered", and time does not remove "mastered". The retention and the review date of a skill that teaches the model gives together with it.
 
-**The grade** does not give knowing: it sets only the starting point (concepts 4 spec; section 3.1).
+**The grade** does not give knowing: it sets only the starting point.
 
-**Skills with `rubric` and `none`** are without a state. They have no evidence: an attempt of a task with a rubric does not give it (R80 spec; О-17), and a skill `none` is only ever supporting, and the answer gives it nothing (section 3.3). An anchor skill that only such skills teach is "unknown" and does not hold a lesson back, and among skills without a verdict the engine goes by the author's order (concepts 4 spec; R58 spec). concepts 4 spec says the same: "unknown" both when nobody teaches and when only skills without a verdict teach.
+**Skills with `rubric` and `none`** are without a state. They have no evidence: an attempt of a task with a rubric does not give it (О-17), and a skill `none` is only ever supporting, and the answer gives it nothing. An anchor skill that only such skills teach is "unknown" and does not hold a lesson back, and among skills without a verdict the engine goes by the author's order.
 
-**An anchor skill as a supporting skill of a task** gets nothing (section 3.3), and it has no direct state. Evidence may name it — then at the transfer it goes as it is (the 2026-11-02 amendment to R80 spec), — but the model does not read it now. The evidence carries it among the supporting skills of the task and of the item — for future versions (R08; section 3.5).
+**An anchor skill as a supporting skill of a task** gets nothing, and it has no direct state. Evidence may name it — then at the transfer it goes as it is, — but the model does not read it now. The evidence carries it among the supporting skills of the task and of the item — for future versions.
 
-**A module without a current version** gives no graph (R08 api), and its "mastered" is not seen: the anchor skill is then by the other modules.
+**A module without a current version** gives no graph, and its "mastered" is not seen: the anchor skill is then by the other modules.
 
-**The module index** the model does not read. Which modules teach an anchor skill it says (R63 spec), and the engine may offer the learner a module (concepts 4 spec).
+**The module index** the model does not read. Which modules teach an anchor skill it says, and the engine may offer the learner a module.
 
-**What the engine does** is its rules (architecture 3.8 spec, "To decide when detailed"):
-- "unknown" does not hold a lesson back (concepts 4 spec);
+**What the engine does** is its rules, which `engine` has still to decide:
+- "unknown" does not hold a lesson back;
 - "does not know" holds back a skill that needs the anchor skill, by the prerequisite rule of `engine`. At "no evidence" the engine may hold the lesson back, give a task of a skill that teaches, or a short check;
 - knowing goes away when two failures in a row remove "mastered" from the last mastered skill that teaches, and what happens then with the open skills the engine decides;
-- a cycle of prerequisites between modules through anchor skills, where both sides are "does not know", holds both skills back, and the format does not see such a cycle (R50 spec).
+- a cycle of prerequisites between modules through anchor skills, where both sides are "does not know", holds both skills back, and the format does not see such a cycle.
 
-**Examples** — by the first slice. In the format's examples school maths of grade 3 teaches `core.division-with-remainder` and `core.fractions-of-a-whole`, and olympiad maths relies on them (R50 spec):
+**Examples** — by the first slice. In the format's examples school maths of grade 3 teaches `core.division-with-remainder` and `core.fractions-of-a-whole`, and olympiad maths relies on them:
 - a grade 3 child connected both maths modules and has not solved the school one yet — "does not know", "no evidence";
-- the same child after two pages of school maths where the skill of division with remainder is mastered (section 3.3) — "knows" `core.division-with-remainder`;
+- the same child after two pages of school maths where the skill of division with remainder is mastered — "knows" `core.division-with-remainder`;
 - a grade 5 learner connected only olympiad maths — "unknown", "nobody to teach", and the lesson is not held back. If they connect school maths too — "does not know", "no evidence", and what happens with the lesson the engine decides;
 - an adult disconnected school maths, where the skill is mastered — "knows"; where it is not mastered — "unknown", "nobody to teach": a disconnected module does not hold olympiad skills back;
 - an essay module does not name `teaches`, and it has no anchor skills.
 
 In standalone there is one module, and there are no anchor skills there: this rule has no counterpart in it.
 
-**In code** (R07):
+**In code**:
 - `Read` in `readout.go` — the modules of the state and the engine's modules, by ID. A module with a state has the start band, the skills, the marks of the trial series and the module's traps that have no skills with a state; an engine's module without a state and with a current version has the starting point by grade, and if this version has no bands, as with a module without tasks, without it: a zero `BandRef`, and the engine still gets the module's reading, while an engine's module without a state and without a current version does not come out. Each needs an entry in "graphs", otherwise `ErrInvalid`, as with `Append`;
-- anchor skills — each `core.<name>` that a graph of an engine's module with a current version names as a prerequisite or in `teaches`, with the status and the cause by the rule above. The skills that teach are from the modules of the state and of the engine with a current version: "mastered" exists only for a module with a state, and the map "graphs" is not iterated (section 3.6, rule 6). Each teacher has the full ID, the highest band where it is taught and, if it has practice, the estimate, "mastered" with the band, the retention and the date;
+- anchor skills — each `core.<name>` that a graph of an engine's module with a current version names as a prerequisite or in `teaches`, with the status and the cause by the rule above. The skills that teach are from the modules of the state and of the engine with a current version: "mastered" exists only for a module with a state, and the map "graphs" is not iterated: the iteration order of a Go map is not specified. Each teacher has the full ID, the highest band where it is taught and, if it has practice, the estimate, "mastered" with the band, the retention and the date;
 - the mastery band and the highest band are a `BandRef` with the ID from the graph of the current version, and without it the ID is empty; the start band of a module with a state is as recorded in the state, with the ID from the evidence;
 - the checks are vectors of each state with each cause by the examples above: both maths modules without evidence of the school one, a mastered and a not mastered skill, only olympiad maths, school maths disconnected, skills without a verdict and a module without a current version; the golden vectors of reading `testdata/read/` — with the log `anchors`, where division with remainder is mastered.
 
