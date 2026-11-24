@@ -107,7 +107,7 @@ A file of Go's specification or sources, of `golang/go` at the tag of its versio
 
 ### 4.5. The licenses of Go's standard library
 
-- [`LICENSE`](https://github.com/golang/go/blob/go1.27.3/LICENSE) and [`src/math/exp.go`](https://github.com/golang/go/blob/go1.27.3/src/math/exp.go#L28-L34) of `golang/go` at the tag go1.27.3, read 2026-11-24: Go's license is BSD-3-Clause, "Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met"; the pure Go `exp`, `expmulti` and `log` of `math/exp.go` and `math/log.go` carry the Sun Microsystems notice from FreeBSD msun: "Permission to use, copy, modify, and distribute this software is freely granted, provided that this notice is preserved".
+- [`LICENSE`](https://github.com/golang/go/blob/go1.27.3/LICENSE) [`src/math/exp.go`](https://github.com/golang/go/blob/go1.27.3/src/math/exp.go#L28-L34) and [`src/math/log.go`](https://github.com/golang/go/blob/go1.27.3/src/math/log.go#L17-L23) of `golang/go` at the tag go1.27.3, read 2026-11-24: Go's license is BSD-3-Clause, "Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met"; the pure Go `exp`, `expmulti` and `log` of `math/exp.go` and `math/log.go` carry the Sun Microsystems notice from FreeBSD msun: "Permission to use, copy, modify, and distribute this software is freely granted, provided that this notice is preserved".
 
 ## 5. CI, GitHub and tools
 
