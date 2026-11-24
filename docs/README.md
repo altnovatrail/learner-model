@@ -4,7 +4,7 @@ What the repository's README.md leaves out: the index of `docs/`, the detail of 
 
 - [architecture.md](architecture.md) — the component: what it does and does not do, its data and links, what was deliberately deferred, and how it is built.
 - [decisions.md](decisions.md) — the decision log: what was decided, why, and what was rejected.
-- [sources.md](sources.md) — the external facts the documents rest on, each with its source, its date and its quote.
+- [sources.md](sources.md) — the records of the facts no run checks that the documents rest on, each with its address, the date read and a quote.
 - [measurements.md](measurements.md) — the results of measurements.
 - `plan/` — the archives of the done epics and their tasks.
 
