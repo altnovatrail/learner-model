@@ -8,78 +8,7 @@
 
 ## 1. MathTrail: standalone
 
-### 1.1. Standalone's learner model
-
-- [mathtrail/mathtrail-standalone, `SPEC.md`](https://github.com/mathtrail/mathtrail-standalone/blob/c6cbeb2/SPEC.md), the branch `main`, commit c6cbeb2, read 2026-10-19:
-  - section 2.1 — "a Rasch model with a guessing floor, updated Elo-style after every answer" and "P = 0.2 + 0.8 · σ(θ + δ_topic − β)";
-  - section 2.2 — "Only correctness enters the formula" and "The hint, the pace and the run of failures are recorded (04-profile) and change what is chosen next (section 3) — never the rating"; on the exception — "One kind of task is read for more than its correctness: a probe";
-  - section 2.5 — "mastered" is set if the learner at the cautious level would answer the level's middle task "with **P ≥ 0.775**"; it holds at the level — "The topic counts as mastered only while its recommended point (2.3) stays at that level or below"; and when the rule changes, "The masteries of the earlier rule are cleared";
-  - section 2.8 — the test vectors of the rating package: "The implementation computes in `float64` and must match the four decimals printed here to within 1e-4".
-
-### 1.2. Standalone's profile
-
-- [`docs/architecture/04-profile.md`](https://github.com/mathtrail/mathtrail-standalone/blob/c6cbeb2/docs/architecture/04-profile.md), the same commit, read 2026-10-19:
-  - on the summary by topics — "This is the part that is never pruned — it is the summary that lets the history window stay short"; on the window — "`recent` — the last **20** entries, answers and skipped tasks alike";
-  - the section Versions and migrations — "Reading an older version runs the migration chain in memory — pure functions, one per step, each with its golden file in `testdata/`".
-
-### 1.3. Standalone's harness
-
-- [`docs/learners.md`](https://github.com/mathtrail/mathtrail-standalone/blob/c6cbeb2/docs/learners.md), the same commit, read 2026-11-02: the course of a run — "A task is answered two minutes after it is issued, the next is issued at once, and every tenth answer starts a new day"; the table of generators, G3-drop — "their level falls by 1.0 at once, at an answer from the 50th to the 150th, as after a long break".
-
-### 1.4. Standalone's model code
-
-- [`internal/domain/rating/`](https://github.com/mathtrail/mathtrail-standalone/tree/c6cbeb2/internal/domain/rating), the same commit, read 2026-10-19: the rating package also holds the corridor, `corridor.go`; the files without `_test` import only `cmp`, `math` and `slices`.
-
-### 1.5. Standalone's learner model in detail
-
-- [`SPEC.md`](https://github.com/mathtrail/mathtrail-standalone/blob/c6cbeb2/SPEC.md), commit c6cbeb2, read 2026-11-02. Checked against `main` 89986bc of 2026-11-01: the package `internal/domain/rating` has not changed since c6cbeb2, and in SPEC 2 only the paragraphs on probes and on tasks from a picture changed, with no formulas:
-  - section 2.1:
-    - "β = the shift of its level + (difficulty − 3)";
-    - "Each level stands 2.5 above the one before it, so the two hardest difficulties of a level overlap the two easiest of the next and no two points coincide" and "2.5 is a guess with no data behind it";
-    - on the start — "It is written into `ratings.start` when the profile is created, and θ starts there. The grade decides nothing else: changed later, it moves neither θ, nor θ₀, nor the trial series of 2.2.1";
-  - section 2.2:
-    - "θ += K_θ · (S − P)";
-    - "K_δ = K₀ / (1 + a · n)" and "K_θ = max(K₀ / (1 + a · n), 0.05)" with K₀ 0.2 for θ and 0.4 for δ and a = 0.05;
-    - "β is not updated in v1";
-  - section 2.2.1:
-    - "the first five answers are a trial series";
-    - "a normal prior centred on the start times the chance of each answer given; its spread is σ₀ = 2.5";
-    - "the corrections of the topics do not move";
-    - "A grid rather than Newton's method from θ₀, because L can have two peaks";
-  - section 2.5:
-    - "the topic becomes mastered at the highest level it is taught at, at or below the level of the task, whose middle task — difficulty 3, β = the level's shift — the child would answer with P ≥ 0.775 at the cautious level λ = θ + δ − √v";
-    - "v = 1 / (1/σ₀² + I · n) + 1 / (I · (20 + m))" and "0.9383 | ln(0.71875 / 0.28125)";
-    - "mastery never moves down";
-    - "On the learners' bench 3.7 % of these masteries are false, where the earlier rule's were 63.5 %, and they come in 4.6 answers against 9.9".
-
-### 1.6. Standalone's model code in detail
-
-- [`internal/domain/rating/`](https://github.com/mathtrail/mathtrail-standalone/tree/c6cbeb2/internal/domain/rating), commit c6cbeb2, read 2026-11-02:
-  - `ladder.go` — `levelShift = 2.5`, and above `Start` — "A grade outside 1 to 6 starts from the nearest level's shift rather than from no number at all";
-  - `trial.go` — `TrialAnswers = 5`, `startSpread = levelShift`, `gridStep = 0.05`;
-  - `mastery.go` — above `MasteredAt`: "the highest of the levels it is taught at, at or below the level of the task answered, whose middle task the child at the cautious level would answer at the corridor's middle or better".
-
-### 1.7. Standalone's decisions on the model
-
-- [`docs/decisions.md`](https://github.com/mathtrail/mathtrail-standalone/blob/c6cbeb2/docs/decisions.md), commit c6cbeb2, read 2026-11-02:
-  - the entry on the grade as the start — "The grade picks the child's starting point θ₀, the shift of its level, which is written into `ratings.start` when the profile is created and never moved again";
-  - the entry on the student model — "Mastery is declared only above the level held, and lost after two wrong answers in a row, as before".
-
-### 1.8. Answers, hints, skips and traps in standalone
-
-- [`SPEC.md`](https://github.com/mathtrail/mathtrail-standalone/blob/89986bc/SPEC.md), [`docs/decisions.md`](https://github.com/mathtrail/mathtrail-standalone/blob/89986bc/docs/decisions.md) and [`docs/architecture/04-profile.md`](https://github.com/mathtrail/mathtrail-standalone/blob/89986bc/docs/architecture/04-profile.md), the branch `main`, commit 89986bc, read 2026-11-02:
-  - SPEC 2.2 — "Only correctness enters the formula" and "The hint, the pace and the run of failures are recorded (04-profile) and change what is chosen next (section 3) — never the rating, which stays an honest estimate of what the child knows"; on the probe — "A right answer to a probe lifts its topic" and "Whether a task is a probe is read off where the child stands when it is answered";
-  - SPEC 2.5 — "The hint would make the answer measure the hint, and five answers keep a lucky start from mastering a topic";
-  - the entry on "I don't know" — ""I don't know" is an answer, and a wrong one" and "a child who has seen the solution has not solved the task; counting it as wrong keeps the rating an honest estimate";
-  - the entry on a skipped task — "Nothing that reads answers reads it — not the rating, the trial series, the misconception map, the streaks or the rule" and "punishing that would punish a stray tap";
-  - the entry on the tool of the answer — "The answer is recorded once";
-  - `04-profile.md`, the field `traps` of a topic's summary — "How often this child fell for each trap in this topic, ever. The rule picks the two most frequent".
-
-### 1.9. The log and versions in standalone
-
-- [mathtrail/mathtrail-standalone](https://github.com/mathtrail/mathtrail-standalone/tree/89986bc), commit 89986bc on `main`, read 2026-11-02 through `gh api`:
-  - `docs/decisions.md`, the entry on the progress over the week, among what was rejected — "the levels worked back from the answers, which breaks the day the step of the rating changes";
-  - `docs/architecture/04-profile.md`, Versions and migrations, — "Reading a newer version is refused", because "two revisions are live during every Cloud Run rollout, and an old instance rewriting a new file would quietly drop whatever it did not understand", and "Unknown fields at the current version are ignored on read and are not written back".
+No records: a file of `mathtrail/mathtrail-standalone` is git, a link to the file at its commit beside the claim.
 
 ## 2. Learner models and the scoring of answers
 
@@ -131,14 +60,6 @@
 - Pelánek 2016, above, section 2.4, read 2026-11-02: the multidimensional extension takes the case where "each item belongs to a single knowledge component", and after an answer updates every skill j with the correlation c_ij: θ_sj := θ_sj + c_ij · K · (correct − P). There is no division of the step among the primary skills of one item there, and the 1/J of this repository's step is derived from the derivative, not taken from there.
 
 ## 3. Forgetting and repetition
-
-### 3.1. Spaced repetition: FSRS
-
-- [The Algorithm](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/The-Algorithm), the wiki of `open-spaced-repetition/awesome-fsrs`, commit 7bcf7dc, read 2026-11-02:
-  - the notation — "$S$: Stability (interval when $R=90%$)";
-  - FSRS-4.5 — R(t, S) = (1 + FACTOR · t / S)^DECAY, "where $R(t,S)=0.9$ when $t=S$", and "In FSRS-4.5, $DECAY=-0.5$ and $FACTOR=\cfrac{19}{81}$"; "This version uses 17 parameters", and for FSRS-6 — "This version uses 21 parameters";
-  - FSRS v1 and v3 — an exponential law, R(t, S) = 0.9^(t/S);
-  - FSRS v4, the growth of stability after a successful repetition — "The larger the value of $S$, the smaller the $SInc$ value. This means that the higher the stability of the memory, the harder it becomes to make the memory even more stable" and "The smaller the value of $R$, the larger the $SInc$ value. This means that the spacing effect accumulates over time".
 
 ### 3.2. HLR and the Leitner system
 
