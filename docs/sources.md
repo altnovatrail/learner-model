@@ -8,78 +8,7 @@
 
 ## 1. MathTrail: standalone
 
-### 1.1. Standalone's learner model
-
-- [mathtrail/mathtrail-standalone, `SPEC.md`](https://github.com/mathtrail/mathtrail-standalone/blob/c6cbeb2/SPEC.md), the branch `main`, commit c6cbeb2, read 2026-10-19:
-  - section 2.1 — "a Rasch model with a guessing floor, updated Elo-style after every answer" and "P = 0.2 + 0.8 · σ(θ + δ_topic − β)";
-  - section 2.2 — "Only correctness enters the formula" and "The hint, the pace and the run of failures are recorded (04-profile) and change what is chosen next (section 3) — never the rating"; on the exception — "One kind of task is read for more than its correctness: a probe";
-  - section 2.5 — "mastered" is set if the learner at the cautious level would answer the level's middle task "with **P ≥ 0.775**"; it holds at the level — "The topic counts as mastered only while its recommended point (2.3) stays at that level or below"; and when the rule changes, "The masteries of the earlier rule are cleared";
-  - section 2.8 — the test vectors of the rating package: "The implementation computes in `float64` and must match the four decimals printed here to within 1e-4".
-
-### 1.2. Standalone's profile
-
-- [`docs/architecture/04-profile.md`](https://github.com/mathtrail/mathtrail-standalone/blob/c6cbeb2/docs/architecture/04-profile.md), the same commit, read 2026-10-19:
-  - on the summary by topics — "This is the part that is never pruned — it is the summary that lets the history window stay short"; on the window — "`recent` — the last **20** entries, answers and skipped tasks alike";
-  - the section Versions and migrations — "Reading an older version runs the migration chain in memory — pure functions, one per step, each with its golden file in `testdata/`".
-
-### 1.3. Standalone's harness
-
-- [`docs/learners.md`](https://github.com/mathtrail/mathtrail-standalone/blob/c6cbeb2/docs/learners.md), the same commit, read 2026-11-02: the course of a run — "A task is answered two minutes after it is issued, the next is issued at once, and every tenth answer starts a new day"; the table of generators, G3-drop — "their level falls by 1.0 at once, at an answer from the 50th to the 150th, as after a long break".
-
-### 1.4. Standalone's model code
-
-- [`internal/domain/rating/`](https://github.com/mathtrail/mathtrail-standalone/tree/c6cbeb2/internal/domain/rating), the same commit, read 2026-10-19: the rating package also holds the corridor, `corridor.go`; the files without `_test` import only `cmp`, `math` and `slices`.
-
-### 1.5. Standalone's learner model in detail
-
-- [`SPEC.md`](https://github.com/mathtrail/mathtrail-standalone/blob/c6cbeb2/SPEC.md), commit c6cbeb2, read 2026-11-02. Checked against `main` 89986bc of 2026-11-01: the package `internal/domain/rating` has not changed since c6cbeb2, and in SPEC 2 only the paragraphs on probes and on tasks from a picture changed, with no formulas:
-  - section 2.1:
-    - "β = the shift of its level + (difficulty − 3)";
-    - "Each level stands 2.5 above the one before it, so the two hardest difficulties of a level overlap the two easiest of the next and no two points coincide" and "2.5 is a guess with no data behind it";
-    - on the start — "It is written into `ratings.start` when the profile is created, and θ starts there. The grade decides nothing else: changed later, it moves neither θ, nor θ₀, nor the trial series of 2.2.1";
-  - section 2.2:
-    - "θ += K_θ · (S − P)";
-    - "K_δ = K₀ / (1 + a · n)" and "K_θ = max(K₀ / (1 + a · n), 0.05)" with K₀ 0.2 for θ and 0.4 for δ and a = 0.05;
-    - "β is not updated in v1";
-  - section 2.2.1:
-    - "the first five answers are a trial series";
-    - "a normal prior centred on the start times the chance of each answer given; its spread is σ₀ = 2.5";
-    - "the corrections of the topics do not move";
-    - "A grid rather than Newton's method from θ₀, because L can have two peaks";
-  - section 2.5:
-    - "the topic becomes mastered at the highest level it is taught at, at or below the level of the task, whose middle task — difficulty 3, β = the level's shift — the child would answer with P ≥ 0.775 at the cautious level λ = θ + δ − √v";
-    - "v = 1 / (1/σ₀² + I · n) + 1 / (I · (20 + m))" and "0.9383 | ln(0.71875 / 0.28125)";
-    - "mastery never moves down";
-    - "On the learners' bench 3.7 % of these masteries are false, where the earlier rule's were 63.5 %, and they come in 4.6 answers against 9.9".
-
-### 1.6. Standalone's model code in detail
-
-- [`internal/domain/rating/`](https://github.com/mathtrail/mathtrail-standalone/tree/c6cbeb2/internal/domain/rating), commit c6cbeb2, read 2026-11-02:
-  - `ladder.go` — `levelShift = 2.5`, and above `Start` — "A grade outside 1 to 6 starts from the nearest level's shift rather than from no number at all";
-  - `trial.go` — `TrialAnswers = 5`, `startSpread = levelShift`, `gridStep = 0.05`;
-  - `mastery.go` — above `MasteredAt`: "the highest of the levels it is taught at, at or below the level of the task answered, whose middle task the child at the cautious level would answer at the corridor's middle or better".
-
-### 1.7. Standalone's decisions on the model
-
-- [`docs/decisions.md`](https://github.com/mathtrail/mathtrail-standalone/blob/c6cbeb2/docs/decisions.md), commit c6cbeb2, read 2026-11-02:
-  - the entry on the grade as the start — "The grade picks the child's starting point θ₀, the shift of its level, which is written into `ratings.start` when the profile is created and never moved again";
-  - the entry on the student model — "Mastery is declared only above the level held, and lost after two wrong answers in a row, as before".
-
-### 1.8. Answers, hints, skips and traps in standalone
-
-- [`SPEC.md`](https://github.com/mathtrail/mathtrail-standalone/blob/89986bc/SPEC.md), [`docs/decisions.md`](https://github.com/mathtrail/mathtrail-standalone/blob/89986bc/docs/decisions.md) and [`docs/architecture/04-profile.md`](https://github.com/mathtrail/mathtrail-standalone/blob/89986bc/docs/architecture/04-profile.md), the branch `main`, commit 89986bc, read 2026-11-02:
-  - SPEC 2.2 — "Only correctness enters the formula" and "The hint, the pace and the run of failures are recorded (04-profile) and change what is chosen next (section 3) — never the rating, which stays an honest estimate of what the child knows"; on the probe — "A right answer to a probe lifts its topic" and "Whether a task is a probe is read off where the child stands when it is answered";
-  - SPEC 2.5 — "The hint would make the answer measure the hint, and five answers keep a lucky start from mastering a topic";
-  - the entry on "I don't know" — ""I don't know" is an answer, and a wrong one" and "a child who has seen the solution has not solved the task; counting it as wrong keeps the rating an honest estimate";
-  - the entry on a skipped task — "Nothing that reads answers reads it — not the rating, the trial series, the misconception map, the streaks or the rule" and "punishing that would punish a stray tap";
-  - the entry on the tool of the answer — "The answer is recorded once";
-  - `04-profile.md`, the field `traps` of a topic's summary — "How often this child fell for each trap in this topic, ever. The rule picks the two most frequent".
-
-### 1.9. The log and versions in standalone
-
-- [mathtrail/mathtrail-standalone](https://github.com/mathtrail/mathtrail-standalone/tree/89986bc), commit 89986bc on `main`, read 2026-11-02 through `gh api`:
-  - `docs/decisions.md`, the entry on the progress over the week, among what was rejected — "the levels worked back from the answers, which breaks the day the step of the rating changes";
-  - `docs/architecture/04-profile.md`, Versions and migrations, — "Reading a newer version is refused", because "two revisions are live during every Cloud Run rollout, and an old instance rewriting a new file would quietly drop whatever it did not understand", and "Unknown fields at the current version are ignored on read and are not written back".
+No records: a file of `mathtrail/mathtrail-standalone` is git, a link to the file at its commit beside the claim.
 
 ## 2. Learner models and the scoring of answers
 
@@ -132,14 +61,6 @@
 
 ## 3. Forgetting and repetition
 
-### 3.1. Spaced repetition: FSRS
-
-- [The Algorithm](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/The-Algorithm), the wiki of `open-spaced-repetition/awesome-fsrs`, commit 7bcf7dc, read 2026-11-02:
-  - the notation — "$S$: Stability (interval when $R=90%$)";
-  - FSRS-4.5 — R(t, S) = (1 + FACTOR · t / S)^DECAY, "where $R(t,S)=0.9$ when $t=S$", and "In FSRS-4.5, $DECAY=-0.5$ and $FACTOR=\cfrac{19}{81}$"; "This version uses 17 parameters", and for FSRS-6 — "This version uses 21 parameters";
-  - FSRS v1 and v3 — an exponential law, R(t, S) = 0.9^(t/S);
-  - FSRS v4, the growth of stability after a successful repetition — "The larger the value of $S$, the smaller the $SInc$ value. This means that the higher the stability of the memory, the harder it becomes to make the memory even more stable" and "The smaller the value of $R$, the larger the $SInc$ value. This means that the spacing effect accumulates over time".
-
 ### 3.2. HLR and the Leitner system
 
 - B. Settles, B. Meeder, [A Trainable Spaced Repetition Model for Language Learning](https://aclanthology.org/P16-1174.pdf), Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics, 2016, pp. 1848–1858, read 2026-11-02:
@@ -182,111 +103,23 @@
 
 ## 4. Go
 
-### 4.1. Floating-point operations in Go
+A file of Go's specification or sources, of `golang/go` at the tag of its version, of the Go Wiki in `golang/wiki` at its commit or of a Go module at its version is a link beside the claim; here are only the licenses.
 
-- [The Go Programming Language Specification](https://go.dev/ref/spec#Floating_point_operators), the section Floating-point operators, Language version go1.27 (May 26, 2026), read 2026-10-19: "An implementation may combine multiple floating-point operations into a single fused operation, possibly across statements, and produce a result that differs from the value obtained by executing and rounding the instructions individually".
+### 4.5. The licenses of Go's standard library
 
-### 4.2. Explicit conversion against fusion in Go
-
-- [The Go Programming Language Specification](https://go.dev/ref/spec#Floating_point_operators), the section Floating-point operators, Language version go1.27 (May 26, 2026), read 2026-11-02: "An explicit floating-point type conversion rounds to the precision of the target type, preventing fusion that would discard that rounding" and the example "r = float64(x*y) + z" among those where FMA is forbidden.
-
-### 4.3. The sources of Go 1.27.3
-
-- the directory `src` of Go 1.27.3 in the container (`go env GOROOT`), read 2026-11-02:
-  - `math/exp_asm.go` — `//go:build amd64 || arm64 || loong64 || riscv64 || s390x` and `const haveArchExp = true`: `math.Exp` has its own assembly implementation on these architectures, and on the rest, WASM included, one in Go (`math/exp_noasm.go`);
-  - `math/exp_amd64.go`, line 11, — `var useFMA = cpu.X86.HasAVX && cpu.X86.HasFMA`: the path in `math/exp_amd64.s` is chosen by the processor at run time. It can be turned off through `internal/cpu/cpu_x86.go` — `option{Name: "fma", Feature: &X86.HasFMA}`, that is, `GODEBUG=cpu.fma=off`;
-  - `math/log_asm.go` — `//go:build amd64 || s390x`;
-  - `math/pow.go`, line 128, — `a1 = Exp(yf * Log(x))`;
-  - the compiler's rules: in `cmd/compile/internal/ssa/_gen/ARM64.rules` — `(FADDD a (FMULD  x y)) && a.Block.Func.useFMA(v) => (FMADDD  a x y)`, and in `AMD64.rules` — `(ADDS(S|D) (MULS(S|D) x y) z) && buildcfg.GOAMD64 >= 3 && z.Block.Func.useFMA(v) => (VFMADD231S(S|D) z x y)`.
-
-### 4.4. Fusion, conversions and order in Go
-
-- [The Go Programming Language Specification](https://go.dev/ref/spec), Language version go1.27 (May 26, 2026), the copy `doc/go_spec.html` of Go 1.27.3 in the container, read 2026-11-02:
-  - Floating-point operators — "An implementation may combine multiple floating-point operations into a single fused operation, possibly across statements" and "An explicit floating-point type conversion rounds to the precision of the target type, preventing fusion that would discard that rounding"; among the examples where fusion is allowed — `t = x*y; r = t + z`;
-  - Conversions — "In all non-constant conversions involving floating-point or complex values, if the result type cannot represent the value the conversion succeeds but the result value is implementation-dependent";
-  - For statements with range clause — "The iteration order over maps is not specified and is not guaranteed to be the same from one iteration to the next".
-
-### 4.5. The compiler and standard library of Go 1.27.3
-
-- the directory `src` in the container (`/usr/local/go`), read 2026-11-02:
-  - the fusion rules, each with the condition `useFMA`: `cmd/compile/internal/ssa/_gen/ARM64.rules`, lines 1798–1809 — `FMADDD`, `FMSUBD`, `FNMSUBD`, `FNMADDD`; `PPC64.rules`, 1013–1014; `S390X.rules`, 1266–1267; `RISCV64.rules`, 808–810; `LOONG64.rules`, 770–781; `AMD64.rules`, 1501 — only `ADDS(S|D)` and only `buildcfg.GOAMD64 >= 3`. `Wasm.rules`, `386.rules`, `MIPS.rules` and `MIPS64.rules` have no such rules;
-  - `generic.rules`, line 1331, — `(Div64F x (Const64F <t> [c])) && reciprocalExact64(c) => (Mul64F x (Const64F <t> [1/c]))`: a division by a constant with an exact reciprocal becomes a multiplication;
-  - `cmd/compile/internal/ssagen/ssa.go`, line 2709, — a conversion of `float64` to `float64` gives `OpRound64F`, and the fusion rules do not pass through it;
-  - `cmd/compile/internal/ssa/func.go`, `useFMA`, — "useFMA allows targeted debugging w/ GOFMAHASH", and `base/hashdebug.go`, lines 64–70, — the value "n" selects nothing: `-d=fmahash=n` turns off all the fusion rules;
-  - `cmd/compile/internal/base/flag.go`, lines 268–273, — "quietly disable the convert hash changes", and `AMD64.rules`, lines 168–180, — a different conversion of numbers to integers on amd64 is behind this switch;
-  - `math/sqrt.go` — "Return correctly rounded sqrt"; `Wasm.rules`, line 349, — `(Sqrt ...) => (F64Sqrt ...)`;
-  - `math/exp.go` and `math/log.go` — pure Go `exp`, `expmulti` and `log`, with the Sun Microsystems notice from FreeBSD msun: "Permission to use, copy, modify, and distribute this software is freely granted, provided that this notice is preserved"; Go's license — `LICENSE`, BSD-3-Clause;
-  - `internal/cpu/cpu_x86.go`, lines 95–102, — `fma` is among the options `GODEBUG` can turn off only at GOAMD64 below v3, and `runtime/extern.go` — "cpu.all=off disables the use of all optional instruction set extensions";
-  - `runtime/asm_amd64.s`, line 69, — a v3 build does not start on a processor without v3: "This program can only be run on AMD64 processors with v3 microarchitecture support";
-  - `encoding/json` is built from the v2 files — in `internal/buildcfg/exp.go` the base experiments have `JSONv2: true`;
-  - `slices/sort.go` — "This sort is not guaranteed to be stable"; `unicode/tables.go` — `const Version = "17.0.0"`;
-  - `lib/wasm/go_js_wasm_exec` — the js/wasm tests run in Node, `exec node --stack-size=8192 "$DIR/wasm_exec_node.js"`; `go tool dist list -json` — `js/wasm` and `wasip1/wasm` have `"FirstClass": false`.
-
-### 4.6. Build constraints by file name in Go 1.27.3
-
-- the directory `src` in the container, read 2026-11-07: `go/build/build.go`, `goodOSArchFile`, — the name of a file up to the first dot, without the first word and without `_test`, ends in `_GOOS`, `_GOARCH` or `_GOOS_GOARCH`; the lists of systems and architectures are `KnownOS` and `KnownArch` in `internal/syslist/syslist.go`. A build with `-gcflags='-S -d=fmahash=n'` prints, at every place where a fusion rule would fire, the line "fmahash triggered [DISABLED]" with a hash, but without the file's name and line — where exactly is shown by the difference of the assembler.
-
-### 4.7. Go and WebAssembly
-
-- [Go Wiki: WebAssembly](https://go.dev/wiki/WebAssembly), read 2026-11-02: "Set `GOOS=js` and `GOARCH=wasm` environment variables to compile for WebAssembly"; "Go 1.21 introduced WASI as a supported platform. To build for WASI, use the `wasip1` port"; "At present, Go generates large Wasm files, with the smallest possible size being around ~2MB" and "Using `gz` compression reduces the ~2MB (minimum file size) example WASM file down to around 500kB"; "TinyGo supports a subset of the Go language".
-
-### 4.8. protobuf for Go
-
-- [`google.golang.org/protobuf/proto`, `MarshalOptions`](https://pkg.go.dev/google.golang.org/protobuf/proto#MarshalOptions), v1.36.12, read 2026-11-02: `Deterministic` — "the same message will always be serialized to the same bytes within the same binary", and "the deterministic serialization is NOT canonical across languages. It is not guaranteed to remain stable over time".
+- [`LICENSE`](https://github.com/golang/go/blob/go1.27.3/LICENSE) [`src/math/exp.go`](https://github.com/golang/go/blob/go1.27.3/src/math/exp.go#L28-L34) and [`src/math/log.go`](https://github.com/golang/go/blob/go1.27.3/src/math/log.go#L17-L23) of `golang/go` at the tag go1.27.3, read 2026-11-24: Go's license is BSD-3-Clause, "Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met"; the pure Go `exp`, `expmulti` and `log` of `math/exp.go` and `math/log.go` carry the Sun Microsystems notice from FreeBSD msun: "Permission to use, copy, modify, and distribute this software is freely granted, provided that this notice is preserved".
 
 ## 5. CI, GitHub and tools
 
+A file of `altnovatrail/.github` is git, a link to it at the commit of its release beside the claim; the versions of the tools are set in the `justfile` and `.devcontainer/`, and Codecov's state is the check `codecov/patch` of every pull request. Here are only GitHub's terms for its runners and the licenses of the tools.
+
 ### 5.1. GitHub's runners
 
-- [GitHub-hosted runners reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), read 2026-11-02: the labels `ubuntu-24.04-arm`, `ubuntu-22.04-arm` and `ubuntu-26.04-arm` are in the table of standard runners for public repositories, and "Use of the standard GitHub-hosted runners is free and unlimited on public repositories". The page does not name the processors of the x64 runners. `altnovatrail/learner-model` is public (`gh repo view`, 2026-11-02).
+- [GitHub-hosted runners reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), read 2026-11-24: "Use of the standard GitHub-hosted runners is free and unlimited on public repositories" — its source, `data/reusables/actions/supported-github-runners.md` of `github/docs` at e0b0c90. `altnovatrail/learner-model` is public (`gh repo view --json visibility`, 2026-11-24).
 
-### 5.2. The shared Go wrapper
+### 5.6. The licenses of the tools of the checks and gopls
 
-- [`.github/workflows/go.yml`](https://github.com/altnovatrail/.github/blob/af40f949676fb3a01abb0a1e6ffbc99ce824660b/.github/workflows/go.yml), `altnovatrail/.github`, `main` af40f94, read 2026-11-02 through `gh api`: "by four recipes of that repository's own — ci-lint, ci-test, ci-vuln and ci-licenses — one job each, in the toolchain stage of the caller's .devcontainer/Dockerfile, where the caller pins its Go"; the jobs run on `ubuntu-24.04`, without arm64 and without WASM.
-
-### 5.3. The shared workflows of `.github` v0.1.15
-
-- the release [v0.1.15](https://github.com/altnovatrail/.github/releases/tag/v0.1.15), commit 89d3cee, read 2026-11-06; `gh release verify v0.1.15 -R altnovatrail/.github` — "Release v0.1.15 verified!":
-  - `go.yml` — "ci-test writes the coverage of the tests as one Go coverage profile, coverage/go.out, and the job coverage sends it to Codecov by OIDC, with no secret"; `ci-licenses` gets `ALLOWED_LICENSES` — "the ASF's Category A as SPDX identifiers";
-  - `codeql.yml` — "Besides actions, javascript-typescript and go are taken", and Go is read from the Go build of the `toolchain` stage; at v0.1.0 the input `languages` took only `javascript-typescript`;
-  - `secrets.yml`, `dco.yml`, `documents.yml` and `scorecard.yml` did not change between v0.1.0 and v0.1.15 (`git diff --stat v0.1.0 v0.1.15`);
-  - the texts of the calling files, `codecov.yml` and the order of the move to coverage — [`docs/architecture.md`](https://github.com/altnovatrail/.github/blob/main/docs/architecture.md) of `.github`, section 3.3, `main`, read 2026-11-06.
-
-### 5.4. The shared workflows of `.github` v0.1.21
-
-- the release [v0.1.21](https://github.com/altnovatrail/.github/releases/tag/v0.1.21), commit 706f406, read 2026-11-08 in a clone in a temporary folder; `gh release verify v0.1.21 -R altnovatrail/.github` — "Release v0.1.21 verified!". With it, the earlier "on `ubuntu-24.04`, without arm64 and without WASM" above holds only without the input `same-bits`:
-  - `go.yml` — "With same-bits, four more jobs hold the caller's bits the same on every build": ""Go / targets" runs the tests on the builds where the bits are most at risk, and builds and vets wasip1; "Go / fma-diff" compares the assembler of each package with fusion and without it, with a control of its own here; "Go / arm64" runs ci-test and the targets of its host on an arm64 runner; "Go / rules" holds the code to the rules of code by the tool tools/coderules of .github, of this workflow's own version, and the caller's lists, .github/coderules.json"; "Without the input the workflow is what it was";
-  - `tools/coderules/lists.go` — the fields of the lists `code-imports`, `test-imports`, `test-math`, `requires` and `nested-modules`, "A field it does not know is a mistake";
-  - between v0.1.15 and v0.1.21 `codeql.yml` and `scorecard.yml` only raised the versions of actions, `documents.yml` calls `spec/tools/toolchain/toolchain.sh`, and `release.yml` changed only the npm branch (`git diff v0.1.15 v0.1.21`).
-
-### 5.5. The shared workflows of `.github` v0.1.24
-
-- the release [v0.1.24](https://github.com/altnovatrail/.github/releases/tag/v0.1.24), commit fab102d, read 2026-11-13 in a clone in a temporary folder; `gh release verify v0.1.24 -R altnovatrail/.github` — "Release v0.1.24 verified!"; the latest release (`gh release list -R altnovatrail/.github`, 2026-11-13). Between v0.1.21 and v0.1.24 (`git diff v0.1.21 v0.1.24 -- .github/workflows/`):
-  - `go.yml` — ""Go / targets" runs the tests on the builds where the bits are most at risk, wasip1 among them": `GOOS=wasip1 GOARCH=wasm go test -count=1` with `-exec` — `node --stack-size=8192` and a runner on `node:wasi`, `new WASI({ version: "preview1", args, env: process.env, preopens: { "/": "/" }, returnOnExit: true })`; the same in "Go / arm64". Also, each job in the `toolchain` stage takes its image from the GitHub Actions cache by the key of the OS, the architecture and the hash of the Dockerfile, and builds it only on a miss, "so that an outage of what the Dockerfile downloads from does not fail the checks while the Dockerfile stays the same". The inputs and the permissions of the call are the same;
-  - `documents.yml` — the same cache of the stage for `spec/tools/toolchain/toolchain.sh` through `TOOLCHAIN_IMAGE_FILE`, which the script reads since `spec` v0.13.0;
-  - `release.yml` and `scorecard.yml` — only the links in comments; `codeql.yml`, `secrets.yml` and `dco.yml` did not change.
-
-### 5.6. The tools of the checks and gopls
-
-- the Go module proxy, `https://proxy.golang.org/<module>/@latest`, read 2026-11-06: `golang.org/x/vuln` — v1.9.0 of 2026-10-11, `github.com/google/go-licenses/v2` — v2.0.1 of 2025-09-08, `golang.org/x/tools/gopls` — v0.24.0 of 2026-10-14. The licenses — by GitHub's API, `repos/<repository>/license`, 2026-11-06: govulncheck and gopls — BSD-3-Clause (`golang/vuln` and `golang/tools`), go-licenses — Apache-2.0 (`google/go-licenses`). Since `spec` v0.9.16 the lock file of gopls is the one of `spec`'s template: `.devcontainer/` from the output of the recipe `new-repo` for `learner-model` of the kind `go` differs from the former one only in comments, and `go.sum` is the same byte for byte (`diff -r`, 2026-11-09).
-
-### 5.7. Codecov
-
-- read 2026-11-06: the Codecov app is installed for the organization on all repositories — `gh api orgs/altnovatrail/installations`, `"app_slug":"codecov","repository_selection":"all"`; `learner-model` is already in Codecov but not activated — `https://api.codecov.io/api/v2/github/altnovatrail/repos/learner-model/`, `"active":false,"activated":false`.
-
-### 5.8. The shared workflows of `.github` v0.1.31 and `go test -covermode`
-
-- the release [v0.1.31](https://github.com/altnovatrail/.github/releases/tag/v0.1.31), commit 93c848f, read 2026-11-16 in a clone in a temporary folder: immutable, of 2026-11-16 16:11 UTC, the latest (`gh release list -R altnovatrail/.github`, `gh release view v0.1.31 --json isImmutable`); `gh release verify v0.1.31 -R altnovatrail/.github` — "✓ Release v0.1.31 verified!". Between v0.1.24 and v0.1.31 (`git diff v0.1.24 v0.1.31 -- .github/workflows/`) the `on.workflow_call` of `go.yml`, `documents.yml`, `release.yml`, `codeql.yml`, `secrets.yml`, `dco.yml` and `scorecard.yml` did not change, and:
-  - `go.yml` — "The caches of Go — the modules, the builds and golangci-lint's — come from the same cache, one entry for each check, which a push to main alone saves"; "On a miss the job toolchain alone builds it and hands it on to the others by an artifact of the run, and a push to main alone saves it"; "lint, vuln and licenses, which start no browser and run no test, run in the stage toolchain-core, Node, just, Go and buf, where the Dockerfile has one that holds less than toolchain, by an image of its own"; "Go / targets" — "which run at once, a job "Go / target (<target>)" each"; the job `arm64` takes the image by the steps "Toolchain image from the cache", "Toolchain image" with `STAGES: toolchain` and "Toolchain image into the cache", the file `${{ runner.temp }}/novatrail-toolchain.tar` and the key `toolchain-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.devcontainer/Dockerfile') }}`, and runs `just ci-test` as the job `check` does; the job `check` uploads `coverage/go.out` as the artifact `go-coverage`, "A recipe that wrote none fails "Go / test"";
-  - `release.yml` — "The script builds the stage toolchain-core, Node, just, Go and buf, which every recipe of a release needs and no more, by TOOLCHAIN_STAGE"; it signs and checks the files several at once;
-  - `codeql.yml` — Go "from go.dev's archive by ARG GO_VERSION and GO_SHA256_AMD64", "each once as ARG <name>=<value>" in the stage `toolchain` and the stages it is built from, with no image.
-- `go help testflag` of Go 1.27.4 in the container, read 2026-11-16: "-covermode set,count,atomic … The default is "set" unless -race is enabled, in which case it is "atomic". … set: bool: does this statement run? … atomic: int: count, but correct in multithreaded tests; significantly more expensive."
-
-### 5.9. The shared workflows and the action `toolchain` of `.github` v0.1.33
-
-- the release [v0.1.33](https://github.com/altnovatrail/.github/releases/tag/v0.1.33), commit f1c7e9e, read 2026-11-18 in a clone in a temporary folder: immutable, of 2026-11-18 01:35 UTC, the latest (`gh release list -R altnovatrail/.github`, `gh release view v0.1.33 --json isImmutable`); `gh release verify v0.1.33 -R altnovatrail/.github` — "✓ Release v0.1.33 verified!". Between v0.1.31 and v0.1.33 (`git diff --stat v0.1.31 v0.1.33 -- .github/workflows .github/actions`) of what a caller calls only `go.yml` changed, with its `on.workflow_call` the same, and `.github/actions/toolchain/action.yml` is new:
-  - `docs/decisions.md` of `.github`, the entry on the composite action — "`.github` has a composite action, `.github/actions/toolchain`, "Toolchain image and Go caches": the image of the caller's stage `toolchain` and the caches of Go for a job of the caller's own that runs Go in that stage, by the steps that the job `arm64` of the shared `go.yml` had, and `arm64` takes the action itself"; its step "Toolchain image" sets `SAVE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}`, and "Toolchain image into the cache" saves the image on a miss on a push to `main`;
-  - the same log, the entry on the caches of Go — "on a miss of the exact key every restore of the Go caches — in `check`, `target`, `fma-diff` and `rules`, and in the composite action … — takes the newest entry of the same check and Dockerfile by the restore key `go-<OS>-<architecture>-<check>-<hash of .devcontainer/Dockerfile>-`, the key without the hash of `go.sum`".
+- GitHub's API, `repos/<repository>/license`, read 2026-11-24: govulncheck and gopls — BSD-3-Clause (`golang/vuln` and `golang/tools`), go-licenses — Apache-2.0 (`google/go-licenses`).
 
 ## 6. Other NovaTrail repositories
 
