@@ -25,6 +25,10 @@ type Band struct {
 	Grades []int32 // the grades the band names, ascending; empty in a module without grades
 }
 
+// firstPlace is the place of a module's lowest band: places count from it, 1, 2, …, and the band
+// at a place is bands[place − firstPlace].
+const firstPlace = 1
+
 // Assessability is how the platform can know a learner's command of a skill. Only a skill with
 // AssessabilityVerdict has a state.
 type Assessability int32
@@ -94,6 +98,9 @@ type Slot struct {
 	Options    int32
 	HasOptions bool
 }
+
+// minChoiceOptions is the fewest options a choice has.
+const minChoiceOptions = 2
 
 // Provenance is where a key or the skill tags of a task came from.
 type Provenance int32

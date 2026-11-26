@@ -76,6 +76,8 @@ const (
 	stabilityFloor = 1.0
 	// stabilityGrowth is g: a right answer at retention R multiplies τ by 1 + g · (1 − R).
 	stabilityGrowth = 15.0
+	// stabilityLoss is what wrong answers multiply τ by: they halve it.
+	stabilityLoss = 0.5
 	// levelPause is d₀, in days: after a pause of a module at least this long since the latest
 	// practice of its skills, its level forgets, and the weight of its answers n falls back to
 	// levelWeight, N, so that the step of θ widens. N is at least 5, or the module would fall back
@@ -138,7 +140,7 @@ func retentionWeight(c, sigma, rbar, p1, p float64) float64 {
 // near, so that no infinity comes out of a state whatever it holds.
 func stabilityAfter(tau, r, share float64) float64 {
 	grow := detmath.Pow(1+float64(stabilityGrowth*(1-r)), share)
-	halve := detmath.Pow(0.5, 1-share)
+	halve := detmath.Pow(stabilityLoss, 1-share)
 	return max(stabilityFloor, min(float64(tau*grow*halve), math.MaxFloat64))
 }
 
@@ -197,7 +199,7 @@ func addSeconds(t int64, seconds float64) int64 {
 
 // shift is where the band at a place, from 1, stands on the module's scale: 2.5 · (place − 1).
 func shift(place int32) float64 {
-	return float64(bandStep * float64(place-1))
+	return float64(bandStep * float64(place-firstPlace))
 }
 
 // startLevel is θ₀, where the level of a module starts from its start band, the band of the

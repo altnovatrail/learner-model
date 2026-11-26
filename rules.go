@@ -59,8 +59,15 @@ func stuck(items []item, answers []answer) bool {
 			solved++
 		}
 	}
-	return 2*solved < answered && float64(2*expected) >= float64(answered)
+	return fewerThanHalf(solved, answered) && atLeastHalf(expected, answered)
 }
+
+// fewerThanHalf tells whether part is fewer than half of whole.
+func fewerThanHalf(part, whole int) bool { return 2*part < whole }
+
+// atLeastHalf tells whether x is at least half of whole: x is doubled, which is exact, so that no
+// rounding of a half decides it.
+func atLeastHalf(x float64, whole int) bool { return float64(2*x) >= float64(whole) }
 
 // guard counts a piece of evidence past the trial series: a failure adds one to the count, and the
 // third in a row lowers the level by a band, but not below levelFloor nor upward from below it;

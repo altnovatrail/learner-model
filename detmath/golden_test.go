@@ -24,6 +24,14 @@ import (
 
 const update = "DETMATH_UPDATE"
 
+// A line of the golden table is a function's name, its arguments and its result, each float64 as
+// its bits in hexadecimal; the files are written readable by all and writable by their owner.
+const (
+	nameAndResult  = 2
+	hexBase        = 16
+	goldenFileMode = 0o644
+)
+
 // A function of detmath under test, by the name the golden files give it, with the seed of its own
 // stream of inputs.
 type function struct {
@@ -34,11 +42,11 @@ type function struct {
 }
 
 var functions = []function{
-	{"exp", 1, 1, func(a []float64) float64 { return detmath.Exp(a[0]) }},
-	{"log", 2, 1, func(a []float64) float64 { return detmath.Log(a[0]) }},
-	{"sigmoid", 3, 1, func(a []float64) float64 { return detmath.Sigmoid(a[0]) }},
-	{"pow", 4, 2, func(a []float64) float64 { return detmath.Pow(a[0], a[1]) }},
-	{"retention", 5, 2, func(a []float64) float64 { return detmath.Retention(a[0], a[1]) }},
+	{name: "exp", seed: 1, arity: 1, call: func(a []float64) float64 { return detmath.Exp(a[0]) }},
+	{name: "log", seed: 2, arity: 1, call: func(a []float64) float64 { return detmath.Log(a[0]) }},
+	{name: "sigmoid", seed: 3, arity: 1, call: func(a []float64) float64 { return detmath.Sigmoid(a[0]) }},
+	{name: "pow", seed: 4, arity: 2, call: func(a []float64) float64 { return detmath.Pow(a[0], a[1]) }},
+	{name: "retention", seed: 5, arity: 2, call: func(a []float64) float64 { return detmath.Retention(a[0], a[1]) }},
 }
 
 func functionNamed(name string) (function, bool) {
@@ -60,57 +68,97 @@ var edges = []float64{
 	detmath.ExpMax, detmath.ExpMin, 709, -709, 709.78, -745.2, 1000, -1000, 1e300, -1e300,
 }
 
+// The first words of the seeds of the golden table's draws and of the sweep's; the other word is
+// each function's own.
+const (
+	goldenSeed = 1
+	sweepSeed  = 2
+)
+
+// Where the inputs are drawn from, beside the edges: past the bounds of Exp on both sides, and
+// where σ is neither 0 nor 1; near 1 for log; for the power, the bases of the rule of τ, from 1 up
+// to 1 + g = 16, and the shares S̄ within [0, 1]; and pauses and stabilities up to ten years, in
+// days, from two minutes.
+const (
+	expReach      = 720
+	sigmoidReach  = 40
+	nearOneLow    = 0.5
+	nearOneHigh   = 2
+	tauBaseHigh   = 16
+	halving       = 0.5 // the base (1/2) of the rule of τ after wrong answers
+	twoMinutes    = 1.0 / 720
+	powBaseHigh   = 20
+	powPowerReach = 2
+	tenYears      = 3650
+)
+
+// How many inputs each draw gives.
+const (
+	wideDraws      = 100
+	narrowDraws    = 40
+	tauDraws       = 60
+	halvingDraws   = 20
+	powDraws       = 20
+	retentionDraws = 80
+)
+
+// The bits of a float64: its fraction, and the exponents of the normal numbers, 1 to 2046.
+const (
+	fractionBits    = 52
+	normalExponents = 2046
+)
+
 // goldenInputs gives the inputs of the golden table: the edges, and values drawn where each
 // function is used.
 func goldenInputs(f function) [][]float64 {
-	r := rand.New(rand.NewPCG(1, f.seed))
+	r := rand.New(rand.NewPCG(goldenSeed, f.seed))
 	var in [][]float64
 	switch f.name {
 	case "exp", "sigmoid":
 		for _, x := range edges {
 			in = append(in, []float64{x})
 		}
-		for range 100 {
-			in = append(in, []float64{uniform(r, -720, 720)})
+		for range wideDraws {
+			in = append(in, []float64{uniform(r, -expReach, expReach)})
 		}
-		for range 40 {
-			in = append(in, []float64{uniform(r, -40, 40)})
+		for range narrowDraws {
+			in = append(in, []float64{uniform(r, -sigmoidReach, sigmoidReach)})
 		}
 	case "log":
 		for _, x := range edges {
 			in = append(in, []float64{x})
 		}
-		for range 100 {
+		for range wideDraws {
 			in = append(in, []float64{positiveNormal(r)})
 		}
-		for range 40 {
-			in = append(in, []float64{uniform(r, 0.5, 2)})
+		for range narrowDraws {
+			in = append(in, []float64{uniform(r, nearOneLow, nearOneHigh)})
 		}
 	case "pow":
 		// The rule of τ: (1 + g · (1 − R))^S̄ with g = 15 and (1/2)^(1 − S̄), with S̄ within
 		// [0, 1]; and the exact branches and the edges.
-		for _, a := range []float64{0.5, 1, 1.5, 2.5, 16, detmath.MinNormal, math.MaxFloat64, 0, -1, detmath.NaN} {
+		for _, a := range []float64{halving, 1, 1.5, 2.5, tauBaseHigh, detmath.MinNormal, math.MaxFloat64, 0, -1, detmath.NaN} {
 			for _, s := range []float64{0, 1, 0.5, -1, 2, math.Inf(1), math.Inf(-1), detmath.NaN} {
 				in = append(in, []float64{a, s})
 			}
 		}
-		for range 60 {
-			in = append(in, []float64{uniform(r, 1, 16), uniform(r, 0, 1)})
+		for range tauDraws {
+			in = append(in, []float64{uniform(r, 1, tauBaseHigh), uniform(r, 0, 1)})
 		}
-		for range 20 {
-			in = append(in, []float64{0.5, uniform(r, 0, 1)})
+		for range halvingDraws {
+			in = append(in, []float64{halving, uniform(r, 0, 1)})
 		}
-		for range 20 {
-			in = append(in, []float64{positiveNormal(r), uniform(r, -2, 2)})
+		for range powDraws {
+			in = append(in, []float64{positiveNormal(r), uniform(r, -powPowerReach, powPowerReach)})
 		}
 	case "retention":
-		for _, dt := range []float64{0, 1, -1, 1.0 / 720, 60, 3650, 1e300, math.Inf(1), detmath.NaN} {
+		for _, dt := range []float64{0, 1, -1, twoMinutes, 60, tenYears, 1e300, math.Inf(1), detmath.NaN} {
 			for _, tau := range []float64{1, 2.5, 10, 63.3, 0, detmath.MinNormal, math.MaxFloat64, math.Inf(1), detmath.NaN} {
 				in = append(in, []float64{dt, tau})
 			}
 		}
-		for range 80 {
-			in = append(in, []float64{uniform(r, 0, 3650), uniform(r, 1, 3650)})
+		for range retentionDraws {
+			in = append(in, []float64{uniform(r, 0, tenYears), uniform(r, 1, tenYears)})
 		}
 	}
 	return in
@@ -125,8 +173,8 @@ func uniform(r *rand.Rand, lo, hi float64) float64 {
 
 // positiveNormal draws a positive normal float64, its exponent and fraction uniform.
 func positiveNormal(r *rand.Rand) float64 {
-	exponent := 1 + r.Uint64N(2046)
-	return math.Float64frombits(exponent<<52 | r.Uint64()>>12)
+	exponent := 1 + r.Uint64N(normalExponents)
+	return math.Float64frombits(exponent<<fractionBits | r.Uint64()>>(64-fractionBits))
 }
 
 func TestGolden(t *testing.T) {
@@ -145,12 +193,12 @@ func TestGolden(t *testing.T) {
 			continue
 		}
 		f, ok := functionNamed(fields[0])
-		if !ok || len(fields) != f.arity+2 {
+		if !ok || len(fields) != f.arity+nameAndResult {
 			t.Fatalf("%s:%d: not a line of the table: %q", path, i+1, line)
 		}
 		bits := make([]uint64, len(fields)-1)
 		for j, field := range fields[1:] {
-			if bits[j], err = strconv.ParseUint(field, 16, 64); err != nil {
+			if bits[j], err = strconv.ParseUint(field, hexBase, 64); err != nil {
 				t.Fatalf("%s:%d: %v", path, i+1, err)
 			}
 		}
@@ -185,7 +233,7 @@ func writeGolden(t *testing.T, path string) {
 			fmt.Fprintf(&b, " %016x\n", math.Float64bits(f.call(args)))
 		}
 	}
-	if err := os.WriteFile(path, b.Bytes(), 0o644); err != nil {
+	if err := os.WriteFile(path, b.Bytes(), goldenFileMode); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -196,7 +244,7 @@ const sweepLength = 100_000
 // sweepInputs draws the run of inputs for f: half from where f is used, half as raw bits, every
 // pattern of a float64 among them — subnormals, infinities, NaNs of every payload.
 func sweepInputs(f function, yield func(args []float64)) {
-	r := rand.New(rand.NewPCG(2, f.seed))
+	r := rand.New(rand.NewPCG(sweepSeed, f.seed))
 	args := make([]float64, f.arity)
 	for i := range sweepLength {
 		raw := i%2 == 1
@@ -207,13 +255,13 @@ func sweepInputs(f function, yield func(args []float64)) {
 			case f.name == "log":
 				args[j] = positiveNormal(r)
 			case f.name == "pow" && j == 0:
-				args[j] = uniform(r, 0, 20)
+				args[j] = uniform(r, 0, powBaseHigh)
 			case f.name == "pow":
-				args[j] = uniform(r, -2, 2)
+				args[j] = uniform(r, -powPowerReach, powPowerReach)
 			case f.name == "retention":
-				args[j] = uniform(r, 0, 3650)
+				args[j] = uniform(r, 0, tenYears)
 			default:
-				args[j] = uniform(r, -720, 720)
+				args[j] = uniform(r, -expReach, expReach)
 			}
 		}
 		yield(args)
@@ -243,7 +291,7 @@ func TestSweep(t *testing.T) {
 		for _, f := range functions {
 			fmt.Fprintf(&b, "%s %d %s\n", f.name, sweepLength, got[f.name])
 		}
-		if err := os.WriteFile(path, b.Bytes(), 0o644); err != nil {
+		if err := os.WriteFile(path, b.Bytes(), goldenFileMode); err != nil {
 			t.Fatal(err)
 		}
 	}

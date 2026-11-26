@@ -13,7 +13,7 @@ import (
 // reading, a value the writer would have given (codec.go).
 
 func checkEvidence(e Evidence) error {
-	if e.Kind < 1 || e.Kind > EvidenceKind {
+	if e.Kind < firstKind || e.Kind > EvidenceKind {
 		return invalid("evidence of kind " + itoa(e.Kind))
 	}
 	return checkEvidenceContent(e)
@@ -153,7 +153,7 @@ func checkSlots(slots []Slot) error {
 }
 
 func checkState(s State) error {
-	if s.Kind < 1 || s.Kind > StateKind {
+	if s.Kind < firstKind || s.Kind > StateKind {
 		return invalid("a state of kind " + itoa(s.Kind))
 	}
 	modules := make([]string, 0, len(s.Modules))
@@ -239,7 +239,11 @@ func utf8Strings(ss ...string) error {
 // shownBytes shows a string byte by byte, as \xNN past ASCII, without strconv.Quote, which
 // reads Unicode tables, which change with the version of Go.
 func shownBytes(s string) string {
-	const hex = "0123456789abcdef"
+	const (
+		hex        = "0123456789abcdef"
+		nibbleBits = 4 // a hex digit shows four bits of a byte
+		nibbleMask = 1<<nibbleBits - 1
+	)
 	var b strings.Builder
 	for i := range len(s) {
 		c := s[i]
@@ -247,8 +251,8 @@ func shownBytes(s string) string {
 			b.WriteByte(c)
 		} else {
 			b.WriteString(`\x`)
-			b.WriteByte(hex[c>>4])
-			b.WriteByte(hex[c&15])
+			b.WriteByte(hex[c>>nibbleBits])
+			b.WriteByte(hex[c&nibbleMask])
 		}
 	}
 	return b.String()
@@ -268,7 +272,7 @@ func uniqueSorted[T int32 | string](what string, sorted []T) error {
 
 func canonicalEvidence(e Evidence) error {
 	t := e.Task
-	if e.Kind < 1 {
+	if e.Kind < firstKind {
 		return errors.New("evidence of kind " + itoa(e.Kind))
 	}
 	if err := ascending("primary_skills", t.Primary, strings.Compare); err != nil {
@@ -303,7 +307,7 @@ func canonicalEvidence(e Evidence) error {
 }
 
 func canonicalState(s State) error {
-	if s.Kind < 1 {
+	if s.Kind < firstKind {
 		return errors.New("a state of kind " + itoa(s.Kind))
 	}
 	byID := func(a, b TrapCount) int { return strings.Compare(a.ID, b.ID) }

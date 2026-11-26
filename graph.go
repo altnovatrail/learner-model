@@ -22,8 +22,8 @@ func NewGraph(module string, bands []Band, skills []Skill, retired []RetiredSkil
 	g := Graph{Module: module}
 	bandIDs := map[string]bool{}
 	for i, b := range bands {
-		if int(b.Place) != i+1 {
-			return Graph{}, invalid("band " + b.ID + " at place " + strconv.Itoa(int(b.Place)) + ", not " + strconv.Itoa(i+1))
+		if int(b.Place) != i+firstPlace {
+			return Graph{}, invalid("band " + b.ID + " at place " + strconv.Itoa(int(b.Place)) + ", not " + strconv.Itoa(i+firstPlace))
 		}
 		if bandIDs[b.ID] {
 			return Graph{}, invalid("band " + b.ID + " twice")
@@ -43,11 +43,11 @@ func NewGraph(module string, bands []Band, skills []Skill, retired []RetiredSkil
 		taught[s.ID] = nil
 	}
 	for _, t := range tasks {
-		if t.Band.Place < 1 || int(t.Band.Place) > len(bands) {
+		if t.Band.Place < firstPlace || int(t.Band.Place) > len(bands) {
 			return Graph{}, invalid("task " + t.ID + " in band place " + strconv.Itoa(int(t.Band.Place)))
 		}
-		if t.Band.ID != bands[t.Band.Place-1].ID {
-			return Graph{}, invalid("task " + t.ID + " in band " + t.Band.ID + " at the place of band " + bands[t.Band.Place-1].ID)
+		if t.Band.ID != bands[t.Band.Place-firstPlace].ID {
+			return Graph{}, invalid("task " + t.ID + " in band " + t.Band.ID + " at the place of band " + bands[t.Band.Place-firstPlace].ID)
 		}
 		if t.Difficulty < minDifficulty || t.Difficulty > maxDifficulty {
 			return Graph{}, invalid("task " + t.ID + " of difficulty " + strconv.Itoa(int(t.Difficulty)))

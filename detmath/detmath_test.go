@@ -20,6 +20,27 @@ const epsilon = 0x1p-52
 // nearEdges is the |x| from which exp's argument is at the edges of overflow and underflow.
 const nearEdges = 709
 
+// The values just past exp's thresholds, where it gives +Inf and 0.
+const (
+	aboveOverflow  = 709.79
+	belowUnderflow = -745.14
+)
+
+// randomInputs is how many random values a test of the port draws.
+const randomInputs = 100_000
+
+// The seeds of the random values: portSeed is the first word of every test of the port against
+// math, and the other word is each test's own.
+const (
+	portSeed  = 3
+	expSeed   = 1
+	logSeed   = 2
+	builtSeed = 4
+)
+
+// logHigh is the top of the range of log's random arguments, from 0.
+const logHigh = 1e6
+
 // ulps is the distance between two floats of one sign in units in the last place.
 func ulps(a, b float64) uint64 {
 	x, y := math.Float64bits(a), math.Float64bits(b)
@@ -35,10 +56,10 @@ func portInputs(seed uint64, lo, hi float64) []float64 {
 		0, math.Copysign(0, -1), math.Inf(1), math.Inf(-1), NaN, OtherNaN,
 		math.SmallestNonzeroFloat64, minNormal, math.MaxFloat64, -math.MaxFloat64, 1, -1,
 		expNearZero, -expNearZero, Below(expNearZero),
-		expOverflow, 709.79, expUnderflow, -745.14, math.Sqrt2 / 2, Below(math.Sqrt2 / 2),
+		expOverflow, aboveOverflow, expUnderflow, belowUnderflow, math.Sqrt2 / 2, Below(math.Sqrt2 / 2),
 	}
-	r := rand.New(rand.NewPCG(3, seed))
-	for range 100_000 {
+	r := rand.New(rand.NewPCG(portSeed, seed))
+	for range randomInputs {
 		u := r.Float64()
 		in = append(in, lo+float64((hi-lo)*u), math.Float64frombits(r.Uint64()))
 	}
@@ -46,13 +67,14 @@ func portInputs(seed uint64, lo, hi float64) []float64 {
 }
 
 func TestExpAgainstMath(t *testing.T) {
-	for _, x := range portInputs(1, -746, 710) {
+	// The whole range where exp is finite and nonzero, and a little past it on each side.
+	for _, x := range portInputs(expSeed, math.Floor(expUnderflow), math.Ceil(expOverflow)) {
 		againstMath(t, "exp", x, exp(x), math.Exp(x))
 	}
 }
 
 func TestLogAgainstMath(t *testing.T) {
-	for _, x := range portInputs(2, 0, 1e6) {
+	for _, x := range portInputs(logSeed, 0, logHigh) {
 		// math.Log's assembler on amd64 takes a subnormal for one near 2**-1023: log(5e-324) is
 		// -709.09 there, not -744.44. The port is right, and Log keeps subnormals out anyway.
 		if !sameCodeAsMath() && x != 0 && math.Abs(x) < minNormal {
@@ -91,20 +113,28 @@ func againstMath(t *testing.T, name string, x, got, want float64) {
 // a few ulp, the power within the error that a logarithm a few ulp off carries into the exponent,
 // some |s · ln a| ulp, and the retention, which takes nothing of the port, bit for bit.
 func TestBuiltOnThePort(t *testing.T) {
-	r := rand.New(rand.NewPCG(4, 0))
-	for range 100_000 {
-		x := float64(r.Float64()*1400) - 700
-		if got, want := Sigmoid(x), float64(1/(1+math.Exp(-x))); ulps(got, want) > 4 {
+	const (
+		sigmoidReach  = 700  // σ's arguments are within ±sigmoidReach
+		sigmoidULPs   = 4    // σ's ulp from the formula over math.Exp
+		powBaseHigh   = 20   // the bases of the power are within [0, powBaseHigh)
+		powPowerReach = 2    // its exponents within ±powPowerReach
+		powULPs       = 4    // its ulp, and as many again for each unit of |s · ln a|
+		tenYears      = 3650 // the pauses and the stabilities run up to ten years, in days
+	)
+	r := rand.New(rand.NewPCG(builtSeed, 0))
+	for range randomInputs {
+		x := float64(r.Float64()*(2*sigmoidReach)) - sigmoidReach
+		if got, want := Sigmoid(x), float64(1/(1+math.Exp(-x))); ulps(got, want) > sigmoidULPs {
 			t.Fatalf("Sigmoid(%v) = %v, %d ulp from %v", x, got, ulps(got, want), want)
 		}
-		a, s := float64(r.Float64()*20), float64(r.Float64()*4)-2
+		a, s := float64(r.Float64()*powBaseHigh), float64(r.Float64()*(2*powPowerReach))-powPowerReach
 		y := float64(s * math.Log(a))
 		want := math.Exp(y)
-		bound := float64(float64(4+float64(4*math.Abs(y))) * float64(epsilon*want))
+		bound := float64(float64(powULPs+float64(powULPs*math.Abs(y))) * float64(epsilon*want))
 		if got := Pow(a, s); math.Abs(got-want) > bound {
 			t.Fatalf("Pow(%v, %v) = %v, against %v", a, s, got, want)
 		}
-		dt, tau := float64(r.Float64()*3650), 1+float64(r.Float64()*3650)
+		dt, tau := float64(r.Float64()*tenYears), 1+float64(r.Float64()*tenYears)
 		if got, want := Retention(dt, tau), float64(1/math.Sqrt(1+float64(RetentionFactor*dt/tau))); got != want {
 			t.Fatalf("Retention(%v, %v) = %v, not %v", dt, tau, got, want)
 		}
@@ -112,6 +142,14 @@ func TestBuiltOnThePort(t *testing.T) {
 }
 
 func TestBounds(t *testing.T) {
+	const (
+		a              = 2.5                // a base of the power
+		tau            = 10                 // a stability, in days
+		retentionAtTau = 0.8999999999999999 // R(τ, τ): 0.9 as the floats round it, an ulp below
+		sigmoidOne     = 37                 // from about 36.7 up σ is exactly 1
+		farBelowExp    = -1000              // far below the bounds of Exp
+		nearZero       = 1e-150             // the retention at the largest pause is below it
+	)
 	inf := math.Inf(1)
 	for _, c := range []struct {
 		name      string
@@ -128,21 +166,21 @@ func TestBounds(t *testing.T) {
 		{"Log(+Inf)", Log(inf), Log(math.MaxFloat64)},
 		{"Log(1)", Log(1), 0},
 		{"Sigmoid(0)", Sigmoid(0), 0.5},
-		{"Sigmoid(-1000)", Sigmoid(-1000), Sigmoid(expMin)},
-		{"Sigmoid(37)", Sigmoid(37), 1},
-		{"Pow(a, 0)", Pow(2.5, 0), 1},
-		{"Pow(a, 1)", Pow(2.5, 1), 2.5},
+		{"Sigmoid(-1000)", Sigmoid(farBelowExp), Sigmoid(expMin)},
+		{"Sigmoid(37)", Sigmoid(sigmoidOne), 1},
+		{"Pow(a, 0)", Pow(a, 0), 1},
+		{"Pow(a, 1)", Pow(a, 1), a},
 		{"Pow(1/2, 1)", Pow(0.5, 1), 0.5},
 		{"Pow(0, 1)", Pow(0, 1), minNormal},
 		{"Pow(NaN, 0)", Pow(NaN, 0), 1},
 		{"Pow(4, 1/2)", Pow(4, 0.5), 2},
-		{"Retention(0, τ)", Retention(0, 10), 1},
-		{"Retention(-1, τ)", Retention(-1, 10), 1},
-		{"Retention(NaN, τ)", Retention(NaN, 10), 1},
+		{"Retention(0, τ)", Retention(0, tau), 1},
+		{"Retention(-1, τ)", Retention(-1, tau), 1},
+		{"Retention(NaN, τ)", Retention(NaN, tau), 1},
 		{"Retention(0, 0)", Retention(0, 0), 1},
-		{"Retention(1, -10)", Retention(1, -10), Retention(1, 0)},
+		{"Retention(1, -τ)", Retention(1, -tau), Retention(1, 0)},
 		{"Retention(1, NaN)", Retention(1, NaN), Retention(1, 0)},
-		{"Retention(-1, -10)", Retention(-1, -10), 1},
+		{"Retention(-1, -τ)", Retention(-1, -tau), 1},
 		{"Sigmoid(NaN)", Sigmoid(NaN), Sigmoid(expMin)},
 		{"Sigmoid(+Inf)", Sigmoid(inf), Sigmoid(expMax)},
 		{"Pow(1, +Inf)", Pow(1, inf), 1},
@@ -150,14 +188,14 @@ func TestBounds(t *testing.T) {
 		{"Pow(1, NaN)", Pow(1, NaN), 1},
 		{"Pow(2, NaN)", Pow(2, NaN), Exp(expMin)},
 		{"Pow(2, +Inf)", Pow(2, inf), Exp(expMax)},
-		{"Retention(τ, τ)", Retention(10, 10), 0.8999999999999999},
+		{"Retention(τ, τ)", Retention(tau, tau), retentionAtTau},
 	} {
 		if math.Float64bits(c.got) != math.Float64bits(c.want) {
 			t.Errorf("%s = %v, want %v", c.name, c.got, c.want)
 		}
 	}
 	for _, r := range []float64{Retention(inf, 1), Retention(1, 0), Retention(inf, 0)} {
-		if r < minNormal || r >= 1e-150 {
+		if r < minNormal || r >= nearZero {
 			t.Errorf("the retention at the largest pause = %v: not a normal number near 0", r)
 		}
 	}
