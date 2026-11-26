@@ -2,6 +2,7 @@ package learnermodel
 
 import (
 	"math"
+	"slices"
 
 	"github.com/altnovatrail/learner-model/detmath"
 )
@@ -214,9 +215,9 @@ func startLevel(start int32) float64 {
 // the highest band when the level is above it; and none, false, when the level is more than half
 // a band below the lowest band, or there are no bands.
 func levelBand(level float64, bands []Band) (Band, bool) {
-	for i := len(bands) - 1; i >= 0; i-- {
-		if level >= shift(bands[i].Place)-halfBand {
-			return bands[i], true
+	for _, b := range slices.Backward(bands) {
+		if level >= shift(b.Place)-halfBand {
+			return b, true
 		}
 	}
 	return Band{}, false
@@ -277,8 +278,7 @@ func cautiousLevel(level, correction, n, m float64) float64 {
 // at taskPlace: the highest place the skill is taught at, not above the task's, whose middle task
 // λ clears, σ(λ − shift) ≥ 0.71875. taught is ascending; false when no band qualifies.
 func masteryBand(taught []int32, taskPlace int32, lambda float64) (int32, bool) {
-	for i := len(taught) - 1; i >= 0; i-- {
-		p := taught[i]
+	for _, p := range slices.Backward(taught) {
 		if p <= taskPlace && detmath.Sigmoid(lambda-shift(p)) >= masteryThreshold {
 			return p, true
 		}
