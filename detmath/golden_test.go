@@ -41,12 +41,48 @@ type function struct {
 	call  func(args []float64) float64
 }
 
+// The names of the functions, as the lines of the golden files give them.
+const (
+	fnExp       = "exp"
+	fnLog       = "log"
+	fnSigmoid   = "sigmoid"
+	fnPow       = "pow"
+	fnRetention = "retention"
+)
+
+// The second words of the seeds, one stream of inputs for each function.
+const (
+	expStream = iota + 1
+	logStream
+	sigmoidStream
+	powStream
+	retentionStream
+)
+
+// The arities of the functions, and the places of their arguments: the one argument of exp, log
+// and σ; the base and the exponent of the power; the pause and the stability of the retention.
+const (
+	unaryArity  = 1
+	binaryArity = 2
+
+	onlyArg  = 0
+	baseArg  = 0
+	powerArg = 1
+	pauseArg = 0
+	tauArg   = 1
+)
+
 var functions = []function{
-	{name: "exp", seed: 1, arity: 1, call: func(a []float64) float64 { return detmath.Exp(a[0]) }},
-	{name: "log", seed: 2, arity: 1, call: func(a []float64) float64 { return detmath.Log(a[0]) }},
-	{name: "sigmoid", seed: 3, arity: 1, call: func(a []float64) float64 { return detmath.Sigmoid(a[0]) }},
-	{name: "pow", seed: 4, arity: 2, call: func(a []float64) float64 { return detmath.Pow(a[0], a[1]) }},
-	{name: "retention", seed: 5, arity: 2, call: func(a []float64) float64 { return detmath.Retention(a[0], a[1]) }},
+	{name: fnExp, seed: expStream, arity: unaryArity,
+		call: func(a []float64) float64 { return detmath.Exp(a[onlyArg]) }},
+	{name: fnLog, seed: logStream, arity: unaryArity,
+		call: func(a []float64) float64 { return detmath.Log(a[onlyArg]) }},
+	{name: fnSigmoid, seed: sigmoidStream, arity: unaryArity,
+		call: func(a []float64) float64 { return detmath.Sigmoid(a[onlyArg]) }},
+	{name: fnPow, seed: powStream, arity: binaryArity,
+		call: func(a []float64) float64 { return detmath.Pow(a[baseArg], a[powerArg]) }},
+	{name: fnRetention, seed: retentionStream, arity: binaryArity,
+		call: func(a []float64) float64 { return detmath.Retention(a[pauseArg], a[tauArg]) }},
 }
 
 func functionNamed(name string) (function, bool) {
@@ -185,7 +221,7 @@ func goldenInputs(f function) [][]float64 {
 	r := rand.New(rand.NewPCG(goldenSeed, f.seed))
 	var in [][]float64
 	switch f.name {
-	case "exp", "sigmoid":
+	case fnExp, fnSigmoid:
 		for _, x := range edges {
 			in = append(in, []float64{x})
 		}
@@ -195,7 +231,7 @@ func goldenInputs(f function) [][]float64 {
 		for range narrowDraws {
 			in = append(in, []float64{uniform(r, -sigmoidReach, sigmoidReach)})
 		}
-	case "log":
+	case fnLog:
 		for _, x := range edges {
 			in = append(in, []float64{x})
 		}
@@ -205,7 +241,7 @@ func goldenInputs(f function) [][]float64 {
 		for range narrowDraws {
 			in = append(in, []float64{uniform(r, nearOneLow, nearOneHigh)})
 		}
-	case "pow":
+	case fnPow:
 		// The rule of τ: (1 + g · (1 − R))^S̄ with g = 15 and (1/2)^(1 − S̄), with S̄ within
 		// [0, 1]; and the exact branches and the edges.
 		bases := []float64{halving, unitBase, baseNearOne, baseAtTau, tauBaseHigh, detmath.MinNormal,
@@ -226,7 +262,7 @@ func goldenInputs(f function) [][]float64 {
 		for range powDraws {
 			in = append(in, []float64{positiveNormal(r), uniform(r, -powPowerReach, powPowerReach)})
 		}
-	case "retention":
+	case fnRetention:
 		pauses := []float64{atPractice, aDay, beforePractice, twoMinutes, summerBreak, tenYears, huge,
 			math.Inf(1), detmath.NaN}
 		taus := []float64{stabilityFloor, fewDays, exampleTau, tauAfterBreak, zeroTau, detmath.MinNormal,
@@ -320,24 +356,27 @@ func writeGolden(t *testing.T, path string) {
 // The length of the run of each function in the sweep.
 const sweepLength = 100_000
 
+// rawEvery is how often an input of the sweep is raw bits: every other one, the odd ones.
+const rawEvery = 2
+
 // sweepInputs draws the run of inputs for f: half from where f is used, half as raw bits, every
 // pattern of a float64 among them — subnormals, infinities, NaNs of every payload.
 func sweepInputs(f function, yield func(args []float64)) {
 	r := rand.New(rand.NewPCG(sweepSeed, f.seed))
 	args := make([]float64, f.arity)
 	for i := range sweepLength {
-		raw := i%2 == 1
+		raw := i%rawEvery == rawEvery-1
 		for j := range args {
 			switch {
 			case raw:
 				args[j] = math.Float64frombits(r.Uint64())
-			case f.name == "log":
+			case f.name == fnLog:
 				args[j] = positiveNormal(r)
-			case f.name == "pow" && j == 0:
+			case f.name == fnPow && j == baseArg:
 				args[j] = uniform(r, zeroBase, powBaseHigh)
-			case f.name == "pow":
+			case f.name == fnPow:
 				args[j] = uniform(r, -powPowerReach, powPowerReach)
-			case f.name == "retention":
+			case f.name == fnRetention:
 				args[j] = uniform(r, atPractice, tenYears)
 			default:
 				args[j] = uniform(r, -expReach, expReach)
