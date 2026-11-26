@@ -52,8 +52,19 @@ func olympiadGraphs(t *testing.T, taught map[string][]int32) lm.Graphs {
 	return lm.Graphs{olympiad: {Graph: g, Current: true}}
 }
 
+// choiceSpec is one answer of standalone: its skill, the band place and difficulty of its task,
+// whether it is right, the start band and the practice time.
+type choiceSpec struct {
+	skill             string
+	place, difficulty int32
+	correct           bool
+	start             lm.BandRef
+	at                int64
+}
+
 // choiceAnswer is the evidence of one answer of standalone: a task of one item, a choice of five.
-func choiceAnswer(skillID string, place, difficulty int32, correct bool, start lm.BandRef, at int64) lm.Evidence {
+func choiceAnswer(c choiceSpec) lm.Evidence {
+	skillID, place, difficulty, correct, start, at := c.skill, c.place, c.difficulty, c.correct, c.start, c.at
 	verdict, outcome := lm.VerdictCorrect, lm.OutcomeFirstSubmission
 	if !correct {
 		verdict, outcome = lm.VerdictNotYet, lm.OutcomeSolutionShown
@@ -129,7 +140,7 @@ func TestStandaloneThreeFailures(t *testing.T) {
 	failures := []int32{1, 2, 3, 0}
 	for i, r := range rows {
 		var err error
-		e := choiceAnswer(r.topic, r.place, r.d, r.correct, ladderBand(1), 1000)
+		e := choiceAnswer(choiceSpec{skill: r.topic, place: r.place, difficulty: r.d, correct: r.correct, start: ladderBand(1), at: 1000})
 		if !r.correct {
 			e = putRight(e)
 		}
@@ -174,7 +185,7 @@ func TestStandaloneTrialSeries(t *testing.T) {
 	var log []lm.Evidence
 	for i, r := range rows {
 		var e lm.Evidence
-		s, e, err = lm.Append(s, choiceAnswer(r.topic, r.place, r.d, r.correct, start, int64(i)), g)
+		s, e, err = lm.Append(s, choiceAnswer(choiceSpec{skill: r.topic, place: r.place, difficulty: r.d, correct: r.correct, start: start, at: int64(i)}), g)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -218,7 +229,7 @@ func TestStandaloneFloorAndMastery(t *testing.T) {
 	mastered := []bool{true, true, false}
 	for i, r := range rows {
 		var err error
-		s, _, err = lm.Append(s, choiceAnswer(r.topic, r.place, r.d, r.correct, ladderBand(1), 0), g)
+		s, _, err = lm.Append(s, choiceAnswer(choiceSpec{skill: r.topic, place: r.place, difficulty: r.d, correct: r.correct, start: ladderBand(1), at: 0}), g)
 		if err != nil {
 			t.Fatal(err)
 		}

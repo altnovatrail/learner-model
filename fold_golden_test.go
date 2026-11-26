@@ -56,7 +56,7 @@ func olympiadLog() []lm.Evidence {
 	at := int64(1762041600)
 	add := func(skillID string, place, d int32, correct bool) {
 		at += 3600
-		log = append(log, choiceAnswer(skillID, place, d, correct, start, at))
+		log = append(log, choiceAnswer(choiceSpec{skill: skillID, place: place, difficulty: d, correct: correct, start: start, at: at}))
 	}
 	add(topic("a"), 2, 3, true)
 	add(topic("b"), 2, 4, false)
@@ -84,7 +84,7 @@ func workbookLog() []lm.Evidence {
 	both := []string{skill("addition"), skill("subtraction")}
 	var log []lm.Evidence
 	for i, p := range []struct{ items, right int }{{10, 8}, {10, 9}, {6, 2}, {12, 12}, {10, 7}, {10, 3}, {10, 3}, {20, 20}} {
-		e := page(p.items, p.right, both, 1762041600+int64(day*i))
+		e := page(pageSpec{items: p.items, right: p.right, primary: both, at: 1762041600 + int64(day*i)})
 		e.Task.Items[0].OwnSkills, e.Task.Items[0].Primary = true, []string{skill("addition")}
 		e.Task.Items[1].OwnSkills, e.Task.Items[1].Primary = true, []string{skill("essay")}
 		e.Items[p.items-1].HasFirstVerdict, e.Items[p.items-1].FirstVerdict, e.Items[p.items-1].Submitted = false, 0, false
@@ -114,11 +114,11 @@ func workbookLog() []lm.Evidence {
 // with no answer and a task whose skill tags the AI gave, which weighs nothing.
 func mixedLog() []lm.Evidence {
 	o, w := olympiadLog(), workbookLog()
-	waiting := choiceAnswer(topic("a"), 1, 3, true, ladderBand(1), 1762041600)
+	waiting := choiceAnswer(choiceSpec{skill: topic("a"), place: 1, difficulty: 3, correct: true, start: ladderBand(1), at: 1762041600})
 	waiting.Task.ID = "example/waiting/task/x"
-	ai := page(4, 4, []string{skill("addition")}, 1762041602)
+	ai := page(pageSpec{items: 4, right: 4, primary: []string{skill("addition")}, at: 1762041602})
 	ai.Task.SkillTagsProvenance = lm.ProvenanceAI // a task from paper the AI tagged: it weighs nothing
-	none := page(3, 3, []string{skill("addition")}, 1762041601)
+	none := page(pageSpec{items: 3, right: 3, primary: []string{skill("addition")}, at: 1762041601})
 	for i := range none.Items {
 		none.Items[i].HasFirstVerdict, none.Items[i].FirstVerdict = false, 0
 	}
@@ -177,7 +177,7 @@ func breakLog() []lm.Evidence {
 	at := int64(1762041600)
 	add := func(skillID string, place, d int32, correct bool) {
 		at += 3600
-		log = append(log, choiceAnswer(skillID, place, d, correct, start, at))
+		log = append(log, choiceAnswer(choiceSpec{skill: skillID, place: place, difficulty: d, correct: correct, start: start, at: at}))
 	}
 	for i := range 24 {
 		add(topic([]string{"a", "b"}[i%2]), 2, int32(2+i%3), i%4 != 3)
@@ -203,21 +203,21 @@ func format04Log() []lm.Evidence {
 		log = append(log, e)
 	}
 	for i, right := range []int{8, 9, 10} {
-		next(page(10, right, add, at+int64(day*i)), 1)
+		next(page(pageSpec{items: 10, right: right, primary: add, at: at + int64(day*i)}), 1)
 	}
-	times := page(10, 8, add, at+3*day)
+	times := page(pageSpec{items: 10, right: 8, primary: add, at: at + 3*day})
 	for i := range times.Task.Items {
 		times.Task.Items[i].Slots = []lm.Slot{{Check: lm.CheckKindTime}}
 	}
 	times.Traps = []lm.FoundTrap{{ID: workbook + "/trap/twelve-hours-off", Skills: add, ItemPlaces: []int32{9, 10}}}
 	next(times, 2)
-	both := page(10, 9, add, at+4*day)
+	both := page(pageSpec{items: 10, right: 9, primary: add, at: at + 4*day})
 	for i := range both.Task.Items {
 		both.Task.Items[i].Slots = []lm.Slot{{Check: lm.CheckKindNumber}, {Check: lm.CheckKindTime}}
 	}
 	next(both, 2)
 	for i, leading := range []bool{false, false, true, false} {
-		e := hard(page(12, 12, add, at+int64(day*(5+i))))
+		e := hard(page(pageSpec{items: 12, right: 12, primary: add, at: at + int64(day*(5+i))}))
 		for k := range e.Task.Items {
 			e.Task.Items[k].Slots = []lm.Slot{{Check: lm.CheckKindTime}}
 		}

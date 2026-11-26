@@ -261,9 +261,18 @@ func workbookGraphs(t *testing.T) lm.Graphs {
 	return lm.Graphs{workbook: {Graph: g, Current: true}}
 }
 
-// page is evidence of a page of the workbook: items of one number slot each, the given number of
-// them right and the rest not yet, all with the given primary skills.
-func page(items, right int, primary []string, at int64) lm.Evidence {
+// pageSpec is a page of the workbook: how many items it has, how many of them are right, their
+// primary skills and the practice time.
+type pageSpec struct {
+	items, right int
+	primary      []string
+	at           int64
+}
+
+// page is evidence of a page of the workbook: items of one number slot each, p.right of them right
+// and the rest not yet, all with the primary skills p.primary.
+func page(p pageSpec) lm.Evidence {
+	items, right, primary, at := p.items, p.right, p.primary, p.at
 	e := lm.Evidence{
 		Kind: lm.EvidenceKind,
 		Task: lm.Task{ID: workbook + "/task/page", Band: lm.BandRef{Place: 1, ID: "grade-2"}, Difficulty: 1, Primary: primary,
@@ -296,11 +305,11 @@ func mustAppend(t *testing.T, s lm.State, e lm.Evidence, g lm.Graphs) lm.State {
 func TestWeightThresholds(t *testing.T) {
 	g := workbookGraphs(t)
 	add := []string{skill("addition")}
-	s := mustAppend(t, lm.State{}, hard(page(8, 8, add, 1)), g)
+	s := mustAppend(t, lm.State{}, hard(page(pageSpec{items: 8, right: 8, primary: add, at: 1})), g)
 	if m := s.Modules[0]; len(m.Trial) != 8 || math.Abs(m.AnswerWeight-2.4) > 1e-12 {
 		t.Fatalf("after the first page: %d trial answers, n %v", len(m.Trial), m.AnswerWeight)
 	}
-	s = mustAppend(t, s, hard(page(13, 13, add, 2)), g)
+	s = mustAppend(t, s, hard(page(pageSpec{items: 13, right: 13, primary: add, at: 2})), g)
 	m := s.Modules[0]
 	sk := skillOf(t, s, add[0])
 	if len(m.Trial) != 0 || math.Abs(m.AnswerWeight-5) > 1e-9 || math.Abs(sk.AnswerWeight-5) > 1e-9 {
@@ -310,7 +319,7 @@ func TestWeightThresholds(t *testing.T) {
 		t.Errorf("after the second page: mastered %v at %d, δ %v; want mastered at band 1, δ still 0", sk.Mastered, sk.MasteryBand, sk.Correction)
 	}
 	// The series is over, so the next page moves δ by the step of Elo.
-	s = mustAppend(t, s, hard(page(4, 1, add, 3)), g)
+	s = mustAppend(t, s, hard(page(pageSpec{items: 4, right: 1, primary: add, at: 3})), g)
 	sk = skillOf(t, s, add[0])
 	if sk.Correction >= 0 || sk.FailuresInARow != 1 || !sk.Mastered {
 		t.Errorf("a failed page: δ %v, failures %d, mastered %v", sk.Correction, sk.FailuresInARow, sk.Mastered)
@@ -327,7 +336,7 @@ func TestWeightsAndShares(t *testing.T) {
 		Module: workbook, Level: 0.5, AnswerWeight: 20, StartBand: lm.BandRef{Place: 1, ID: "grade-2"},
 		Skills: []lm.SkillState{{Skill: add, Correction: 0.4, AnswerWeight: 8, EvidenceCount: 3, LastPractice: 7, Stability: 1}},
 	}}}
-	e := page(3, 2, []string{add, sub, skill("essay"), skill("unknown")}, 7)
+	e := page(pageSpec{items: 3, right: 2, primary: []string{add, sub, skill("essay"), skill("unknown")}, at: 7})
 	// The third item names its own skill, one with no state to move.
 	e.Task.Items[2].OwnSkills, e.Task.Items[2].Primary = true, []string{skill("essay")}
 	s := mustAppend(t, before, e, g)
@@ -359,7 +368,7 @@ func TestWeightsAndShares(t *testing.T) {
 }
 
 func validEvidence() lm.Evidence {
-	return choiceAnswer(topic("a"), 1, 3, true, ladderBand(1), 5)
+	return choiceAnswer(choiceSpec{skill: topic("a"), place: 1, difficulty: 3, correct: true, start: ladderBand(1), at: 5})
 }
 
 func TestAppendRefuses(t *testing.T) {
@@ -457,25 +466,25 @@ func TestAppendRules(t *testing.T) {
 	waiting := lm.Graphs{olympiad: {Current: false}}
 
 	// The start band: the evidence's for a module with no state, and the state's after it.
-	s, e, err := lm.Append(lm.State{}, choiceAnswer(a, 1, 3, true, ladderBand(2), 1), g)
+	s, e, err := lm.Append(lm.State{}, choiceAnswer(choiceSpec{skill: a, place: 1, difficulty: 3, correct: true, start: ladderBand(2), at: 1}), g)
 	if err != nil || s.Kind != lm.StateKind || s.Modules[0].StartBand != ladderBand(2) || e.StartBand != ladderBand(2) {
 		t.Fatalf("the first evidence: %+v, %+v, %v", s, e.StartBand, err)
 	}
 	if s.Modules[0].Level == 2.5 {
 		t.Errorf("the trial series did not move θ from θ₀")
 	}
-	s2, e, err := lm.Append(s, choiceAnswer(a, 1, 3, true, ladderBand(1), 2), g)
+	s2, e, err := lm.Append(s, choiceAnswer(choiceSpec{skill: a, place: 1, difficulty: 3, correct: true, start: ladderBand(1), at: 2}), g)
 	if err != nil || e.StartBand != ladderBand(2) || s2.Modules[0].StartBand != ladderBand(2) {
 		t.Errorf("a later grade moved the start band: %+v, %v", e.StartBand, err)
 	}
 
 	// A module with no current version: its evidence moves nothing and waits, with the band of the
 	// state when the module has one.
-	same, e, err := lm.Append(s, choiceAnswer(a, 1, 3, true, ladderBand(1), 3), waiting)
+	same, e, err := lm.Append(s, choiceAnswer(choiceSpec{skill: a, place: 1, difficulty: 3, correct: true, start: ladderBand(1), at: 3}), waiting)
 	if err != nil || !sameState(t, same, s) || e.StartBand != ladderBand(2) {
 		t.Errorf("no current version moved the state: %v, band %+v", err, e.StartBand)
 	}
-	empty, e, err := lm.Append(lm.State{}, choiceAnswer(a, 1, 3, true, ladderBand(3), 3), waiting)
+	empty, e, err := lm.Append(lm.State{}, choiceAnswer(choiceSpec{skill: a, place: 1, difficulty: 3, correct: true, start: ladderBand(3), at: 3}), waiting)
 	if err != nil || len(empty.Modules) != 0 || e.StartBand != ladderBand(3) {
 		t.Errorf("no current version gave a module a state: %+v, %v", empty, err)
 	}
@@ -485,7 +494,7 @@ func TestAppendRules(t *testing.T) {
 		func(a *lm.ItemAnswer) { a.HasFirstVerdict, a.FirstVerdict = false, 0 },
 		func(a *lm.ItemAnswer) { a.FirstVerdict = 7 },
 	} {
-		none := choiceAnswer(a, 1, 3, true, ladderBand(1), 4)
+		none := choiceAnswer(choiceSpec{skill: a, place: 1, difficulty: 3, correct: true, start: ladderBand(1), at: 4})
 		change(&none.Items[0])
 		if got := mustAppend(t, s, none, g); !sameState(t, got, s) {
 			t.Errorf("evidence with no answer moved the state")
@@ -494,14 +503,14 @@ func TestAppendRules(t *testing.T) {
 			t.Errorf("evidence with no answer gave a module a state")
 		}
 	}
-	unknownKind := choiceAnswer(a, 1, 3, true, ladderBand(1), 4)
+	unknownKind := choiceAnswer(choiceSpec{skill: a, place: 1, difficulty: 3, correct: true, start: ladderBand(1), at: 4})
 	unknownKind.Task.Items[0].Slots[0] = lm.Slot{Check: 9}
 	if got := mustAppend(t, s, unknownKind, g); !sameState(t, got, s) {
 		t.Errorf("an item of an unknown check moved the state")
 	}
 
 	// Evidence of a later kind is read as far as this version knows it.
-	later := choiceAnswer(a, 1, 3, true, ladderBand(1), 5)
+	later := choiceAnswer(choiceSpec{skill: a, place: 1, difficulty: 3, correct: true, start: ladderBand(1), at: 5})
 	later.Kind = lm.EvidenceKind + 1
 	if _, _, err := lm.Append(s, later, g); err != nil {
 		t.Errorf("evidence of a later kind: %v", err)
@@ -509,7 +518,7 @@ func TestAppendRules(t *testing.T) {
 
 	// Append changes nothing it was given, and gives a state that shares no memory with it.
 	b := encodeState(t, s)
-	out := mustAppend(t, s, choiceAnswer(a, 1, 3, false, ladderBand(1), 6), g)
+	out := mustAppend(t, s, choiceAnswer(choiceSpec{skill: a, place: 1, difficulty: 3, correct: false, start: ladderBand(1), at: 6}), g)
 	out.Modules[0].Skills[0].Correction = 99
 	out.Modules[0].Trial[0].Slots[0].Options = 99
 	if !bytes.Equal(encodeState(t, s), b) {
@@ -527,17 +536,17 @@ func TestMasteryHeldAndRaised(t *testing.T) {
 		Skills: []lm.SkillState{{Skill: a, Correction: 1, AnswerWeight: 50, EvidenceCount: 50, LastPractice: 1, Stability: 10, Mastered: true, MasteryBand: 2}},
 	}}}
 	// A right answer at band 1: the band held, 2, stays.
-	s = mustAppend(t, s, choiceAnswer(a, 1, 3, true, ladderBand(1), 1), g)
+	s = mustAppend(t, s, choiceAnswer(choiceSpec{skill: a, place: 1, difficulty: 3, correct: true, start: ladderBand(1), at: 1}), g)
 	if sk := skillOf(t, s, a); !sk.Mastered || sk.MasteryBand != 2 {
 		t.Errorf("a right answer below the band held: %+v", sk)
 	}
 	// A right answer at band 3, which λ ≈ 4.6 clears for band 2 but not for band 3.
-	s = mustAppend(t, s, choiceAnswer(a, 3, 3, true, ladderBand(1), 2), g)
+	s = mustAppend(t, s, choiceAnswer(choiceSpec{skill: a, place: 3, difficulty: 3, correct: true, start: ladderBand(1), at: 2}), g)
 	if sk := skillOf(t, s, a); sk.MasteryBand != 2 {
 		t.Errorf("mastered at %d, want still 2", sk.MasteryBand)
 	}
 	s.Modules[0].Level = 7
-	s = mustAppend(t, s, choiceAnswer(a, 3, 3, true, ladderBand(1), 3), g)
+	s = mustAppend(t, s, choiceAnswer(choiceSpec{skill: a, place: 3, difficulty: 3, correct: true, start: ladderBand(1), at: 3}), g)
 	if sk := skillOf(t, s, a); sk.MasteryBand != 3 {
 		t.Errorf("mastered at %d, want raised to 3", sk.MasteryBand)
 	}
@@ -561,7 +570,7 @@ func TestForgettingPage(t *testing.T) {
 		Module: workbook, Level: 0.5, AnswerWeight: 20, StartBand: lm.BandRef{Place: 1, ID: "grade-2"},
 		Skills: []lm.SkillState{{Skill: add, Correction: 0.5, AnswerWeight: 8, EvidenceCount: 3, LastPractice: t0, Stability: 1}},
 	}}}
-	e := page(10, 8, []string{add}, t0+day)
+	e := page(pageSpec{items: 10, right: 8, primary: []string{add}, at: t0 + day})
 	e.Task.Difficulty = 3
 	s := mustAppend(t, before, e, g)
 	m, sk := s.Modules[0], skillOf(t, s, add)
@@ -585,7 +594,7 @@ func TestForgettingPage(t *testing.T) {
 
 	// A time that came back: no forgetting, R = 1, and the last practice stays where it was. A page
 	// all right at R = 1 leaves τ as it is.
-	back := page(10, 10, []string{add}, t0-1000)
+	back := page(pageSpec{items: 10, right: 10, primary: []string{add}, at: t0 - 1000})
 	back.Task.Difficulty = 3
 	s = mustAppend(t, before, back, g)
 	if sk := skillOf(t, s, add); sk.LastPractice != t0 || sk.Stability != 1 {
@@ -598,8 +607,8 @@ func TestForgettingPage(t *testing.T) {
 func TestForgettingTrial(t *testing.T) {
 	g := workbookGraphs(t)
 	add := []string{skill("addition")}
-	soon := mustAppend(t, mustAppend(t, lm.State{}, page(4, 3, add, 0), g), page(4, 4, add, 60), g)
-	late := mustAppend(t, mustAppend(t, lm.State{}, page(4, 3, add, 0), g), page(4, 4, add, 30*day), g)
+	soon := mustAppend(t, mustAppend(t, lm.State{}, page(pageSpec{items: 4, right: 3, primary: add, at: 0}), g), page(pageSpec{items: 4, right: 4, primary: add, at: 60}), g)
+	late := mustAppend(t, mustAppend(t, lm.State{}, page(pageSpec{items: 4, right: 3, primary: add, at: 0}), g), page(pageSpec{items: 4, right: 4, primary: add, at: 30 * day}), g)
 	if len(late.Modules[0].Trial) == 0 || soon.Modules[0].Level != late.Modules[0].Level {
 		t.Errorf("a pause in the trial series moved θ: %v and %v", soon.Modules[0].Level, late.Modules[0].Level)
 	}
@@ -622,8 +631,8 @@ func TestLevelForgetting(t *testing.T) {
 		s.Modules[0].AnswerWeight = n
 		return s
 	}
-	pageAt := func(at int64) lm.Evidence { return page(3, 2, []string{add}, at) } // N · u = 1.8
-	before := ready(t)                                                            // n = 50, addition practised at 100
+	pageAt := func(at int64) lm.Evidence { return page(pageSpec{items: 3, right: 2, primary: []string{add}, at: at}) } // N · u = 1.8
+	before := ready(t)                                                                                                 // n = 50, addition practised at 100
 	for _, c := range []struct {
 		name   string
 		state  lm.State
@@ -672,7 +681,7 @@ func TestLevelForgetting(t *testing.T) {
 	// J = 0: evidence whose primary skill no graph knows moves θ after a pause and brings n down,
 	// but practises no skill, so the pause still runs from addition: the next evidence a day later
 	// brings n down again.
-	unknown := page(3, 2, []string{skill("unknown")}, 100+30*day)
+	unknown := page(pageSpec{items: 3, right: 2, primary: []string{skill("unknown")}, at: 100 + 30*day})
 	s := mustAppend(t, before, unknown, g)
 	if s.Modules[0].Level == before.Modules[0].Level || math.Abs(s.Modules[0].AnswerWeight-21.8) > 1e-12 ||
 		skillOf(t, s, add).LastPractice != 100 || len(s.Modules[0].Skills) != 1 {
@@ -732,7 +741,7 @@ func TestHelp(t *testing.T) {
 	}
 	var plain lm.SkillState
 	for i, c := range cases {
-		e := page(3, 2, []string{add}, 100) // two right and, answered first, one not yet
+		e := page(pageSpec{items: 3, right: 2, primary: []string{add}, at: 100}) // two right and, answered first, one not yet
 		c.change(&e)
 		s := mustAppend(t, ready(t), e, g)
 		sk := skillOf(t, s, add)
@@ -753,7 +762,7 @@ func TestHelp(t *testing.T) {
 func TestOutcomes(t *testing.T) {
 	g := workbookGraphs(t)
 	add := skill("addition")
-	e := page(6, 1, []string{add}, 100)
+	e := page(pageSpec{items: 6, right: 1, primary: []string{add}, at: 100})
 	e.Items[1] = lm.ItemAnswer{Place: 2}
 	e.Items[2] = lm.ItemAnswer{Place: 3, Submitted: true, Unverdicted: []lm.UnverdictedReason{lm.UnverdictedUnreadableBlank, lm.UnverdictedUnreadableBlank}}
 	e.Items[3] = lm.ItemAnswer{Place: 4, Submitted: true, Unverdicted: []lm.UnverdictedReason{lm.UnverdictedUnreadableBlank, lm.UnverdictedUnreadableOther}}
@@ -809,7 +818,7 @@ func TestProvenance(t *testing.T) {
 		{lm.ProvenanceAI, lm.ProvenanceAI, false},
 		{lm.ProvenanceAuthor, 9, false},
 	} {
-		e := page(3, 2, add, 200)
+		e := page(pageSpec{items: 3, right: 2, primary: add, at: 200})
 		e.Task.KeyProvenance, e.Task.SkillTagsProvenance = c.key, c.tags
 		e.Traps = []lm.FoundTrap{{ID: workbook + "/trap/t", Skills: add, ItemPlaces: []int32{3}}}
 		moved := !sameState(t, mustAppend(t, ready(t), e, g), ready(t))
@@ -828,7 +837,7 @@ func TestTraps(t *testing.T) {
 	trap := func(name string, skills ...string) lm.FoundTrap {
 		return lm.FoundTrap{ID: workbook + "/trap/" + name, Skills: skills, ItemPlaces: []int32{1, 2}}
 	}
-	e := page(2, 0, []string{add}, 500)
+	e := page(pageSpec{items: 2, right: 0, primary: []string{add}, at: 500})
 	e.Traps = []lm.FoundTrap{
 		trap("borrow", add, skill("essay")),
 		trap("loose"),
@@ -856,12 +865,12 @@ func TestTraps(t *testing.T) {
 // weighs nothing needs no slot at its answers, since it is never read.
 func TestAppendRefusesItems(t *testing.T) {
 	g := workbookGraphs(t)
-	e := page(2, 1, []string{skill("addition")}, 100)
+	e := page(pageSpec{items: 2, right: 1, primary: []string{skill("addition")}, at: 100})
 	e.Items[1] = lm.ItemAnswer{Place: 2, Unverdicted: []lm.UnverdictedReason{lm.UnverdictedUnreadableBlank}}
 	if _, _, err := lm.Append(ready(t), e, g); !errors.Is(err, lm.ErrInvalid) {
 		t.Errorf("reasons on an item never submitted: %v, want ErrInvalid", err)
 	}
-	ai := page(2, 1, []string{skill("addition")}, 100)
+	ai := page(pageSpec{items: 2, right: 1, primary: []string{skill("addition")}, at: 100})
 	ai.Outcome = lm.Outcome{Kind: lm.OutcomeSolutionShown}
 	ai.Items[1] = lm.ItemAnswer{Place: 2}
 	ai.Task.Items[1].Slots = nil

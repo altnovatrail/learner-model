@@ -48,7 +48,7 @@ func transferLog(pages ...[]string) []lm.Evidence {
 		if i == 1 {
 			items, right = 13, 13
 		}
-		e := hard(page(items, right, primary, at))
+		e := hard(page(pageSpec{items: items, right: right, primary: primary, at: at}))
 		if i%2 == 0 {
 			e.Traps = []lm.FoundTrap{{ID: workbook + "/trap/borrow", Skills: primary, ItemPlaces: []int32{1}}}
 		}
@@ -187,8 +187,8 @@ func TestTransferSplit(t *testing.T) {
 func TestWeightThresholdsTransferred(t *testing.T) {
 	add, count := skill("addition"), skill("counting")
 	g := versionGraphs(t, []string{count}, nil, nil, lm.RetiredSkill{ID: add, ReplacedBy: []string{count}})
-	s := mustAppend(t, lm.State{}, hard(page(8, 8, []string{add}, 1)), g)
-	s = mustAppend(t, s, hard(page(13, 13, []string{count}, 2)), g)
+	s := mustAppend(t, lm.State{}, hard(page(pageSpec{items: 8, right: 8, primary: []string{add}, at: 1})), g)
+	s = mustAppend(t, s, hard(page(pageSpec{items: 13, right: 13, primary: []string{count}, at: 2})), g)
 	sk := skillOf(t, s, count)
 	if len(s.Modules[0].Skills) != 1 || !(sk.AnswerWeight > 5-1e-9 && sk.AnswerWeight < 5+1e-9) || !sk.Mastered || sk.MasteryBand != 1 {
 		t.Errorf("counting after the pages: m %v, mastered %v at %d; want m = 5, mastered at band 1", sk.AnswerWeight, sk.Mastered, sk.MasteryBand)
@@ -216,7 +216,7 @@ func TestAnchorSkills(t *testing.T) {
 // gives without what this version does not know.
 func TestReadKinds(t *testing.T) {
 	g := workbookGraphs(t)
-	e := page(4, 2, []string{skill("addition")}, 200)
+	e := page(pageSpec{items: 4, right: 2, primary: []string{skill("addition")}, at: 200})
 	e.Outcome = lm.Outcome{Kind: 42}
 	e.Task.Items[1].Slots[0].Check = 17
 	e.Items[2].FirstVerdict = 9
@@ -238,7 +238,7 @@ func TestReadKinds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	known := page(4, 2, []string{skill("addition")}, 200)
+	known := page(pageSpec{items: 4, right: 2, primary: []string{skill("addition")}, at: 200})
 	known.Outcome = lm.Outcome{Kind: lm.OutcomeUnchecked}
 	known.Task.Items = []lm.TaskItem{known.Task.Items[0], known.Task.Items[3]}
 	known.Items = []lm.ItemAnswer{known.Items[0], known.Items[3]}
@@ -248,7 +248,7 @@ func TestReadKinds(t *testing.T) {
 
 	// Kind 1 does not record the leading question, and reads as kind 2 without it: its bytes come
 	// back as they were, without field 20, and give the state kind 2 gives.
-	one := page(4, 2, []string{skill("addition")}, 200)
+	one := page(pageSpec{items: 4, right: 2, primary: []string{skill("addition")}, at: 200})
 	one.Kind = 1
 	b1, err := lm.EncodeEvidence(one)
 	if err != nil {
@@ -261,7 +261,7 @@ func TestReadKinds(t *testing.T) {
 	if again, err := lm.EncodeEvidence(read); err != nil || !bytes.Equal(again, b1) {
 		t.Errorf("evidence of kind 1 comes back as %x, %v; not %x", again, err, b1)
 	}
-	two := page(4, 2, []string{skill("addition")}, 200)
+	two := page(pageSpec{items: 4, right: 2, primary: []string{skill("addition")}, at: 200})
 	if a, b := mustAppend(t, ready(t), read, g), mustAppend(t, ready(t), two, g); !bytes.Equal(encodeState(t, a), encodeState(t, b)) {
 		t.Errorf("evidence of kind 1 gives\n%+v\nand of kind 2\n%+v", a, b)
 	}

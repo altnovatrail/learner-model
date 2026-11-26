@@ -69,7 +69,7 @@ func TestStartBelowTheGrade(t *testing.T) {
 	}
 	// The first evidence starts the module at the same point: an answer weighing nothing in the
 	// series would leave θ at θ₀ = −2.5, and a right one lifts it from there.
-	s := mustAppend(t, lm.State{}, choiceAnswer(topic("a"), 1, 3, true, ladderBand(1), 1000), g)
+	s := mustAppend(t, lm.State{}, choiceAnswer(choiceSpec{skill: topic("a"), place: 1, difficulty: 3, correct: true, start: ladderBand(1), at: 1000}), g)
 	if m := s.Modules[0]; m.StartBand != ladderBand(1) || !(m.Level > -2.5 && m.Level < 0) {
 		t.Errorf("after a right answer from the start of grade 1: start %+v, θ %v", m.StartBand, m.Level)
 	}
@@ -141,7 +141,7 @@ func TestCorrection(t *testing.T) {
 
 	// In the trial series the correction ends it: no trial answers, and the next answer is a step
 	// of Elo, past the series.
-	trial := mustAppend(t, lm.State{}, choiceAnswer(topic("a"), 1, 3, true, ladderBand(2), 1000), g)
+	trial := mustAppend(t, lm.State{}, choiceAnswer(choiceSpec{skill: topic("a"), place: 1, difficulty: 3, correct: true, start: ladderBand(2), at: 1000}), g)
 	trial = mustAppend(t, trial, lm.LevelCorrection(olympiad, ladderBand(3), ladderBand(2), 2000), g)
 	if m := trial.Modules[0]; m.Level != 5 || len(m.Trial) != 0 || !m.TrialEndedByAdult || m.LastInTrial || m.AnswerWeight != 1 {
 		t.Errorf("a correction in the trial series: %+v", m)
@@ -149,7 +149,7 @@ func TestCorrection(t *testing.T) {
 	if r := moduleOf(t, mustRead(t, trial, g, 2000, lm.Grade{}, olympiad), olympiad); !r.TrialOver || r.LastInTrial {
 		t.Errorf("the reading after a correction in the series: %+v", r)
 	}
-	next := mustAppend(t, trial, choiceAnswer(topic("a"), 3, 3, true, ladderBand(2), 3000), g)
+	next := mustAppend(t, trial, choiceAnswer(choiceSpec{skill: topic("a"), place: 3, difficulty: 3, correct: true, start: ladderBand(2), at: 3000}), g)
 	if m := next.Modules[0]; len(m.Trial) != 0 || m.LastInTrial || !(m.Level > 5) || !m.TrialEndedByAdult {
 		t.Errorf("an answer after a correction in the series: %+v", m)
 	}
@@ -166,7 +166,7 @@ func TestCorrection(t *testing.T) {
 	}
 	// In the band already, the correction still ends the series and starts the guard's count anew,
 	// and the level stays where it is.
-	inBand := mustAppend(t, lm.State{}, choiceAnswer(topic("a"), 1, 3, true, ladderBand(2), 1000), g)
+	inBand := mustAppend(t, lm.State{}, choiceAnswer(choiceSpec{skill: topic("a"), place: 1, difficulty: 3, correct: true, start: ladderBand(2), at: 1000}), g)
 	level := inBand.Modules[0].Level
 	inBand = mustAppend(t, inBand, lm.LevelCorrection(olympiad, ladderBand(1), ladderBand(2), 2000), g)
 	if m := inBand.Modules[0]; m.Level != level || len(m.Trial) != 0 || !m.TrialEndedByAdult {
@@ -184,9 +184,9 @@ func TestCorrection(t *testing.T) {
 	}
 	// Appended and recomputed are the same.
 	log := []lm.Evidence{
-		choiceAnswer(topic("a"), 1, 3, true, ladderBand(2), 1000),
+		choiceAnswer(choiceSpec{skill: topic("a"), place: 1, difficulty: 3, correct: true, start: ladderBand(2), at: 1000}),
 		lm.LevelCorrection(olympiad, ladderBand(3), ladderBand(2), 2000),
-		choiceAnswer(topic("a"), 3, 3, true, ladderBand(2), 3000),
+		choiceAnswer(choiceSpec{skill: topic("a"), place: 3, difficulty: 3, correct: true, start: ladderBand(2), at: 3000}),
 	}
 	if got, err := lm.Recompute(log, g); err != nil || !sameState(t, got, next) {
 		t.Errorf("Recompute of the corrected log: %v", err)
@@ -240,9 +240,18 @@ func TestCorrectionRefused(t *testing.T) {
 	}
 }
 
+// stuckSpec is a task the learner was stuck on: its skill, band place and difficulty, and the
+// practice time.
+type stuckSpec struct {
+	skill             string
+	place, difficulty int32
+	at                int64
+}
+
 // stuckOn is a wrong answer of choiceAnswer the learner was stuck on: the solution shown.
-func stuckOn(skillID string, place, difficulty int32, at int64) lm.Evidence {
-	return choiceAnswer(skillID, place, difficulty, false, ladderBand(1), at)
+func stuckOn(s stuckSpec) lm.Evidence {
+	return choiceAnswer(choiceSpec{skill: s.skill, place: s.place, difficulty: s.difficulty, correct: false,
+		start: ladderBand(lm.FirstPlace), at: s.at})
 }
 
 // The guard: three tasks in a row the model gave as fitting and the learner was stuck on lower the
@@ -255,7 +264,7 @@ func TestGuard(t *testing.T) {
 	s.Modules[0].Skills[0].Correction = 0.3
 	thetas := []float64{0.8185, 0.7437, 0.6755 - 2.5}
 	for i, want := range thetas {
-		s = mustAppend(t, s, stuckOn(a, 1, 3, 1000), g)
+		s = mustAppend(t, s, stuckOn(stuckSpec{skill: a, place: 1, difficulty: 3, at: 1000}), g)
 		near(t, "θ after failure "+itoa(i+1), s.Modules[0].Level, want)
 		if s.Modules[0].FailuresInARow != int32(i+1) {
 			t.Errorf("failure %d: the count %d", i+1, s.Modules[0].FailuresInARow)
@@ -263,14 +272,14 @@ func TestGuard(t *testing.T) {
 	}
 	// The next task of the band 1-2 is too hard by the model's estimate now: stuck on it, it is no
 	// failure, and the count starts anew.
-	s = mustAppend(t, s, stuckOn(a, 1, 3, 1000), g)
+	s = mustAppend(t, s, stuckOn(stuckSpec{skill: a, place: 1, difficulty: 3, at: 1000}), g)
 	if m := s.Modules[0]; m.FailuresInARow != 0 || !(m.Level > -2.5) {
 		t.Errorf("stuck on a task the model took for too hard: %+v", m)
 	}
 	// A choice of two far above the level is too hard too, though its P is never below ½.
 	two := settled(0.9)
 	two.Modules[0].FailuresInARow = 2
-	hard := stuckOn(a, 3, 5, 1000)
+	hard := stuckOn(stuckSpec{skill: a, place: 3, difficulty: 5, at: 1000})
 	hard.Task.Items[0].Slots[0].Options = 2
 	if m := mustAppend(t, two, hard, g).Modules[0]; m.FailuresInARow != 0 || !(m.Level > 0.5) {
 		t.Errorf("stuck on a choice of two far above the level: %+v", m)
@@ -278,7 +287,7 @@ func TestGuard(t *testing.T) {
 	// Failures put right on a rung are none.
 	right := settled(0.9)
 	for range 3 {
-		right = mustAppend(t, right, putRight(choiceAnswer(a, 1, 3, false, ladderBand(1), 1000)), g)
+		right = mustAppend(t, right, putRight(choiceAnswer(choiceSpec{skill: a, place: 1, difficulty: 3, correct: false, start: ladderBand(1), at: 1000})), g)
 	}
 	if m := right.Modules[0]; m.FailuresInARow != 0 || !(m.Level > 0.5) {
 		t.Errorf("three failures put right: %+v", m)
@@ -289,12 +298,12 @@ func TestGuard(t *testing.T) {
 	low := settled(0.9)
 	low.Modules[0].Skills[0].Correction = 4
 	for range 4 {
-		low = mustAppend(t, low, stuckOn(a, 1, 3, 1000), g)
+		low = mustAppend(t, low, stuckOn(stuckSpec{skill: a, place: 1, difficulty: 3, at: 1000}), g)
 	}
 	if m := low.Modules[0]; m.FailuresInARow != 4 || !(m.Level > -2.5 && m.Level < -1.5) {
 		t.Errorf("a run of four: %+v", m)
 	}
-	low = mustAppend(t, low, choiceAnswer(a, 1, 1, true, ladderBand(1), 1000), g)
+	low = mustAppend(t, low, choiceAnswer(choiceSpec{skill: a, place: 1, difficulty: 1, correct: true, start: ladderBand(1), at: 1000}), g)
 	if m := low.Modules[0]; m.FailuresInARow != 0 {
 		t.Errorf("a right answer after the run: %+v", m)
 	}
@@ -304,7 +313,7 @@ func TestGuard(t *testing.T) {
 		f := settled(c.from)
 		f.Modules[0].Skills[0].Correction = 4
 		f.Modules[0].FailuresInARow = 2
-		f = mustAppend(t, f, stuckOn(a, 1, 1, 1000), g)
+		f = mustAppend(t, f, stuckOn(stuckSpec{skill: a, place: 1, difficulty: 1, at: 1000}), g)
 		if m := f.Modules[0]; !(m.Level <= c.at+0.01 && m.Level >= c.at-0.2) || m.FailuresInARow != 3 {
 			t.Errorf("the guard from θ = %v: %+v, want about %v", c.from, m, c.at)
 		}
@@ -319,7 +328,7 @@ func TestGuard(t *testing.T) {
 	}
 	var series lm.State
 	for i := range 4 {
-		series = mustAppend(t, series, choiceAnswer(a, 1, 1, false, ladderBand(3), int64(i)), g)
+		series = mustAppend(t, series, choiceAnswer(choiceSpec{skill: a, place: 1, difficulty: 1, correct: false, start: ladderBand(3), at: int64(i)}), g)
 	}
 	if m := series.Modules[0]; m.FailuresInARow != 0 || len(m.Trial) != 4 {
 		t.Errorf("stuck in the trial series: %+v", m)
@@ -335,14 +344,14 @@ func TestGuardPage(t *testing.T) {
 		Module: workbook, Level: 2, AnswerWeight: 20, StartBand: lm.BandRef{Place: 1, ID: "grade-2"}, FailuresInARow: 2,
 	}}}
 	// One of four right: stuck. Two of four: no failure.
-	if m := mustAppend(t, base, page(4, 1, add, 1000), g).Modules[0]; m.FailuresInARow != 3 || !(m.Level < 0) {
+	if m := mustAppend(t, base, page(pageSpec{items: 4, right: 1, primary: add, at: 1000}), g).Modules[0]; m.FailuresInARow != 3 || !(m.Level < 0) {
 		t.Errorf("a page of one right in four: %+v", m)
 	}
-	if m := mustAppend(t, base, page(4, 2, add, 1000), g).Modules[0]; m.FailuresInARow != 0 {
+	if m := mustAppend(t, base, page(pageSpec{items: 4, right: 2, primary: add, at: 1000}), g).Modules[0]; m.FailuresInARow != 0 {
 		t.Errorf("a page of two right in four: %+v", m)
 	}
 	// Wrong at first, right at the end: solved.
-	fixed := page(4, 1, add, 1000)
+	fixed := page(pageSpec{items: 4, right: 1, primary: add, at: 1000})
 	for i := 1; i < 4; i++ {
 		fixed.Items[i].FinalVerdict, fixed.Items[i].HasFinalVerdict = lm.VerdictCorrect, true
 	}
@@ -350,7 +359,7 @@ func TestGuardPage(t *testing.T) {
 		t.Errorf("a page put right at the end: %+v", m)
 	}
 	// Right at first, not yet at the end: not solved.
-	undone := page(4, 4, add, 1000)
+	undone := page(pageSpec{items: 4, right: 4, primary: add, at: 1000})
 	for i := 1; i < 4; i++ {
 		undone.Items[i].FinalVerdict, undone.Items[i].HasFinalVerdict = lm.VerdictNotYet, true
 	}
@@ -364,7 +373,7 @@ func TestGuardState(t *testing.T) {
 	g := olympiadGraphs(t, map[string][]int32{topic("a"): {1, 2, 3}})
 	inTrial := settled(0)
 	inTrial.Modules[0].AnswerWeight, inTrial.Modules[0].LastInTrial, inTrial.Modules[0].FailuresInARow = 2, true, 1
-	if _, _, err := lm.Append(inTrial, stuckOn(topic("a"), 1, 3, 1000), g); !errors.Is(err, lm.ErrInvalid) {
+	if _, _, err := lm.Append(inTrial, stuckOn(stuckSpec{skill: topic("a"), place: 1, difficulty: 3, at: 1000}), g); !errors.Is(err, lm.ErrInvalid) {
 		t.Errorf("a count of the guard in the trial series: %v", err)
 	}
 	negative := settled(0)
@@ -428,19 +437,19 @@ func rulesLog() []lm.Evidence {
 	}
 	var log []lm.Evidence
 	for i := range 5 {
-		log = append(log, choiceAnswer(topic("a"), 1, 3, i != 2, start, next()))
+		log = append(log, choiceAnswer(choiceSpec{skill: topic("a"), place: 1, difficulty: 3, correct: i != 2, start: start, at: next()}))
 	}
 	log = append(log,
 		lm.LevelCorrection(olympiad, ladderBand(2), start, next()),
 		lm.LevelCorrection(olympiad, ladderBand(2), start, next()))
 	for i := range 4 {
-		log = append(log, stuckOn(topic([]string{"a", "b"}[i%2]), 2, 2, next()))
+		log = append(log, stuckOn(stuckSpec{skill: topic([]string{"a", "b"}[i%2]), place: 2, difficulty: 2, at: next()}))
 	}
-	log = append(log, choiceAnswer(topic("a"), 1, 3, true, start, next()))
+	log = append(log, choiceAnswer(choiceSpec{skill: topic("a"), place: 1, difficulty: 3, correct: true, start: start, at: next()}))
 	grade2 := lm.BandRef{Place: 1, ID: "grade-2"}
 	log = append(log,
 		lm.LevelCorrection(workbook, lm.BandRef{Place: 2, ID: "grade-3"}, grade2, next()),
-		page(4, 3, []string{skill("addition")}, next()))
+		page(pageSpec{items: 4, right: 3, primary: []string{skill("addition")}, at: next()}))
 	return log
 }
 

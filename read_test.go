@@ -217,17 +217,17 @@ func TestTrialFlags(t *testing.T) {
 		t.Errorf("a module of the engine before its first evidence: %+v", m)
 	}
 	for i := range 4 {
-		s = mustAppend(t, s, choiceAnswer(topic("a"), 2, 3, i%2 == 0, ladderBand(2), int64(i)), g)
+		s = mustAppend(t, s, choiceAnswer(choiceSpec{skill: topic("a"), place: 2, difficulty: 3, correct: i%2 == 0, start: ladderBand(2), at: int64(i)}), g)
 		flags("in the series", s, false, true)
 	}
-	s = mustAppend(t, s, choiceAnswer(topic("a"), 2, 3, false, ladderBand(2), 4), g)
+	s = mustAppend(t, s, choiceAnswer(choiceSpec{skill: topic("a"), place: 2, difficulty: 3, correct: false, start: ladderBand(2), at: 4}), g)
 	flags("at its last evidence", s, true, true)
 
-	ai := choiceAnswer(topic("a"), 2, 3, false, ladderBand(2), 5)
+	ai := choiceAnswer(choiceSpec{skill: topic("a"), place: 2, difficulty: 3, correct: false, start: ladderBand(2), at: 5})
 	ai.Task.SkillTagsProvenance = lm.ProvenanceAI
 	flags("after evidence that weighs nothing", mustAppend(t, s, ai, g), true, true)
 
-	s = mustAppend(t, s, choiceAnswer(topic("a"), 2, 3, true, ladderBand(2), 6), g)
+	s = mustAppend(t, s, choiceAnswer(choiceSpec{skill: topic("a"), place: 2, difficulty: 3, correct: true, start: ladderBand(2), at: 6}), g)
 	flags("after it", s, true, false)
 }
 

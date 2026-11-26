@@ -25,11 +25,11 @@ func anchorsLog() []lm.Evidence {
 	var log []lm.Evidence
 	for i := range 3 {
 		at += 3600
-		log = append(log, choiceAnswer(topic("a"), 2, 3, i != 1, ladderBand(2), at))
+		log = append(log, choiceAnswer(choiceSpec{skill: topic("a"), place: 2, difficulty: 3, correct: i != 1, start: ladderBand(2), at: at}))
 	}
 	for i := range 6 {
 		at += day
-		e := page(4, 4-i%5/4, []string{schoolSkill("division")}, at)
+		e := page(pageSpec{items: 4, right: 4 - i%5/4, primary: []string{schoolSkill("division")}, at: at})
 		e.Task.ID, e.Task.Band, e.Task.Difficulty = school+"/task/page", lm.BandRef{Place: 1, ID: "grade-3"}, 4
 		e.StartBand = lm.BandRef{Place: 1, ID: "grade-3"}
 		log = append(log, e)
