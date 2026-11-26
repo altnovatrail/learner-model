@@ -58,14 +58,36 @@ func functionNamed(name string) (function, bool) {
 	return function{}, false
 }
 
+// The points of the edges about exp and σ, each taken with both signs where the list has it.
+const (
+	// σ is exactly 1 in floats from 53 · ln 2 ≈ 36.737 up, where e**(−x) falls below half an
+	// ulp of 1: sigmoidBelowOne is just before it, sigmoidOne just past it.
+	sigmoidBelowOne = 36.7
+	sigmoidOne      = 36.8
+	// large is an argument far from every edge, and insideBounds one near the bounds of Exp, ±708,
+	// but within them.
+	large        = 100
+	insideBounds = 700
+	// pastBounds is past the bounds of Exp, which hold it to them, and short of exp's overflow;
+	// belowOverflow is just short of the overflow, and pastUnderflow just past the underflow, where
+	// exp would give 0.
+	pastBounds    = 709
+	belowOverflow = 709.78
+	pastUnderflow = -745.2
+	// farOut is past every threshold of exp, and huge near the largest float.
+	farOut = 1000
+	huge   = 1e300
+)
+
 // Values every function meets at its edges: the ends of the floats, zeros, NaN and the infinities.
 var edges = []float64{
 	0, math.Copysign(0, -1), math.SmallestNonzeroFloat64, -math.SmallestNonzeroFloat64,
 	detmath.MinNormal, -detmath.MinNormal, math.MaxFloat64, -math.MaxFloat64, math.Inf(1),
 	math.Inf(-1), detmath.NaN, detmath.OtherNaN, 1, -1, 0.5, -0.5, 2, math.E, math.Sqrt2 / 2,
 	detmath.Below(math.Sqrt2 / 2), detmath.ExpNearZero, -detmath.ExpNearZero,
-	detmath.Below(detmath.ExpNearZero), 36.7, -36.7, 36.8, 100, -100, 700, -700,
-	detmath.ExpMax, detmath.ExpMin, 709, -709, 709.78, -745.2, 1000, -1000, 1e300, -1e300,
+	detmath.Below(detmath.ExpNearZero), sigmoidBelowOne, -sigmoidBelowOne, sigmoidOne, large, -large,
+	insideBounds, -insideBounds, detmath.ExpMax, detmath.ExpMin, pastBounds, -pastBounds,
+	belowOverflow, pastUnderflow, farOut, -farOut, huge, -huge,
 }
 
 // The first words of the seeds of the golden table's draws and of the sweep's; the other word is
