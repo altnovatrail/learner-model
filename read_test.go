@@ -13,7 +13,7 @@ import (
 
 // Reading the state at a time t₀: Read and Readout.Task. Every value here is synthetic.
 
-const day = 86400
+const day = lm.SecondsPerDay
 
 // The anchor skills of the examples of docs/architecture.md: school maths of grade 3 teaches
 // division with remainder and fractions of a whole, and olympiad maths relies on them.

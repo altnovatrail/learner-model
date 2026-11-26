@@ -42,7 +42,7 @@ func TestTaskIsTheStepsChance(t *testing.T) {
 
 	var state State
 	for n := range 6 {
-		at := int64(n) * 9 * 86400 // pauses of nine days
+		at := int64(n) * 9 * day // pauses of nine days
 		e := page(at, s("a"), s("b"))
 		r, err := Read(state, graphs, at, Grade{Value: 3, Known: true}, []string{module})
 		if err != nil {

@@ -53,7 +53,7 @@ func transferLog(pages ...[]string) []lm.Evidence {
 			e.Traps = []lm.FoundTrap{{ID: workbook + "/trap/borrow", Skills: primary, ItemPlaces: []int32{1}}}
 		}
 		log = append(log, e)
-		at += int64(i+1) * 86400
+		at += int64(i+1) * day
 	}
 	return log
 }

@@ -52,12 +52,12 @@ func functionNamed(name string) (function, bool) {
 
 // Values every function meets at its edges: the ends of the floats, zeros, NaN and the infinities.
 var edges = []float64{
-	0, math.Copysign(0, -1), math.SmallestNonzeroFloat64, -math.SmallestNonzeroFloat64, 0x1p-1022,
-	-0x1p-1022, math.MaxFloat64, -math.MaxFloat64, math.Inf(1), math.Inf(-1),
-	math.Float64frombits(0x7FF8000000000001), math.Float64frombits(0xFFF0000000000001),
-	1, -1, 0.5, -0.5, 2, math.E, math.Sqrt2 / 2, below(math.Sqrt2 / 2), 0x1p-28,
-	-0x1p-28, below(0x1p-28), 36.7, -36.7, 36.8, 100, -100, 700, -700, 708, -708,
-	709, -709, 709.78, -745.2, 1000, -1000, 1e300, -1e300,
+	0, math.Copysign(0, -1), math.SmallestNonzeroFloat64, -math.SmallestNonzeroFloat64,
+	detmath.MinNormal, -detmath.MinNormal, math.MaxFloat64, -math.MaxFloat64, math.Inf(1),
+	math.Inf(-1), detmath.NaN, detmath.OtherNaN, 1, -1, 0.5, -0.5, 2, math.E, math.Sqrt2 / 2,
+	detmath.Below(math.Sqrt2 / 2), detmath.ExpNearZero, -detmath.ExpNearZero,
+	detmath.Below(detmath.ExpNearZero), 36.7, -36.7, 36.8, 100, -100, 700, -700,
+	detmath.ExpMax, detmath.ExpMin, 709, -709, 709.78, -745.2, 1000, -1000, 1e300, -1e300,
 }
 
 // goldenInputs gives the inputs of the golden table: the edges, and values drawn where each
@@ -89,8 +89,8 @@ func goldenInputs(f function) [][]float64 {
 	case "pow":
 		// The rule of τ: (1 + g · (1 − R))^S̄ with g = 15 and (1/2)^(1 − S̄), with S̄ within
 		// [0, 1]; and the exact branches and the edges.
-		for _, a := range []float64{0.5, 1, 1.5, 2.5, 16, 0x1p-1022, math.MaxFloat64, 0, -1, nan} {
-			for _, s := range []float64{0, 1, 0.5, -1, 2, math.Inf(1), math.Inf(-1), nan} {
+		for _, a := range []float64{0.5, 1, 1.5, 2.5, 16, detmath.MinNormal, math.MaxFloat64, 0, -1, detmath.NaN} {
+			for _, s := range []float64{0, 1, 0.5, -1, 2, math.Inf(1), math.Inf(-1), detmath.NaN} {
 				in = append(in, []float64{a, s})
 			}
 		}
@@ -104,8 +104,8 @@ func goldenInputs(f function) [][]float64 {
 			in = append(in, []float64{positiveNormal(r), uniform(r, -2, 2)})
 		}
 	case "retention":
-		for _, dt := range []float64{0, 1, -1, 1.0 / 720, 60, 3650, 1e300, math.Inf(1), nan} {
-			for _, tau := range []float64{1, 2.5, 10, 63.3, 0, 0x1p-1022, math.MaxFloat64, math.Inf(1), nan} {
+		for _, dt := range []float64{0, 1, -1, 1.0 / 720, 60, 3650, 1e300, math.Inf(1), detmath.NaN} {
+			for _, tau := range []float64{1, 2.5, 10, 63.3, 0, detmath.MinNormal, math.MaxFloat64, math.Inf(1), detmath.NaN} {
 				in = append(in, []float64{dt, tau})
 			}
 		}
@@ -228,7 +228,7 @@ func TestSweep(t *testing.T) {
 		var buf []byte
 		sweepInputs(f, func(args []float64) {
 			y := f.call(args)
-			if math.IsNaN(y) || math.IsInf(y, 0) || (y != 0 && math.Abs(y) < 0x1p-1022) {
+			if math.IsNaN(y) || math.IsInf(y, 0) || (y != 0 && math.Abs(y) < detmath.MinNormal) {
 				t.Errorf("%s%v = %v: not a finite normal number or zero", f.name, args, y)
 			}
 			buf = binary.LittleEndian.AppendUint64(buf[:0], math.Float64bits(y))
@@ -271,9 +271,3 @@ func TestSweep(t *testing.T) {
 		}
 	}
 }
-
-// The NaN that math.NaN gives, and the float just below a positive one, by their bits: the tests
-// take math.NaN and math.Nextafter no more than the code does.
-var nan = math.Float64frombits(0x7FF8000000000001)
-
-func below(x float64) float64 { return math.Float64frombits(math.Float64bits(x) - 1) }

@@ -243,7 +243,7 @@ func shownBytes(s string) string {
 	var b strings.Builder
 	for i := range len(s) {
 		c := s[i]
-		if c >= 0x20 && c < 0x7f {
+		if c >= ' ' && c <= '~' {
 			b.WriteByte(c)
 		} else {
 			b.WriteString(`\x`)

@@ -69,7 +69,7 @@ func olympiadLog() []lm.Evidence {
 	add(topic("a"), 2, 4, false)
 	log[len(log)-1].Traps = []lm.FoundTrap{{ID: olympiad + "/trap/order", Skills: []string{topic("a")}, ItemPlaces: []int32{1}}}
 	add(topic("a"), 2, 5, false)
-	at += 60 * 86400 // a summer break: retention falls, and the next right answers raise τ much
+	at += 60 * day // a summer break: retention falls, and the next right answers raise τ much
 	for range 4 {
 		add(topic("a"), 2, 2, true)
 	}
@@ -84,7 +84,7 @@ func workbookLog() []lm.Evidence {
 	both := []string{skill("addition"), skill("subtraction")}
 	var log []lm.Evidence
 	for i, p := range []struct{ items, right int }{{10, 8}, {10, 9}, {6, 2}, {12, 12}, {10, 7}, {10, 3}, {10, 3}, {20, 20}} {
-		e := page(p.items, p.right, both, 1762041600+int64(86400*i))
+		e := page(p.items, p.right, both, 1762041600+int64(day*i))
 		e.Task.Items[0].OwnSkills, e.Task.Items[0].Primary = true, []string{skill("addition")}
 		e.Task.Items[1].OwnSkills, e.Task.Items[1].Primary = true, []string{skill("essay")}
 		e.Items[p.items-1].HasFirstVerdict, e.Items[p.items-1].FirstVerdict, e.Items[p.items-1].Submitted = false, 0, false
@@ -182,7 +182,7 @@ func breakLog() []lm.Evidence {
 	for i := range 24 {
 		add(topic([]string{"a", "b"}[i%2]), 2, int32(2+i%3), i%4 != 3)
 	}
-	at += 30 * 86400
+	at += 30 * day
 	add(topic("a"), 2, 3, false)
 	add(topic("a"), 2, 3, true)
 	add(topic("b"), 2, 4, true)
@@ -203,21 +203,21 @@ func format04Log() []lm.Evidence {
 		log = append(log, e)
 	}
 	for i, right := range []int{8, 9, 10} {
-		next(page(10, right, add, at+int64(86400*i)), 1)
+		next(page(10, right, add, at+int64(day*i)), 1)
 	}
-	times := page(10, 8, add, at+3*86400)
+	times := page(10, 8, add, at+3*day)
 	for i := range times.Task.Items {
 		times.Task.Items[i].Slots = []lm.Slot{{Check: lm.CheckKindTime}}
 	}
 	times.Traps = []lm.FoundTrap{{ID: workbook + "/trap/twelve-hours-off", Skills: add, ItemPlaces: []int32{9, 10}}}
 	next(times, 2)
-	both := page(10, 9, add, at+4*86400)
+	both := page(10, 9, add, at+4*day)
 	for i := range both.Task.Items {
 		both.Task.Items[i].Slots = []lm.Slot{{Check: lm.CheckKindNumber}, {Check: lm.CheckKindTime}}
 	}
 	next(both, 2)
 	for i, leading := range []bool{false, false, true, false} {
-		e := hard(page(12, 12, add, at+int64(86400*(5+i))))
+		e := hard(page(12, 12, add, at+int64(day*(5+i))))
 		for k := range e.Task.Items {
 			e.Task.Items[k].Slots = []lm.Slot{{Check: lm.CheckKindTime}}
 		}

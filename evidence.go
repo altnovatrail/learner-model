@@ -127,7 +127,7 @@ func LevelCorrection(module string, band, start BandRef, at int64) Evidence {
 	return Evidence{
 		Kind: EvidenceKind,
 		Task: Task{
-			ID: module + levelKind + band.ID, Band: band, Difficulty: 3,
+			ID: module + levelKind + band.ID, Band: band, Difficulty: middleDifficulty,
 			KeyProvenance: ProvenanceAdult, SkillTagsProvenance: ProvenanceAdult,
 		},
 		StartBand:       start,

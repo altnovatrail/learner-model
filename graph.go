@@ -49,7 +49,7 @@ func NewGraph(module string, bands []Band, skills []Skill, retired []RetiredSkil
 		if t.Band.ID != bands[t.Band.Place-1].ID {
 			return Graph{}, invalid("task " + t.ID + " in band " + t.Band.ID + " at the place of band " + bands[t.Band.Place-1].ID)
 		}
-		if t.Difficulty < 1 || t.Difficulty > 5 {
+		if t.Difficulty < minDifficulty || t.Difficulty > maxDifficulty {
 			return Graph{}, invalid("task " + t.ID + " of difficulty " + strconv.Itoa(int(t.Difficulty)))
 		}
 		// The task's own primary skills count when an item takes them, or when the task has no

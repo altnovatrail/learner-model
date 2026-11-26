@@ -1,9 +1,10 @@
 // This file ports exp, expmulti and log from package math of Go 1.27.3 — the pure Go code that math
 // itself runs on wasm and 386 — with every float * and / held by float64(), so that no build fuses
-// them. Beside those, four changes, none of which changes a bit: the functions of math are called
+// them. Beside those, five changes, none of which changes a bit: the functions of math are called
 // by their package; int(…) of a float is truncate, which checks its range; f1 *= 2 is
-// f1 = float64(f1 * 2), since *= cannot be held; and NaN() is the same bits by Float64frombits,
-// since math.NaN is not among the functions of math the code may call. The constants, the order of
+// f1 = float64(f1 * 2), since *= cannot be held; NaN() is the same bits by Float64frombits,
+// since math.NaN is not among the functions of math the code may call; and the thresholds of exp
+// stand outside it, so that the tests take them by name. The constants, the order of
 // the operations and the special cases are Go's, and on wasm and 386 the port gives math.Exp and
 // math.Log bit for bit. Its notices are kept below as both licenses ask; they are the notices
 // of package math itself, which every Go binary that imports math carries already.
@@ -116,26 +117,30 @@ import "math"
 // compiler will convert from decimal to binary accurately enough
 // to produce the hexadecimal values shown.
 
+// The thresholds of exp: above expOverflow e**x overflows to +Inf, below expUnderflow it
+// underflows to 0, and within ±expNearZero it is 1 + x.
+const (
+	expOverflow  = 7.09782712893383973096e+02
+	expUnderflow = -7.45133219101941108420e+02
+	expNearZero  = 1.0 / (1 << 28) // 2**-28
+)
+
 func exp(x float64) float64 {
 	const (
 		Ln2Hi = 6.93147180369123816490e-01
 		Ln2Lo = 1.90821492927058770002e-10
 		Log2e = 1.44269504088896338700e+00
-
-		Overflow  = 7.09782712893383973096e+02
-		Underflow = -7.45133219101941108420e+02
-		NearZero  = 1.0 / (1 << 28) // 2**-28
 	)
 
 	// special cases
 	switch {
 	case math.IsNaN(x):
 		return x
-	case x > Overflow: // handles case where x is +∞
+	case x > expOverflow: // handles case where x is +∞
 		return math.Inf(1)
-	case x < Underflow: // handles case where x is -∞
+	case x < expUnderflow: // handles case where x is -∞
 		return 0
-	case -NearZero < x && x < NearZero:
+	case -expNearZero < x && x < expNearZero:
 		return 1 + x
 	}
 

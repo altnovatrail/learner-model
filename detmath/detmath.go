@@ -86,18 +86,20 @@ func clamp(x, lo, hi float64) float64 {
 	return lo
 }
 
+// truncateLimit is the bound of truncate, 2**30.
+const truncateLimit = 1 << 30
+
 // truncate converts x to an int toward zero, as int(x) does, but only within ±2**30, where every
 // build converts alike; outside it, it saturates, and NaN gives 0. The port calls it with
 // |x| < 1100.
 func truncate(x float64) int {
-	const limit = 1 << 30
 	switch {
-	case x >= -limit && x <= limit:
+	case x >= -truncateLimit && x <= truncateLimit:
 		return int(x)
-	case x > limit:
-		return limit
-	case x < -limit:
-		return -limit
+	case x > truncateLimit:
+		return truncateLimit
+	case x < -truncateLimit:
+		return -truncateLimit
 	}
 	return 0
 }

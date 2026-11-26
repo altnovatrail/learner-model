@@ -238,7 +238,7 @@ func checkTaskPoint(kind, id string, place, difficulty int32) error {
 	if place < 1 {
 		return invalid(kind + id + " in band place " + itoa(place))
 	}
-	if difficulty < 1 || difficulty > 5 {
+	if difficulty < minDifficulty || difficulty > maxDifficulty {
 		return invalid(kind + id + " of difficulty " + itoa(difficulty))
 	}
 	return nil

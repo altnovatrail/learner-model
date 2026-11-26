@@ -429,7 +429,7 @@ func TestAppendRefuses(t *testing.T) {
 		{"a trial answer of weight 0", func(s *lm.State) { s.Modules[0].Trial[0].Weight = 0 }, lm.ErrInvalid},
 		{"trial answers past the series", func(s *lm.State) { s.Modules[0].AnswerWeight = 5 }, lm.ErrInvalid},
 		{"a skill of a stability below τ₀", func(s *lm.State) { s.Modules[0].Skills[0].Stability = 0.5 }, lm.ErrInvalid},
-		{"a level that is NaN", func(s *lm.State) { s.Modules[0].Level = math.Float64frombits(0x7ff8000000000001) }, lm.ErrNotFinite},
+		{"a level that is NaN", func(s *lm.State) { s.Modules[0].Level = lm.NaN }, lm.ErrNotFinite},
 	}
 	for _, c := range states {
 		s, err := lm.DecodeState(encodeState(t, good))
@@ -561,7 +561,7 @@ func TestForgettingPage(t *testing.T) {
 		Module: workbook, Level: 0.5, AnswerWeight: 20, StartBand: lm.BandRef{Place: 1, ID: "grade-2"},
 		Skills: []lm.SkillState{{Skill: add, Correction: 0.5, AnswerWeight: 8, EvidenceCount: 3, LastPractice: t0, Stability: 1}},
 	}}}
-	e := page(10, 8, []string{add}, t0+86400)
+	e := page(10, 8, []string{add}, t0+day)
 	e.Task.Difficulty = 3
 	s := mustAppend(t, before, e, g)
 	m, sk := s.Modules[0], skillOf(t, s, add)
@@ -579,7 +579,7 @@ func TestForgettingPage(t *testing.T) {
 	if math.Abs(m.AnswerWeight-22.5) > 1e-12 || math.Abs(sk.AnswerWeight-10.5) > 1e-12 {
 		t.Errorf("n %v and m %v, want 22.5 and 10.5", m.AnswerWeight, sk.AnswerWeight)
 	}
-	if sk.Mastered || sk.FailuresInARow != 0 || sk.LastPractice != t0+86400 || sk.EvidenceCount != 4 {
+	if sk.Mastered || sk.FailuresInARow != 0 || sk.LastPractice != t0+day || sk.EvidenceCount != 4 {
 		t.Errorf("the skill after the page: %+v", sk)
 	}
 
@@ -599,12 +599,12 @@ func TestForgettingTrial(t *testing.T) {
 	g := workbookGraphs(t)
 	add := []string{skill("addition")}
 	soon := mustAppend(t, mustAppend(t, lm.State{}, page(4, 3, add, 0), g), page(4, 4, add, 60), g)
-	late := mustAppend(t, mustAppend(t, lm.State{}, page(4, 3, add, 0), g), page(4, 4, add, 30*86400), g)
+	late := mustAppend(t, mustAppend(t, lm.State{}, page(4, 3, add, 0), g), page(4, 4, add, 30*day), g)
 	if len(late.Modules[0].Trial) == 0 || soon.Modules[0].Level != late.Modules[0].Level {
 		t.Errorf("a pause in the trial series moved θ: %v and %v", soon.Modules[0].Level, late.Modules[0].Level)
 	}
 	a, b := skillOf(t, soon, add[0]), skillOf(t, late, add[0])
-	if !(b.Stability > a.Stability && a.Stability > 1) || b.LastPractice != 30*86400 {
+	if !(b.Stability > a.Stability && a.Stability > 1) || b.LastPractice != 30*day {
 		t.Errorf("τ in the trial series: %v after a minute, %v after a month", a.Stability, b.Stability)
 	}
 }
@@ -615,7 +615,6 @@ func TestForgettingTrial(t *testing.T) {
 // weighs nothing move nothing after a pause either, and a module with no skill has no pause to
 // count. In the trial series n is below 5, and TestForgettingTrial holds it as it was.
 func TestLevelForgetting(t *testing.T) {
-	const day = 86400
 	g := workbookGraphs(t)
 	add, sub := skill("addition"), skill("subtraction")
 	withWeight := func(s lm.State, n float64) lm.State {

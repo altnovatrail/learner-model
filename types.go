@@ -130,3 +130,11 @@ type Task struct {
 	SkillTagsProvenance Provenance
 	Items               []TaskItem // by place
 }
+
+// The difficulties of a task within its band, from the easiest to the hardest; a task of
+// middleDifficulty stands where its band does on the module's scale.
+const (
+	minDifficulty    = 1
+	middleDifficulty = 3
+	maxDifficulty    = 5
+)

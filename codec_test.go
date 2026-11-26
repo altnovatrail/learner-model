@@ -471,7 +471,7 @@ func uvarint(b []byte) (uint64, int) {
 }
 
 func TestCorrupt(t *testing.T) {
-	nan := math.Float64bits(math.Float64frombits(0x7FF8000000000001))
+	nan := math.Float64bits(lm.NaN)
 	fixed := func(v uint64) []byte {
 		b := make([]byte, 8)
 		for i := range b {
@@ -498,7 +498,7 @@ func TestCorrupt(t *testing.T) {
 		{"no kind", []byte{}, lm.ErrCorrupt},
 		{"a module without its level", state([]byte{0x0a, 0x01, 'm'}), lm.ErrCorrupt},
 		{"a level that is NaN", state(slices.Concat([]byte{0x0a, 0x01, 'm', 0x11}, fixed(nan))), lm.ErrNotFinite},
-		{"a level that is +Inf", state(slices.Concat([]byte{0x0a, 0x01, 'm', 0x11}, fixed(0x7FF0000000000000))), lm.ErrNotFinite},
+		{"a level that is +Inf", state(slices.Concat([]byte{0x0a, 0x01, 'm', 0x11}, fixed(math.Float64bits(math.Inf(1))))), lm.ErrNotFinite},
 		{"a double cut short", state([]byte{0x0a, 0x01, 'm', 0x11, 0x00}), lm.ErrCorrupt},
 		{"a fixed32 cut short", []byte{0x08, 0x01, 0xfd, 0x06, 0x00}, lm.ErrCorrupt},
 	} {
@@ -583,7 +583,7 @@ func TestEncodeRefuses(t *testing.T) {
 			t.Errorf("%s: %v, not ErrInvalid", name, err)
 		}
 	}
-	nan := math.Float64frombits(0x7FF8000000000001)
+	nan := lm.NaN
 	for name, c := range map[string]struct {
 		change func(*lm.State)
 		err    error

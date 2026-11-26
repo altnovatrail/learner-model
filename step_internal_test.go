@@ -16,6 +16,9 @@ import (
 
 const internalTolerance = 1e-4
 
+// day is a day in seconds, for the times of the tests of the package.
+const day = secondsPerDay
+
 func nearTo(t *testing.T, what string, got, want float64) {
 	t.Helper()
 	if math.Abs(got-want) > internalTolerance {
@@ -133,7 +136,7 @@ func TestModelNumbers(t *testing.T) {
 			t.Errorf("guess(%+v) = %v, want %v", c.slots, got, c.want)
 		}
 	}
-	if gridCells(-1) != 0 || gridCells(1e300) != 1<<20 || gridCells(math.Float64frombits(0x7ff8000000000001)) != 0 || gridCells(7.9) != 7 {
+	if gridCells(-1) != 0 || gridCells(1e300) != maxGridCells || gridCells(NaN) != 0 || gridCells(7.9) != 7 {
 		t.Errorf("gridCells does not keep to its range")
 	}
 	if trialLevel(2.5, nil) != 2.5 {
@@ -144,7 +147,6 @@ func TestModelNumbers(t *testing.T) {
 // The example of forgetting of docs/architecture.md: a skill mastered at the band `3-4`,
 // shift 2.5, with θ + δ = 4.5, n = 100 and m = 20. The document prints three decimals.
 func TestForgettingExample(t *testing.T) {
-	const day = 86400
 	near3 := func(what string, got, want float64) {
 		t.Helper()
 		if math.Abs(got-want) > 1e-3 {
@@ -197,7 +199,6 @@ func TestForgettingExample(t *testing.T) {
 // while δ moves as it would without the rule. v widens, and the next review comes sooner. The
 // document prints three decimals, and the review one.
 func TestLevelForgettingExample(t *testing.T) {
-	const day = 86400
 	const module = "example/olympiad"
 	a, b := module+"/skill/a", module+"/skill/b"
 	band := BandRef{Place: 2, ID: "3-4"}
@@ -272,12 +273,11 @@ func TestLevelForgettingExample(t *testing.T) {
 
 // The edges of the rules of forgetting.
 func TestForgettingEdges(t *testing.T) {
-	const day = 86400
 	// The pause: none before the last practice, and below 2⁵³ seconds whatever the times.
 	if pauseDays(5, 10) != 0 || pauseDays(10, 10) != 0 || pauseDays(2*day, 0) != 2 {
 		t.Errorf("pauseDays of plain times")
 	}
-	if got := pauseDays(math.MaxInt64, math.MinInt64); got != float64(float64(1<<53)/day) {
+	if got := pauseDays(math.MaxInt64, math.MinInt64); got != float64(float64(maxPauseSeconds)/day) {
 		t.Errorf("pauseDays of the widest times = %v", got)
 	}
 	if retentionAt(SkillState{LastPractice: 100, Stability: 1}, 50) != 1 {
