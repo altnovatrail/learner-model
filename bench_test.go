@@ -29,23 +29,35 @@ var poolBands = []lm.Band{
 // poolTask is the k-th task of the pool, by ID: the tasks of a skill stand together, as the pool
 // of a package is ordered by ID.
 func poolTask(k int) lm.Task {
-	b := poolBands[k%3]
+	const (
+		// The k-th task's slot is a fraction for every poolFractionEvery-th k from poolFractionAt,
+		// otherwise a choice of five for every poolChoiceEvery-th, otherwise a number; every
+		// poolTemplateEvery-th task is a template and every poolSupportingEvery-th has a supporting
+		// skill; the difficulties run through all of them in turn.
+		poolFractionEvery   = 110
+		poolFractionAt      = 7
+		poolChoiceEvery     = 4
+		poolTemplateEvery   = 41
+		poolSupportingEvery = 24
+		poolDifficulties    = lm.MaxDifficulty - lm.MinDifficulty + 1
+	)
+	b := poolBands[k%len(poolBands)]
 	slot := lm.Slot{Check: lm.CheckKindNumber}
 	switch {
-	case k%110 == 7:
+	case k%poolFractionEvery == poolFractionAt:
 		slot = lm.Slot{Check: lm.CheckKindFraction}
-	case k%4 == 0:
+	case k%poolChoiceEvery == 0:
 		slot = lm.Slot{Check: lm.CheckKindChoice, Options: 5, HasOptions: true}
 	}
 	s := k * poolSkills / poolTasks
 	t := lm.Task{
-		ID: fmt.Sprintf("%s/task/t%03d", poolModule, k), Template: k%41 == 0,
-		Band: lm.BandRef{Place: b.Place, ID: b.ID}, Difficulty: int32(1 + k%5),
+		ID: fmt.Sprintf("%s/task/t%03d", poolModule, k), Template: k%poolTemplateEvery == 0,
+		Band: lm.BandRef{Place: b.Place, ID: b.ID}, Difficulty: int32(lm.MinDifficulty + k%poolDifficulties),
 		Primary:       []string{poolSkill(s)},
 		KeyProvenance: lm.ProvenanceAuthor, SkillTagsProvenance: lm.ProvenanceAuthor,
 		Items: []lm.TaskItem{{Place: 1, Slots: []lm.Slot{slot}}},
 	}
-	if k%24 == 0 {
+	if k%poolSupportingEvery == 0 {
 		t.Supporting = []string{poolSkill((s + 1) % poolSkills)}
 	}
 	return t
@@ -81,7 +93,10 @@ func poolAnswer(t lm.Task, right bool, at int64) lm.Evidence {
 	}
 }
 
-const poolTime = int64(1762041600)
+const poolTime = int64(readEpoch)
+
+// poolLater is the second time the pool is read at, a month past poolTime.
+const poolLater = 30 * day
 
 // poolStates are the states the benchmark reads: a learner who has just connected the module; one
 // in the trial series; one half way, the first ten skills practised a day apart in the last ten
@@ -111,24 +126,45 @@ func poolStates(tb testing.TB, g lm.Graphs, tasks []lm.Task) []struct {
 		}
 		return own[i%len(own)]
 	}
+	const (
+		// The trial series: an answer of the second task of each of the first three skills, a day
+		// apart up to a day before poolTime, the second of them wrong.
+		trialAnswers = 3
+		trialTask    = 1
+		trialWrong   = 1
+		// Half way: the first ten skills, a day apart, six answers each ten minutes apart, every
+		// third of them wrong by the sum of the skill and the answer.
+		middleSkills     = 10
+		middleAnswers    = 6
+		tenMinutes       = 600
+		middleWrongEvery = 3
+		// Far on: eight rounds 45 days apart, the skill s a day after the one before it; every
+		// fourth skill, the last of each four, stops after two rounds; the last of each five is
+		// wrong in every other round.
+		rounds         = 8
+		roundDays      = 45
+		dueEvery       = 4
+		dueRounds      = 2
+		weakEvery      = 5
+		weakRoundEvery = 2
+	)
 	var trial, middle, far []lm.Evidence
-	for k := range 3 {
-		trial = append(trial, poolAnswer(of(k, 1), k != 1, poolTime-int64(3-k)*day))
+	for k := range trialAnswers {
+		trial = append(trial, poolAnswer(of(k, trialTask), k != trialWrong, poolTime-int64(trialAnswers-k)*day))
 	}
-	for s := range 10 {
-		for i := range 6 {
-			at := poolTime - int64(10-s)*day + int64(i)*600
-			middle = append(middle, poolAnswer(of(s, i), (s+i)%3 != 0, at))
+	for s := range middleSkills {
+		for i := range middleAnswers {
+			at := poolTime - int64(middleSkills-s)*day + int64(i)*tenMinutes
+			middle = append(middle, poolAnswer(of(s, i), (s+i)%middleWrongEvery != 0, at))
 		}
 	}
-	// Eight rounds 45 days apart, but a skill in four stops after two: its review has come.
-	for round := range 8 {
+	for round := range rounds {
 		for s := range poolSkills {
-			if s%4 == 3 && round >= 2 {
+			if s%dueEvery == dueEvery-1 && round >= dueRounds {
 				continue
 			}
-			at := poolTime - int64((8-round)*45+s)*day
-			far = append(far, poolAnswer(of(s, round), s%5 != 4 || round%2 == 0, at))
+			at := poolTime - int64((rounds-round)*roundDays+s)*day
+			far = append(far, poolAnswer(of(s, round), s%weakEvery != weakEvery-1 || round%weakRoundEvery == 0, at))
 		}
 	}
 	return []struct {

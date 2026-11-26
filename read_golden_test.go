@@ -21,16 +21,32 @@ import (
 // anchorsLog is a learner of grade 3 in olympiad maths and school maths, which teaches the anchor
 // skills olympiad maths relies on: division is mastered over pages of school maths.
 func anchorsLog() []lm.Evidence {
-	at := int64(1762041600)
+	const (
+		// Three answers of olympiad maths an hour apart, the second of them wrong.
+		answers     = 3
+		hour        = 3600
+		wrongAnswer = 1
+		// Then six pages of school maths a day apart, of four items each, all right but one item
+		// of the fifth page.
+		pages          = 6
+		pageItems      = 4
+		pageDifficulty = 4
+		oneWrongPage   = 4
+	)
+	at := int64(readEpoch)
 	var log []lm.Evidence
-	for i := range 3 {
-		at += 3600
-		log = append(log, choiceAnswer(choiceSpec{skill: topic("a"), place: 2, difficulty: 3, correct: i != 1, start: ladderBand(2), at: at}))
+	for i := range answers {
+		at += hour
+		log = append(log, choiceAnswer(choiceSpec{skill: topic("a"), place: 2, difficulty: 3, correct: i != wrongAnswer, start: ladderBand(2), at: at}))
 	}
-	for i := range 6 {
+	for i := range pages {
 		at += day
-		e := page(pageSpec{items: 4, right: 4 - i%5/4, primary: []string{schoolSkill("division")}, at: at})
-		e.Task.ID, e.Task.Band, e.Task.Difficulty = school+"/task/page", lm.BandRef{Place: 1, ID: "grade-3"}, 4
+		right := pageItems
+		if i == oneWrongPage {
+			right--
+		}
+		e := page(pageSpec{items: pageItems, right: right, primary: []string{schoolSkill("division")}, at: at})
+		e.Task.ID, e.Task.Band, e.Task.Difficulty = school+"/task/page", lm.BandRef{Place: 1, ID: "grade-3"}, pageDifficulty
 		e.StartBand = lm.BandRef{Place: 1, ID: "grade-3"}
 		log = append(log, e)
 	}
@@ -38,9 +54,14 @@ func anchorsLog() []lm.Evidence {
 }
 
 func init() {
-	goldenJournals = append(goldenJournals, goldenJournal{"anchors",
-		"a learner of grade 3 in olympiad maths and school maths, where division with remainder is mastered", anchorGraphs, anchorsLog, 1})
+	goldenJournals = append(goldenJournals, goldenJournal{name: "anchors",
+		note:   "a learner of grade 3 in olympiad maths and school maths, where division with remainder is mastered",
+		graphs: anchorGraphs, log: anchorsLog, kind: 1})
 }
+
+// goldenReadPause is the pause after a golden log's last evidence of its last reading, past the
+// pause after which a module's level forgets.
+const goldenReadPause = 60 * day
 
 // goldenLog reads the evidence of a golden file of the fold.
 func goldenLog(t *testing.T, name string) []lm.Evidence {
@@ -142,12 +163,13 @@ func readGolden(t *testing.T, note string, log []lm.Evidence, g lm.Graphs) strin
 	if err != nil {
 		t.Fatal(err)
 	}
+	const moduleParts = 2 // a module's ID is the first two parts of a task's, <publisher>/<name>
 	var last int64
 	var candidates []lm.Task
 	for i := len(log) - 1; i >= 0; i-- {
 		e := log[i]
 		last = max(last, e.PracticeTime)
-		module := strings.Join(strings.SplitN(e.Task.ID, "/", 3)[:2], "/")
+		module := strings.Join(strings.SplitN(e.Task.ID, "/", moduleParts+1)[:moduleParts], "/")
 		if !e.LevelSetByAdult && g[module].Current && !slices.ContainsFunc(candidates, func(c lm.Task) bool { return strings.HasPrefix(c.ID, module+"/") }) {
 			candidates = append(candidates, e.Task)
 		}
@@ -167,7 +189,7 @@ func readGolden(t *testing.T, note string, log []lm.Evidence, g lm.Graphs) strin
 	}{
 		{last, lm.Grade{Value: 3, Known: true}, engine},
 		{last + day, lm.Grade{Value: 3, Known: true}, engine},
-		{last + 60*day, lm.Grade{}, nil},
+		{last + goldenReadPause, lm.Grade{}, nil},
 	}
 	for _, rd := range reads {
 		r, err := lm.Read(s, g, rd.at, rd.grade, rd.engine)
@@ -181,15 +203,16 @@ func readGolden(t *testing.T, note string, log []lm.Evidence, g lm.Graphs) strin
 }
 
 func TestGoldenRead(t *testing.T) {
+	const dirMode, fileMode = 0o755, 0o644 // the golden files are readable by all, writable by their owner
 	for _, j := range goldenJournals {
 		t.Run(j.name, func(t *testing.T) {
 			path := filepath.Join("testdata", "read", j.name+".txt")
 			got := readGolden(t, j.note, goldenLog(t, j.name), j.graphs(t))
 			if os.Getenv(updateEnv) == "1" {
-				if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+				if err := os.MkdirAll(filepath.Dir(path), dirMode); err != nil {
 					t.Fatal(err)
 				}
-				if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
+				if err := os.WriteFile(path, []byte(got), fileMode); err != nil {
 					t.Fatal(err)
 				}
 			}
