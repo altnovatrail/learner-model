@@ -787,7 +787,7 @@ The types are its own and simple, not from `module-kit` and not from `spec`: the
 **Packages** of the Go module `github.com/altnovatrail/learner-model`:
 - the root — the types and the operations;
 - `detmath` — exp, log, σ, the power and the retention, above with the build;
-- `internal/wire` — protobuf's binary form, on which the root's codec stands: `codec.go`, `codec_check.go` and `codec_read.go`;
+- `internal/wire` — protobuf's binary form, on which the root's codec stands: `codec.go`, `codec_check.go` and `codec_read.go`, with the schema's field numbers by name in `codec_fields.go`;
 - `proto/novatrail/learnermodel/v1/` — the schema of evidence and state, the package `novatrail.learnermodel.v1`, as with `spec`'s contracts.
 
 **The graph** — per module. `api` and `sim` build it from the part of the module package for the server by a function of the library, and `engine` gets the same values:
