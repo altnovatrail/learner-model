@@ -21,6 +21,9 @@ const olympiad = "example/olympiad"
 
 func topic(name string) string { return olympiad + "/skill/" + name }
 
+// standaloneOptions is the number of options of standalone's tasks, a choice of five, c = 0.2.
+const standaloneOptions = 5
+
 // standaloneTolerance is what the tables promise: four decimals.
 const standaloneTolerance = 1e-4
 
@@ -32,7 +35,9 @@ func ladder() []lm.Band {
 	}
 }
 
-func ladderBand(place int32) lm.BandRef { return lm.BandRef{Place: place, ID: ladder()[place-1].ID} }
+func ladderBand(place int32) lm.BandRef {
+	return lm.BandRef{Place: place, ID: ladder()[place-lm.FirstPlace].ID}
+}
 
 // olympiadGraphs gives the graphs of the olympiad module, each topic taught at the bands named.
 func olympiadGraphs(t *testing.T, taught map[string][]int32) lm.Graphs {
@@ -42,7 +47,7 @@ func olympiadGraphs(t *testing.T, taught map[string][]int32) lm.Graphs {
 	for _, id := range sortedKeys(taught) {
 		skills = append(skills, lm.Skill{ID: id, Assessability: lm.AssessabilityVerdict})
 		for _, place := range taught[id] {
-			tasks = append(tasks, lm.Task{ID: olympiad + "/task/x", Band: ladderBand(place), Difficulty: 3, Primary: []string{id}})
+			tasks = append(tasks, lm.Task{ID: olympiad + "/task/x", Band: ladderBand(place), Difficulty: lm.MiddleDifficulty, Primary: []string{id}})
 		}
 	}
 	g, err := lm.NewGraph(olympiad, ladder(), skills, nil, tasks)
@@ -74,7 +79,7 @@ func choiceAnswer(c choiceSpec) lm.Evidence {
 		Task: lm.Task{
 			ID: olympiad + "/task/x", Band: ladderBand(place), Difficulty: difficulty, Primary: []string{skillID},
 			KeyProvenance: lm.ProvenanceAuthor, SkillTagsProvenance: lm.ProvenanceAuthor,
-			Items: []lm.TaskItem{{Place: 1, Slots: []lm.Slot{{Check: lm.CheckKindChoice, Options: 5, HasOptions: true}}}},
+			Items: []lm.TaskItem{{Place: 1, Slots: []lm.Slot{{Check: lm.CheckKindChoice, Options: standaloneOptions, HasOptions: true}}}},
 		},
 		StartBand:    start,
 		Outcome:      lm.Outcome{Kind: outcome},
@@ -125,22 +130,26 @@ type standaloneRow struct {
 // counts the tasks a learner is stuck on, does not lower the level; TestGuard leaves the
 // three unsolved.
 func TestStandaloneThreeFailures(t *testing.T) {
+	const (
+		at          = 1000 // the time of every answer and of the practice before them
+		skillBefore = 8    // m and the evidence of the skill before the first answer
+	)
 	a := topic("combinatorics.enumeration")
 	g := olympiadGraphs(t, map[string][]int32{a: {1}})
 	s := lm.State{Kind: lm.StateKind, Modules: []lm.ModuleState{{
 		Module: olympiad, Level: 0.9, AnswerWeight: 20, StartBand: ladderBand(1),
-		Skills: []lm.SkillState{{Skill: a, Correction: 0.3, AnswerWeight: 8, EvidenceCount: 8, LastPractice: 1000, Stability: 1}},
+		Skills: []lm.SkillState{{Skill: a, Correction: 0.3, AnswerWeight: skillBefore, EvidenceCount: skillBefore, LastPractice: at, Stability: 1}},
 	}}}
 	rows := []standaloneRow{
-		{a, 1, 3, false, 0.8185, 0.0672},
-		{a, 1, 3, false, 0.7437, -0.1442},
-		{a, 1, 3, false, 0.6755, -0.3353},
-		{a, 1, 2, true, 0.6910, -0.2924},
+		{topic: a, place: 1, d: 3, correct: false, theta: 0.8185, delta: 0.0672},
+		{topic: a, place: 1, d: 3, correct: false, theta: 0.7437, delta: -0.1442},
+		{topic: a, place: 1, d: 3, correct: false, theta: 0.6755, delta: -0.3353},
+		{topic: a, place: 1, d: 2, correct: true, theta: 0.6910, delta: -0.2924},
 	}
 	failures := []int32{1, 2, 3, 0}
 	for i, r := range rows {
 		var err error
-		e := choiceAnswer(choiceSpec{skill: r.topic, place: r.place, difficulty: r.d, correct: r.correct, start: ladderBand(1), at: 1000})
+		e := choiceAnswer(choiceSpec{skill: r.topic, place: r.place, difficulty: r.d, correct: r.correct, start: ladderBand(1), at: at})
 		if !r.correct {
 			e = putRight(e)
 		}
@@ -154,7 +163,7 @@ func TestStandaloneThreeFailures(t *testing.T) {
 		if sk.FailuresInARow != failures[i] || sk.Mastered {
 			t.Errorf("answer %d: failures in a row %d, mastered %v; want %d, not mastered", i+1, sk.FailuresInARow, sk.Mastered, failures[i])
 		}
-		if sk.AnswerWeight != float64(9+i) || sk.EvidenceCount != int64(9+i) || sk.LastPractice != 1000 {
+		if sk.AnswerWeight != float64(skillBefore+1+i) || sk.EvidenceCount != int64(skillBefore+1+i) || sk.LastPractice != at {
 			t.Errorf("answer %d: m %v, evidence %d, last practice %d", i+1, sk.AnswerWeight, sk.EvidenceCount, sk.LastPractice)
 		}
 	}
@@ -169,11 +178,11 @@ func TestStandaloneTrialSeries(t *testing.T) {
 		t.Fatalf("BandByGrade(5) = %+v, %v; want the band 5-6", start, err)
 	}
 	rows := []standaloneRow{
-		{topic("logic.ordering"), 2, 2, false, 0.6407, 0},
-		{topic("combinatorics.enumeration"), 1, 3, true, 1.1189, 0},
-		{topic("logic.knights_liars"), 2, 1, false, 0.2536, 0},
-		{topic("counting.gaps"), 1, 2, true, 0.4532, 0},
-		{topic("time.clocks"), 1, 2, true, 0.6039, 0},
+		{topic: topic("logic.ordering"), place: 2, d: 2, correct: false, theta: 0.6407, delta: 0},
+		{topic: topic("combinatorics.enumeration"), place: 1, d: 3, correct: true, theta: 1.1189, delta: 0},
+		{topic: topic("logic.knights_liars"), place: 2, d: 1, correct: false, theta: 0.2536, delta: 0},
+		{topic: topic("counting.gaps"), place: 1, d: 2, correct: true, theta: 0.4532, delta: 0},
+		{topic: topic("time.clocks"), place: 1, d: 2, correct: true, theta: 0.6039, delta: 0},
 	}
 	taught := map[string][]int32{}
 	for _, r := range rows {
@@ -215,16 +224,20 @@ func TestStandaloneTrialSeries(t *testing.T) {
 // The floor of θ's step, a mastery at a band below the task's, one failure that holds it and a
 // second in a row that takes it away. The topic is taught at all three bands.
 func TestStandaloneFloorAndMastery(t *testing.T) {
+	const (
+		moduleBefore = 79 // n before the first answer
+		skillBefore  = 9  // m and the evidence of the skill before it
+	)
 	a := topic("combinatorics.enumeration")
 	g := olympiadGraphs(t, map[string][]int32{a: {1, 2, 3}})
 	s := lm.State{Kind: lm.StateKind, Modules: []lm.ModuleState{{
-		Module: olympiad, Level: 1.2, AnswerWeight: 79, StartBand: ladderBand(1),
-		Skills: []lm.SkillState{{Skill: a, Correction: 0.5, AnswerWeight: 9, EvidenceCount: 9, Stability: 1}},
+		Module: olympiad, Level: 1.2, AnswerWeight: moduleBefore, StartBand: ladderBand(1),
+		Skills: []lm.SkillState{{Skill: a, Correction: 0.5, AnswerWeight: skillBefore, EvidenceCount: skillBefore, Stability: 1}},
 	}}}
 	rows := []standaloneRow{
-		{a, 2, 1, true, 1.2093, 0.5511},
-		{a, 1, 4, false, 1.1720, 0.3524},
-		{a, 1, 3, false, 1.1292, 0.1312},
+		{topic: a, place: 2, d: 1, correct: true, theta: 1.2093, delta: 0.5511},
+		{topic: a, place: 1, d: 4, correct: false, theta: 1.1720, delta: 0.3524},
+		{topic: a, place: 1, d: 3, correct: false, theta: 1.1292, delta: 0.1312},
 	}
 	mastered := []bool{true, true, false}
 	for i, r := range rows {
@@ -236,14 +249,14 @@ func TestStandaloneFloorAndMastery(t *testing.T) {
 		sk := skillOf(t, s, a)
 		near(t, "θ after answer "+itoa(i+1), s.Modules[0].Level, r.theta)
 		near(t, "δ after answer "+itoa(i+1), sk.Correction, r.delta)
-		wantBand := int32(1)
+		wantBand := int32(lm.FirstPlace) // the lowest band, below the task's
 		if !mastered[i] {
 			wantBand = 0
 		}
 		if sk.Mastered != mastered[i] || sk.MasteryBand != wantBand {
 			t.Errorf("answer %d: mastered %v at band %d, want %v at %d", i+1, sk.Mastered, sk.MasteryBand, mastered[i], wantBand)
 		}
-		if s.Modules[0].AnswerWeight != float64(80+i) || sk.AnswerWeight != float64(10+i) {
+		if s.Modules[0].AnswerWeight != float64(moduleBefore+1+i) || sk.AnswerWeight != float64(skillBefore+1+i) {
 			t.Errorf("answer %d: n %v and m %v", i+1, s.Modules[0].AnswerWeight, sk.AnswerWeight)
 		}
 	}
