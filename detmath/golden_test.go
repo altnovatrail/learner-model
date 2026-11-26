@@ -24,6 +24,14 @@ import (
 
 const update = "DETMATH_UPDATE"
 
+// A line of the golden table is a function's name, its arguments and its result, each float64 as
+// its bits in hexadecimal; the files are written readable by all and writable by their owner.
+const (
+	nameAndResult  = 2
+	hexBase        = 16
+	goldenFileMode = 0o644
+)
+
 // A function of detmath under test, by the name the golden files give it, with the seed of its own
 // stream of inputs.
 type function struct {
@@ -33,12 +41,48 @@ type function struct {
 	call  func(args []float64) float64
 }
 
+// The names of the functions, as the lines of the golden files give them.
+const (
+	fnExp       = "exp"
+	fnLog       = "log"
+	fnSigmoid   = "sigmoid"
+	fnPow       = "pow"
+	fnRetention = "retention"
+)
+
+// The second words of the seeds, one stream of inputs for each function.
+const (
+	expStream = iota + 1
+	logStream
+	sigmoidStream
+	powStream
+	retentionStream
+)
+
+// The arities of the functions, and the places of their arguments: the one argument of exp, log
+// and σ; the base and the exponent of the power; the pause and the stability of the retention.
+const (
+	unaryArity  = 1
+	binaryArity = 2
+
+	onlyArg  = 0
+	baseArg  = 0
+	powerArg = 1
+	pauseArg = 0
+	tauArg   = 1
+)
+
 var functions = []function{
-	{"exp", 1, 1, func(a []float64) float64 { return detmath.Exp(a[0]) }},
-	{"log", 2, 1, func(a []float64) float64 { return detmath.Log(a[0]) }},
-	{"sigmoid", 3, 1, func(a []float64) float64 { return detmath.Sigmoid(a[0]) }},
-	{"pow", 4, 2, func(a []float64) float64 { return detmath.Pow(a[0], a[1]) }},
-	{"retention", 5, 2, func(a []float64) float64 { return detmath.Retention(a[0], a[1]) }},
+	{name: fnExp, seed: expStream, arity: unaryArity,
+		call: func(a []float64) float64 { return detmath.Exp(a[onlyArg]) }},
+	{name: fnLog, seed: logStream, arity: unaryArity,
+		call: func(a []float64) float64 { return detmath.Log(a[onlyArg]) }},
+	{name: fnSigmoid, seed: sigmoidStream, arity: unaryArity,
+		call: func(a []float64) float64 { return detmath.Sigmoid(a[onlyArg]) }},
+	{name: fnPow, seed: powStream, arity: binaryArity,
+		call: func(a []float64) float64 { return detmath.Pow(a[baseArg], a[powerArg]) }},
+	{name: fnRetention, seed: retentionStream, arity: binaryArity,
+		call: func(a []float64) float64 { return detmath.Retention(a[pauseArg], a[tauArg]) }},
 }
 
 func functionNamed(name string) (function, bool) {
@@ -50,67 +94,186 @@ func functionNamed(name string) (function, bool) {
 	return function{}, false
 }
 
+// The points of the edges about exp and σ, each taken with both signs where the list has it.
+const (
+	// σ is exactly 1 in floats from 53 · ln 2 ≈ 36.737 up, where e**(−x) falls below half an
+	// ulp of 1: sigmoidBelowOne is just before it, sigmoidOne just past it.
+	sigmoidBelowOne = 36.7
+	sigmoidOne      = 36.8
+	// large is an argument far from every edge, and insideBounds one near the bounds of Exp, ±708,
+	// but within them.
+	large        = 100
+	insideBounds = 700
+	// pastBounds is past the bounds of Exp, which hold it to them, and short of exp's overflow;
+	// belowOverflow is just short of the overflow, and pastUnderflow just past the underflow, where
+	// exp would give 0.
+	pastBounds    = 709
+	belowOverflow = 709.78
+	pastUnderflow = -745.2
+	// farOut is past every threshold of exp, and huge near the largest float.
+	farOut = 1000
+	huge   = 1e300
+)
+
+// The points of the edges about log, each taken with both signs where the list has it: logRoot,
+// where log is 0, and ln2Point and halfPoint, where it is ±ln 2; the list has detmath.LogBranch
+// too, where log's reduction of its argument changes branch.
+const (
+	logRoot   = 1
+	ln2Point  = 2
+	halfPoint = 0.5
+)
+
 // Values every function meets at its edges: the ends of the floats, zeros, NaN and the infinities.
 var edges = []float64{
-	0, math.Copysign(0, -1), math.SmallestNonzeroFloat64, -math.SmallestNonzeroFloat64, 0x1p-1022,
-	-0x1p-1022, math.MaxFloat64, -math.MaxFloat64, math.Inf(1), math.Inf(-1),
-	math.Float64frombits(0x7FF8000000000001), math.Float64frombits(0xFFF0000000000001),
-	1, -1, 0.5, -0.5, 2, math.E, math.Sqrt2 / 2, below(math.Sqrt2 / 2), 0x1p-28,
-	-0x1p-28, below(0x1p-28), 36.7, -36.7, 36.8, 100, -100, 700, -700, 708, -708,
-	709, -709, 709.78, -745.2, 1000, -1000, 1e300, -1e300,
+	0, math.Copysign(0, -1), math.SmallestNonzeroFloat64, -math.SmallestNonzeroFloat64,
+	detmath.MinNormal, -detmath.MinNormal, math.MaxFloat64, -math.MaxFloat64, math.Inf(1),
+	math.Inf(-1), detmath.NaN, detmath.OtherNaN, logRoot, -logRoot, halfPoint, -halfPoint, ln2Point,
+	math.E, detmath.LogBranch, detmath.Below(detmath.LogBranch), detmath.ExpNearZero,
+	-detmath.ExpNearZero, detmath.Below(detmath.ExpNearZero), sigmoidBelowOne, -sigmoidBelowOne, sigmoidOne, large, -large,
+	insideBounds, -insideBounds, detmath.ExpMax, detmath.ExpMin, pastBounds, -pastBounds,
+	belowOverflow, pastUnderflow, farOut, -farOut, huge, -huge,
 }
+
+// The first words of the seeds of the golden table's draws and of the sweep's; the other word is
+// each function's own.
+const (
+	goldenSeed = 1
+	sweepSeed  = 2
+)
+
+// Where the inputs are drawn from, beside the edges: past the bounds of Exp on both sides, and
+// where σ is neither 0 nor 1; near 1 for log; for the power, the bases of the rule of τ, from 1 up
+// to 1 + g = 16, and the shares S̄ within [0, 1]; and pauses and stabilities up to ten years, in
+// days, from two minutes.
+const (
+	expReach      = 720
+	sigmoidReach  = 40
+	nearOneLow    = 0.5
+	nearOneHigh   = 2
+	tauBaseHigh   = 1 + growth
+	halving       = 0.5 // the base (1/2) of the rule of τ after wrong answers
+	twoMinutes    = 1.0 / 720
+	powBaseHigh   = 20
+	powPowerReach = 2
+	tenYears      = 3650
+)
+
+// The power's own points: the bases of the rule of τ, 1 + g · (1 − R), at R = 1, at R near 1 and
+// at R(τ) = 0.9, below them the bases outside its domain, which Pow holds to its least, and the
+// exponents of its exact branches, a**0 = 1 and a**1 = a, half a share, and exponents outside the
+// shares, [0, 1], on both sides.
+const (
+	growth         = 15  // g of the rule of τ
+	retentionAtTau = 0.9 // R after a pause of τ
+	unitBase       = 1   // 1**s is 1 for every s
+	baseNearOne    = 1.5
+	baseAtTau      = 1 + growth*(1-retentionAtTau) // 2.5
+	zeroBase       = 0
+	negativeBase   = -1
+	zeroPower      = 0
+	unitPower      = 1
+	halfShare      = 0.5
+	negativePower  = -1
+	pastShares     = 2
+	shareLow       = 0
+	shareHigh      = 1
+)
+
+// The retention's own points: pauses at the last practice and before it, of a day and of the
+// summer break of the documentation's example of forgetting; and stabilities τ₀, a few days, the
+// example's τ before the break and after a right answer on coming back, and 0, which no state
+// holds.
+const (
+	atPractice     = 0
+	beforePractice = -1
+	aDay           = 1
+	summerBreak    = 60
+	stabilityFloor = 1
+	fewDays        = 2.5
+	exampleTau     = 10
+	tauAfterBreak  = 63.3
+	zeroTau        = 0
+)
+
+// How many inputs each draw gives.
+const (
+	wideDraws      = 100
+	narrowDraws    = 40
+	tauDraws       = 60
+	halvingDraws   = 20
+	powDraws       = 20
+	retentionDraws = 80
+)
+
+// The bits of a float64, 64 in all: its fraction, and the exponents of the normal numbers, from
+// the first, 1, up to 2046; 0 is the subnormals' and 2047 the infinities' and NaNs'.
+const (
+	float64Bits         = 64
+	fractionBits        = 52
+	firstNormalExponent = 1
+	normalExponents     = 2046
+)
 
 // goldenInputs gives the inputs of the golden table: the edges, and values drawn where each
 // function is used.
 func goldenInputs(f function) [][]float64 {
-	r := rand.New(rand.NewPCG(1, f.seed))
+	r := rand.New(rand.NewPCG(goldenSeed, f.seed))
 	var in [][]float64
 	switch f.name {
-	case "exp", "sigmoid":
+	case fnExp, fnSigmoid:
 		for _, x := range edges {
 			in = append(in, []float64{x})
 		}
-		for range 100 {
-			in = append(in, []float64{uniform(r, -720, 720)})
+		for range wideDraws {
+			in = append(in, []float64{uniform(r, -expReach, expReach)})
 		}
-		for range 40 {
-			in = append(in, []float64{uniform(r, -40, 40)})
+		for range narrowDraws {
+			in = append(in, []float64{uniform(r, -sigmoidReach, sigmoidReach)})
 		}
-	case "log":
+	case fnLog:
 		for _, x := range edges {
 			in = append(in, []float64{x})
 		}
-		for range 100 {
+		for range wideDraws {
 			in = append(in, []float64{positiveNormal(r)})
 		}
-		for range 40 {
-			in = append(in, []float64{uniform(r, 0.5, 2)})
+		for range narrowDraws {
+			in = append(in, []float64{uniform(r, nearOneLow, nearOneHigh)})
 		}
-	case "pow":
+	case fnPow:
 		// The rule of τ: (1 + g · (1 − R))^S̄ with g = 15 and (1/2)^(1 − S̄), with S̄ within
 		// [0, 1]; and the exact branches and the edges.
-		for _, a := range []float64{0.5, 1, 1.5, 2.5, 16, 0x1p-1022, math.MaxFloat64, 0, -1, nan} {
-			for _, s := range []float64{0, 1, 0.5, -1, 2, math.Inf(1), math.Inf(-1), nan} {
+		bases := []float64{halving, unitBase, baseNearOne, baseAtTau, tauBaseHigh, detmath.MinNormal,
+			math.MaxFloat64, zeroBase, negativeBase, detmath.NaN}
+		powers := []float64{zeroPower, unitPower, halfShare, negativePower, pastShares, math.Inf(1),
+			math.Inf(-1), detmath.NaN}
+		for _, a := range bases {
+			for _, s := range powers {
 				in = append(in, []float64{a, s})
 			}
 		}
-		for range 60 {
-			in = append(in, []float64{uniform(r, 1, 16), uniform(r, 0, 1)})
+		for range tauDraws {
+			in = append(in, []float64{uniform(r, unitBase, tauBaseHigh), uniform(r, shareLow, shareHigh)})
 		}
-		for range 20 {
-			in = append(in, []float64{0.5, uniform(r, 0, 1)})
+		for range halvingDraws {
+			in = append(in, []float64{halving, uniform(r, shareLow, shareHigh)})
 		}
-		for range 20 {
-			in = append(in, []float64{positiveNormal(r), uniform(r, -2, 2)})
+		for range powDraws {
+			in = append(in, []float64{positiveNormal(r), uniform(r, -powPowerReach, powPowerReach)})
 		}
-	case "retention":
-		for _, dt := range []float64{0, 1, -1, 1.0 / 720, 60, 3650, 1e300, math.Inf(1), nan} {
-			for _, tau := range []float64{1, 2.5, 10, 63.3, 0, 0x1p-1022, math.MaxFloat64, math.Inf(1), nan} {
+	case fnRetention:
+		pauses := []float64{atPractice, aDay, beforePractice, twoMinutes, summerBreak, tenYears, huge,
+			math.Inf(1), detmath.NaN}
+		taus := []float64{stabilityFloor, fewDays, exampleTau, tauAfterBreak, zeroTau, detmath.MinNormal,
+			math.MaxFloat64, math.Inf(1), detmath.NaN}
+		for _, dt := range pauses {
+			for _, tau := range taus {
 				in = append(in, []float64{dt, tau})
 			}
 		}
-		for range 80 {
-			in = append(in, []float64{uniform(r, 0, 3650), uniform(r, 1, 3650)})
+		for range retentionDraws {
+			in = append(in, []float64{uniform(r, atPractice, tenYears), uniform(r, stabilityFloor, tenYears)})
 		}
 	}
 	return in
@@ -125,8 +288,8 @@ func uniform(r *rand.Rand, lo, hi float64) float64 {
 
 // positiveNormal draws a positive normal float64, its exponent and fraction uniform.
 func positiveNormal(r *rand.Rand) float64 {
-	exponent := 1 + r.Uint64N(2046)
-	return math.Float64frombits(exponent<<52 | r.Uint64()>>12)
+	exponent := firstNormalExponent + r.Uint64N(normalExponents)
+	return math.Float64frombits(exponent<<fractionBits | r.Uint64()>>(float64Bits-fractionBits))
 }
 
 func TestGolden(t *testing.T) {
@@ -145,12 +308,12 @@ func TestGolden(t *testing.T) {
 			continue
 		}
 		f, ok := functionNamed(fields[0])
-		if !ok || len(fields) != f.arity+2 {
+		if !ok || len(fields) != f.arity+nameAndResult {
 			t.Fatalf("%s:%d: not a line of the table: %q", path, i+1, line)
 		}
 		bits := make([]uint64, len(fields)-1)
 		for j, field := range fields[1:] {
-			if bits[j], err = strconv.ParseUint(field, 16, 64); err != nil {
+			if bits[j], err = strconv.ParseUint(field, hexBase, 64); err != nil {
 				t.Fatalf("%s:%d: %v", path, i+1, err)
 			}
 		}
@@ -185,7 +348,7 @@ func writeGolden(t *testing.T, path string) {
 			fmt.Fprintf(&b, " %016x\n", math.Float64bits(f.call(args)))
 		}
 	}
-	if err := os.WriteFile(path, b.Bytes(), 0o644); err != nil {
+	if err := os.WriteFile(path, b.Bytes(), goldenFileMode); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -193,27 +356,30 @@ func writeGolden(t *testing.T, path string) {
 // The length of the run of each function in the sweep.
 const sweepLength = 100_000
 
+// rawEvery is how often an input of the sweep is raw bits: every other one, the odd ones.
+const rawEvery = 2
+
 // sweepInputs draws the run of inputs for f: half from where f is used, half as raw bits, every
 // pattern of a float64 among them — subnormals, infinities, NaNs of every payload.
 func sweepInputs(f function, yield func(args []float64)) {
-	r := rand.New(rand.NewPCG(2, f.seed))
+	r := rand.New(rand.NewPCG(sweepSeed, f.seed))
 	args := make([]float64, f.arity)
 	for i := range sweepLength {
-		raw := i%2 == 1
+		raw := i%rawEvery == rawEvery-1
 		for j := range args {
 			switch {
 			case raw:
 				args[j] = math.Float64frombits(r.Uint64())
-			case f.name == "log":
+			case f.name == fnLog:
 				args[j] = positiveNormal(r)
-			case f.name == "pow" && j == 0:
-				args[j] = uniform(r, 0, 20)
-			case f.name == "pow":
-				args[j] = uniform(r, -2, 2)
-			case f.name == "retention":
-				args[j] = uniform(r, 0, 3650)
+			case f.name == fnPow && j == baseArg:
+				args[j] = uniform(r, zeroBase, powBaseHigh)
+			case f.name == fnPow:
+				args[j] = uniform(r, -powPowerReach, powPowerReach)
+			case f.name == fnRetention:
+				args[j] = uniform(r, atPractice, tenYears)
 			default:
-				args[j] = uniform(r, -720, 720)
+				args[j] = uniform(r, -expReach, expReach)
 			}
 		}
 		yield(args)
@@ -228,7 +394,7 @@ func TestSweep(t *testing.T) {
 		var buf []byte
 		sweepInputs(f, func(args []float64) {
 			y := f.call(args)
-			if math.IsNaN(y) || math.IsInf(y, 0) || (y != 0 && math.Abs(y) < 0x1p-1022) {
+			if math.IsNaN(y) || math.IsInf(y, 0) || (y != 0 && math.Abs(y) < detmath.MinNormal) {
 				t.Errorf("%s%v = %v: not a finite normal number or zero", f.name, args, y)
 			}
 			buf = binary.LittleEndian.AppendUint64(buf[:0], math.Float64bits(y))
@@ -243,7 +409,7 @@ func TestSweep(t *testing.T) {
 		for _, f := range functions {
 			fmt.Fprintf(&b, "%s %d %s\n", f.name, sweepLength, got[f.name])
 		}
-		if err := os.WriteFile(path, b.Bytes(), 0o644); err != nil {
+		if err := os.WriteFile(path, b.Bytes(), goldenFileMode); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -271,9 +437,3 @@ func TestSweep(t *testing.T) {
 		}
 	}
 }
-
-// The NaN that math.NaN gives, and the float just below a positive one, by their bits: the tests
-// take math.NaN and math.Nextafter no more than the code does.
-var nan = math.Float64frombits(0x7FF8000000000001)
-
-func below(x float64) float64 { return math.Float64frombits(math.Float64bits(x) - 1) }

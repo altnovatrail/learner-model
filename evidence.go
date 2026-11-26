@@ -5,6 +5,9 @@ package learnermodel
 // kind 1 does not record, and kind 3 LevelSetByAdult, which kinds 1 and 2 do not.
 const EvidenceKind = 3
 
+// firstKind is the first kind of evidence and of state: a kind below it is no kind.
+const firstKind = 1
+
 // leadingQuestionKind is the kind that adds LeadingQuestionOnRequest, field 20: the writer writes
 // it from this kind on, the reader requires it there and refuses it below.
 const leadingQuestionKind = 2
@@ -127,7 +130,7 @@ func LevelCorrection(module string, band, start BandRef, at int64) Evidence {
 	return Evidence{
 		Kind: EvidenceKind,
 		Task: Task{
-			ID: module + levelKind + band.ID, Band: band, Difficulty: 3,
+			ID: module + levelKind + band.ID, Band: band, Difficulty: middleDifficulty,
 			KeyProvenance: ProvenanceAdult, SkillTagsProvenance: ProvenanceAdult,
 		},
 		StartBand:       start,

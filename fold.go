@@ -146,7 +146,7 @@ func checkInputState(s State) error {
 		return invalid("a state " + err.Error())
 	}
 	for _, m := range s.Modules {
-		if m.StartBand.Place < 1 {
+		if m.StartBand.Place < firstPlace {
 			return invalid("module " + m.Module + " starts at band place " + itoa(m.StartBand.Place))
 		}
 		if len(m.Trial) > 0 && !m.inTrial() {
@@ -188,7 +188,7 @@ func checkInputState(s State) error {
 // checked has had its graph checked already, and checkInput marks the modules it checks there.
 func checkInput(e Evidence, g Graphs, checked map[string]bool) (input, error) {
 	t := e.Task
-	if e.Kind < 1 {
+	if e.Kind < firstKind {
 		return input{}, invalid("evidence of kind " + itoa(e.Kind))
 	}
 	if err := checkEvidenceContent(e); err != nil {
@@ -201,7 +201,7 @@ func checkInput(e Evidence, g Graphs, checked map[string]bool) (input, error) {
 	if err := checkTaskPoint("task ", t.ID, t.Band.Place, t.Difficulty); err != nil {
 		return input{}, err
 	}
-	if e.StartBand.Place < 1 {
+	if e.StartBand.Place < firstPlace {
 		return input{}, invalid("evidence of task " + t.ID + " starts at band place " + itoa(e.StartBand.Place))
 	}
 	items := pairItems(e)
@@ -235,10 +235,10 @@ func checkInput(e Evidence, g Graphs, checked map[string]bool) (input, error) {
 // checkTaskPoint refuses a point off the module's scale: a band place below 1, or a difficulty
 // other than 1 to 5. It names what it refuses as kind + id, joined only when it refuses.
 func checkTaskPoint(kind, id string, place, difficulty int32) error {
-	if place < 1 {
+	if place < firstPlace {
 		return invalid(kind + id + " in band place " + itoa(place))
 	}
-	if difficulty < 1 || difficulty > 5 {
+	if difficulty < minDifficulty || difficulty > maxDifficulty {
 		return invalid(kind + id + " of difficulty " + itoa(difficulty))
 	}
 	return nil
@@ -246,7 +246,7 @@ func checkTaskPoint(kind, id string, place, difficulty int32) error {
 
 func checkChoices(slots []Slot) error {
 	for _, s := range slots {
-		if s.Check == CheckKindChoice && (!s.HasOptions || s.Options < 2) {
+		if s.Check == CheckKindChoice && (!s.HasOptions || s.Options < minChoiceOptions) {
 			return invalid("a choice of " + itoa(s.Options) + " options")
 		}
 	}
@@ -270,7 +270,7 @@ func checkGraph(module string, g Graph) error {
 		// A band it is taught at is a band of the graph: NewGraph derives them from its tasks, and a
 		// graph with no bands, which a module with no tasks may have, teaches at none.
 		for _, p := range s.BandsTaught {
-			if p < 1 || int(p) > len(g.Bands) {
+			if p < firstPlace || int(p) > len(g.Bands) {
 				return invalid("skill " + s.ID + " taught at band place " + itoa(p) + ", which the graph of " + module + " does not have")
 			}
 		}

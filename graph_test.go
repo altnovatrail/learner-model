@@ -63,12 +63,13 @@ func TestNewGraph(t *testing.T) {
 	if g.Skills[0].ID != skill("addition") || g.Retired[0].ID != skill("counting") || g.Retired[0].ReplacedBy != nil {
 		t.Errorf("not in canonical order: %+v", g)
 	}
-	if g.Module != module || len(g.Bands) != 3 || g.Bands[1].ID != "grade-3" {
+	if g.Module != module || len(g.Bands) != len(bands) || g.Bands[1].ID != bands[1].ID {
 		t.Errorf("bands: %+v", g.Bands)
 	}
+	grade := bands[0].Grades[0]
 	skills[0].Teaches = append(skills[0].Teaches, "core.changed")
-	bands[0].Grades[0] = 7
-	if len(g.Skills[3].Teaches) != 0 || g.Bands[0].Grades[0] != 2 {
+	bands[0].Grades[0] = grade + 1
+	if len(g.Skills[3].Teaches) != 0 || g.Bands[0].Grades[0] != grade {
 		t.Errorf("the graph shares its input")
 	}
 }
@@ -76,7 +77,7 @@ func TestNewGraph(t *testing.T) {
 func TestNewGraphRefuses(t *testing.T) {
 	for name, change := range map[string]func([]lm.Band, []lm.Skill, []lm.RetiredSkill, []lm.Task) ([]lm.Band, []lm.Skill, []lm.RetiredSkill, []lm.Task){
 		"a band out of place": func(b []lm.Band, s []lm.Skill, r []lm.RetiredSkill, t []lm.Task) ([]lm.Band, []lm.Skill, []lm.RetiredSkill, []lm.Task) {
-			b[1].Place = 5
+			b[1].Place = int32(len(b)) + lm.FirstPlace + 1
 			return b, s, r, t
 		},
 		"a band twice": func(b []lm.Band, s []lm.Skill, r []lm.RetiredSkill, t []lm.Task) ([]lm.Band, []lm.Skill, []lm.RetiredSkill, []lm.Task) {
@@ -87,15 +88,15 @@ func TestNewGraphRefuses(t *testing.T) {
 			return b, append(s, s[0]), r, t
 		},
 		"a task band past the bands": func(b []lm.Band, s []lm.Skill, r []lm.RetiredSkill, t []lm.Task) ([]lm.Band, []lm.Skill, []lm.RetiredSkill, []lm.Task) {
-			t[0].Band.Place = 4
+			t[0].Band.Place = int32(len(b)) + lm.FirstPlace
 			return b, s, r, t
 		},
 		"a task band of 0": func(b []lm.Band, s []lm.Skill, r []lm.RetiredSkill, t []lm.Task) ([]lm.Band, []lm.Skill, []lm.RetiredSkill, []lm.Task) {
-			t[0].Band.Place = 0
+			t[0].Band.Place = lm.FirstPlace - 1
 			return b, s, r, t
 		},
 		"a difficulty of 6": func(b []lm.Band, s []lm.Skill, r []lm.RetiredSkill, t []lm.Task) ([]lm.Band, []lm.Skill, []lm.RetiredSkill, []lm.Task) {
-			t[0].Difficulty = 6
+			t[0].Difficulty = lm.MaxDifficulty + 1
 			return b, s, r, t
 		},
 		"an unknown primary skill": func(b []lm.Band, s []lm.Skill, r []lm.RetiredSkill, t []lm.Task) ([]lm.Band, []lm.Skill, []lm.RetiredSkill, []lm.Task) {

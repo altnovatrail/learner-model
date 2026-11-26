@@ -42,18 +42,25 @@ func versionGraphs(t *testing.T, verdict, untaught, rubric []string, retired ...
 // so that forgetting shows, and every second one has a trap at the page's skills.
 func transferLog(pages ...[]string) []lm.Evidence {
 	var log []lm.Evidence
-	at := int64(1762041600)
+	const (
+		logStart    = epoch
+		firstItems  = 8  // the first page, and the later ones
+		secondItems = 13 // the second page: with the first, m = 5 within ε
+		wrongCycle  = 3  // the later pages have 0, 1 or 2 wrong answers in turn
+		trapEvery   = 2  // every second page has a trap
+	)
+	at := int64(logStart)
 	for i, primary := range pages {
-		items, right := 8, 8-i%3
+		items, right := firstItems, firstItems-i%wrongCycle
 		if i == 1 {
-			items, right = 13, 13
+			items, right = secondItems, secondItems
 		}
-		e := hard(page(items, right, primary, at))
-		if i%2 == 0 {
+		e := hard(page(pageSpec{items: items, right: right, primary: primary, at: at}))
+		if i%trapEvery == 0 {
 			e.Traps = []lm.FoundTrap{{ID: workbook + "/trap/borrow", Skills: primary, ItemPlaces: []int32{1}}}
 		}
 		log = append(log, e)
-		at += int64(i+1) * 86400
+		at += int64(i+1) * day
 	}
 	return log
 }
@@ -143,7 +150,7 @@ func TestTransfer(t *testing.T) {
 		for _, sk := range got.Modules[0].Skills {
 			skills = append(skills, sk.Skill)
 		}
-		if !slices.Equal(skills, c.skills) || !(got.Modules[0].AnswerWeight > 5) {
+		if !slices.Equal(skills, c.skills) || !(got.Modules[0].AnswerWeight > lm.TrialWeight) {
 			t.Errorf("%s: skills %v, n %v; want skills %v and n past the trial series", c.name, skills, got.Modules[0].AnswerWeight, c.skills)
 		}
 	}
@@ -187,10 +194,11 @@ func TestTransferSplit(t *testing.T) {
 func TestWeightThresholdsTransferred(t *testing.T) {
 	add, count := skill("addition"), skill("counting")
 	g := versionGraphs(t, []string{count}, nil, nil, lm.RetiredSkill{ID: add, ReplacedBy: []string{count}})
-	s := mustAppend(t, lm.State{}, hard(page(8, 8, []string{add}, 1)), g)
-	s = mustAppend(t, s, hard(page(13, 13, []string{count}, 2)), g)
+	s := mustAppend(t, lm.State{}, hard(page(pageSpec{items: 8, right: 8, primary: []string{add}, at: 1})), g)
+	s = mustAppend(t, s, hard(page(pageSpec{items: 13, right: 13, primary: []string{count}, at: 2})), g)
 	sk := skillOf(t, s, count)
-	if len(s.Modules[0].Skills) != 1 || !(sk.AnswerWeight > 5-1e-9 && sk.AnswerWeight < 5+1e-9) || !sk.Mastered || sk.MasteryBand != 1 {
+	if len(s.Modules[0].Skills) != 1 || !(sk.AnswerWeight > lm.MasteryWeight-lm.WeightTolerance && sk.AnswerWeight < lm.MasteryWeight+lm.WeightTolerance) ||
+		!sk.Mastered || sk.MasteryBand != lm.FirstPlace {
 		t.Errorf("counting after the pages: m %v, mastered %v at %d; want m = 5, mastered at band 1", sk.AnswerWeight, sk.Mastered, sk.MasteryBand)
 	}
 }
@@ -215,30 +223,41 @@ func TestAnchorSkills(t *testing.T) {
 // no answer, and an unknown outcome reads as "unchecked". The state is the one the same evidence
 // gives without what this version does not know.
 func TestReadKinds(t *testing.T) {
+	const (
+		// Values this version does not know: an outcome, a kind of check and a verdict.
+		unknownOutcome = 42
+		unknownCheck   = 17
+		unknownVerdict = 9
+		// The kind is field 1, written first: its tag, 0x08, and its value in the next byte.
+		kindTag   = 0x08
+		kindByte  = 1
+		laterKind = lm.EvidenceKind + 1
+	)
+	// A field a later kind adds: field 103, length-delimited, its tag 0xba 0x06, of two bytes.
+	laterField := []byte{0xba, 0x06, 0x02, 'h', 'i'}
 	g := workbookGraphs(t)
-	e := page(4, 2, []string{skill("addition")}, 200)
-	e.Outcome = lm.Outcome{Kind: 42}
-	e.Task.Items[1].Slots[0].Check = 17
-	e.Items[2].FirstVerdict = 9
+	e := page(pageSpec{items: 4, right: 2, primary: []string{skill("addition")}, at: 200})
+	e.Outcome = lm.Outcome{Kind: unknownOutcome}
+	e.Task.Items[1].Slots[0].Check = unknownCheck
+	e.Items[2].FirstVerdict = unknownVerdict
 	b, err := lm.EncodeEvidence(e)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The kind is field 1, written first: 0x08 and its value.
-	if b[0] != 0x08 || b[1] != byte(lm.EvidenceKind) {
-		t.Fatalf("the evidence opens with %x, not its kind", b[:2])
+	if b[0] != kindTag || b[kindByte] != byte(lm.EvidenceKind) {
+		t.Fatalf("the evidence opens with %x, not its kind", b[:kindByte+1])
 	}
-	b[1] = byte(lm.EvidenceKind + 1)
-	b = append(b, 0xba, 0x06, 0x02, 'h', 'i') // field 103, length-delimited
+	b[kindByte] = byte(laterKind)
+	b = append(b, laterField...)
 	later, err := lm.DecodeEvidence(b)
-	if err != nil || later.Kind != lm.EvidenceKind+1 {
+	if err != nil || later.Kind != laterKind {
 		t.Fatalf("evidence of a later kind: kind %d, %v", later.Kind, err)
 	}
 	got, _, err := lm.Append(ready(t), later, g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	known := page(4, 2, []string{skill("addition")}, 200)
+	known := page(pageSpec{items: 4, right: 2, primary: []string{skill("addition")}, at: 200})
 	known.Outcome = lm.Outcome{Kind: lm.OutcomeUnchecked}
 	known.Task.Items = []lm.TaskItem{known.Task.Items[0], known.Task.Items[3]}
 	known.Items = []lm.ItemAnswer{known.Items[0], known.Items[3]}
@@ -248,8 +267,8 @@ func TestReadKinds(t *testing.T) {
 
 	// Kind 1 does not record the leading question, and reads as kind 2 without it: its bytes come
 	// back as they were, without field 20, and give the state kind 2 gives.
-	one := page(4, 2, []string{skill("addition")}, 200)
-	one.Kind = 1
+	one := page(pageSpec{items: 4, right: 2, primary: []string{skill("addition")}, at: 200})
+	one.Kind = lm.FirstKind
 	b1, err := lm.EncodeEvidence(one)
 	if err != nil {
 		t.Fatal(err)
@@ -261,7 +280,7 @@ func TestReadKinds(t *testing.T) {
 	if again, err := lm.EncodeEvidence(read); err != nil || !bytes.Equal(again, b1) {
 		t.Errorf("evidence of kind 1 comes back as %x, %v; not %x", again, err, b1)
 	}
-	two := page(4, 2, []string{skill("addition")}, 200)
+	two := page(pageSpec{items: 4, right: 2, primary: []string{skill("addition")}, at: 200})
 	if a, b := mustAppend(t, ready(t), read, g), mustAppend(t, ready(t), two, g); !bytes.Equal(encodeState(t, a), encodeState(t, b)) {
 		t.Errorf("evidence of kind 1 gives\n%+v\nand of kind 2\n%+v", a, b)
 	}

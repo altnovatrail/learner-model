@@ -71,14 +71,14 @@ func variants(task lm.Task) []lm.Task {
 	if len(task.Items) > 0 {
 		add(func(c *lm.Task) { c.Items = append(c.Items, c.Items[0]) })
 		add(func(c *lm.Task) {
-			c.Items[0].Slots = append(c.Items[0].Slots, lm.Slot{Check: lm.CheckKindChoice, Options: 1, HasOptions: true})
+			c.Items[0].Slots = append(c.Items[0].Slots, lm.Slot{Check: lm.CheckKindChoice, Options: lm.MinChoiceOptions - 1, HasOptions: true})
 		})
 		add(func(c *lm.Task) {
 			c.Items[0].Slots = append(c.Items[0].Slots, lm.Slot{Check: lm.CheckKindNumber, Options: 2})
 		})
 	}
-	add(func(c *lm.Task) { c.Band.Place = 0 })
-	add(func(c *lm.Task) { c.Difficulty = 6 })
+	add(func(c *lm.Task) { c.Band.Place = lm.FirstPlace - 1 })
+	add(func(c *lm.Task) { c.Difficulty = lm.MaxDifficulty + 1 })
 	add(func(c *lm.Task) { c.ID = "example/m0/task" })
 	add(func(c *lm.Task) { c.ID = "example//task/x" })
 	add(func(c *lm.Task) { c.ID += "\xff" })
@@ -112,7 +112,7 @@ func TestTaskIsReference(t *testing.T) {
 			}{
 				{last, lm.Grade{Value: 3, Known: true}, engine},
 				{last + day, lm.Grade{Value: 3, Known: true}, engine},
-				{last + 60*day, lm.Grade{}, nil},
+				{last + goldenReadPause, lm.Grade{}, nil},
 			} {
 				r := mustRead(t, s, g, rd.at, rd.grade, rd.engine...)
 				for _, e := range log {
@@ -124,25 +124,32 @@ func TestTaskIsReference(t *testing.T) {
 		}
 	}
 
-	for seed := range uint64(30) {
-		r := rand.New(rand.NewPCG(seed, 40))
+	const (
+		stream    = 40 // the second word of the seeds of this test's logs
+		readOdds  = 4  // a prefix of a log is read with odds of one in readOdds, and the first always
+		grades    = 9  // the grade read is from 0 to grades − 1
+		knownOdds = 3  // and it is unknown with odds of one in knownOdds
+	)
+	for seed := range uint64(readRandomLogs) {
+		r := rand.New(rand.NewPCG(seed, stream))
 		w := newWorld(t, r)
 		var engine []string
 		for _, m := range w.modules {
-			if r.IntN(2) == 0 && w.graphs[m.id].Current {
+			if r.IntN(readCoin) == 0 && w.graphs[m.id].Current {
 				engine = append(engine, m.id)
 			}
 		}
 		var s lm.State
 		var log []lm.Evidence
-		at := int64(1762041600)
-		for n := range 1 + r.IntN(40) {
-			at += int64(r.IntN(200000))
+		at := int64(epoch)
+		for n := range 1 + r.IntN(readRandomEvidence) {
+			at += int64(r.IntN(readRandomGap))
 			e := journalEvidence(t, r, w, n, at)
 			s = mustAppend(t, s, e, w.graphs)
 			log = append(log, e)
-			if r.IntN(4) == 0 || n == 0 {
-				rd := mustRead(t, s, w.graphs, at+int64(r.IntN(100*day)), lm.Grade{Value: int32(r.IntN(9)), Known: r.IntN(3) > 0}, engine...)
+			if r.IntN(readOdds) == 0 || n == 0 {
+				rd := mustRead(t, s, w.graphs, at+int64(r.IntN(readRandomWindow)),
+					lm.Grade{Value: int32(r.IntN(grades)), Known: r.IntN(knownOdds) > 0}, engine...)
 				for _, e := range log {
 					for _, task := range variants(e.Task) {
 						sameTask(t, "seed "+itoa(int(seed)), rd, task)
@@ -154,7 +161,7 @@ func TestTaskIsReference(t *testing.T) {
 
 	g, tasks := poolGraphs(t)
 	for _, c := range poolStates(t, g, tasks) {
-		for _, at := range []int64{poolTime, poolTime + 30*day} {
+		for _, at := range []int64{poolTime, poolTime + poolLater} {
 			r := mustRead(t, c.state, g, at, lm.Grade{Value: 3, Known: true}, poolModule)
 			for _, task := range tasks {
 				sameTask(t, "pool "+c.name, r, task)
@@ -167,11 +174,12 @@ func TestTaskIsReference(t *testing.T) {
 // their order, a call allocates only the slice it gives. A skill transfer gives whose R at t₀ Read
 // had not worked out would be inserted into a copy, and this test would see it.
 func TestTaskAllocatesOnce(t *testing.T) {
+	const allocRuns = 3 // AllocsPerRun averages over this many runs of the pool
 	g, tasks := poolGraphs(t)
 	for _, c := range poolStates(t, g, tasks) {
 		r := mustRead(t, c.state, g, poolTime, lm.Grade{Value: 3, Known: true}, poolModule)
 		var failed error
-		allocs := testing.AllocsPerRun(3, func() {
+		allocs := testing.AllocsPerRun(allocRuns, func() {
 			for _, task := range tasks {
 				if _, err := r.Task(task); err != nil {
 					failed = err

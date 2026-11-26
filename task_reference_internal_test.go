@@ -111,18 +111,20 @@ func idListReference(what string, ids []string) error {
 }
 
 func moduleOfReference(id string) (string, bool) {
-	parts := strings.SplitN(id, "/", 4)
-	if len(parts) < 4 || slices.Contains(parts, "") {
+	// A task ID is publisher/module/kind/name.
+	const idParts = 4
+	parts := strings.SplitN(id, "/", idParts)
+	if len(parts) < idParts || slices.Contains(parts, "") {
 		return "", false
 	}
 	return parts[0] + "/" + parts[1], true
 }
 
 func checkTaskPointReference(what string, place, difficulty int32) error {
-	if place < 1 {
+	if place < firstPlace {
 		return invalid(what + " in band place " + itoa(place))
 	}
-	if difficulty < 1 || difficulty > 5 {
+	if difficulty < minDifficulty || difficulty > maxDifficulty {
 		return invalid(what + " of difficulty " + itoa(difficulty))
 	}
 	return nil

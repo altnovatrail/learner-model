@@ -473,7 +473,7 @@ func (ms *ModuleState) forgetLevel(at int64) {
 // failure takes the mastery away at the second in a row; evidence without one, where the skill has
 // a right answer given without help, masters it once m ≥ 5, at a band above the one it is held at.
 func (ms *ModuleState) judge(sk *SkillState, m skillMove, taskPlace int32) {
-	if 2*m.correct < m.answers {
+	if fewerThanHalf(m.correct, m.answers) {
 		if sk.FailuresInARow < math.MaxInt32 {
 			sk.FailuresInARow++
 		}

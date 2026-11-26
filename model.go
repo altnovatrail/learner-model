@@ -39,6 +39,11 @@ const (
 	masteryWeight   = 5.0
 	weightTolerance = 1e-9
 
+	// seriesAnswers is the most answers one attempt weighs: its N answers are one cluster with an
+	// intraclass correlation of 1/seriesAnswers, so that each weighs
+	// seriesAnswers / (N + seriesAnswers − 1), 3 / (N + 2).
+	seriesAnswers = 3
+
 	// failuresToLose is how many failed pieces of evidence in a row take a mastery away.
 	failuresToLose = 2
 
@@ -71,6 +76,8 @@ const (
 	stabilityFloor = 1.0
 	// stabilityGrowth is g: a right answer at retention R multiplies τ by 1 + g · (1 − R).
 	stabilityGrowth = 15.0
+	// stabilityLoss is what wrong answers multiply τ by: they halve it.
+	stabilityLoss = 0.5
 	// levelPause is d₀, in days: after a pause of a module at least this long since the latest
 	// practice of its skills, its level forgets, and the weight of its answers n falls back to
 	// levelWeight, N, so that the step of θ widens. N is at least 5, or the module would fall back
@@ -133,7 +140,7 @@ func retentionWeight(c, sigma, rbar, p1, p float64) float64 {
 // near, so that no infinity comes out of a state whatever it holds.
 func stabilityAfter(tau, r, share float64) float64 {
 	grow := detmath.Pow(1+float64(stabilityGrowth*(1-r)), share)
-	halve := detmath.Pow(0.5, 1-share)
+	halve := detmath.Pow(stabilityLoss, 1-share)
 	return max(stabilityFloor, min(float64(tau*grow*halve), math.MaxFloat64))
 }
 
@@ -162,7 +169,8 @@ func reviewDate(q, tau float64, last int64) ReviewDate {
 		return ReviewDate{At: addSeconds(last, stabilityFloor*secondsPerDay)}
 	}
 	seconds := math.Ceil(float64(pause * secondsPerDay))
-	for range 4 {
+	const maxNudges = 4 // the most seconds the retention moves the date on
+	for range maxNudges {
 		if !(seconds < maxPauseSeconds) {
 			break
 		}
@@ -191,7 +199,7 @@ func addSeconds(t int64, seconds float64) int64 {
 
 // shift is where the band at a place, from 1, stands on the module's scale: 2.5 · (place − 1).
 func shift(place int32) float64 {
-	return float64(bandStep * float64(place-1))
+	return float64(bandStep * float64(place-firstPlace))
 }
 
 // startLevel is θ₀, where the level of a module starts from its start band, the band of the
@@ -216,7 +224,7 @@ func levelBand(level float64, bands []Band) (Band, bool) {
 
 // beta is where a task of the band at a place, of a difficulty from 1 to 5, stands on the scale.
 func beta(place, difficulty int32) float64 {
-	return shift(place) + float64(difficulty-3)
+	return shift(place) + float64(difficulty-middleDifficulty)
 }
 
 // guess is c, the chance of guessing an item: the product over its slots of 1/k for a choice of
@@ -251,7 +259,7 @@ func correctionStep(m float64) float64 {
 // seriesWeight is u = 3 / (N + 2), the weight of each of N answers of one attempt: they are one
 // cluster with an intraclass correlation of 1/3, so the attempt weighs at most three answers.
 func seriesWeight(n int) float64 {
-	return float64(3 / float64(n+2))
+	return float64(seriesAnswers / float64(n+seriesAnswers-1))
 }
 
 // uncertainty is v = 1 / (1/σ₀² + I · n) + 1 / (I · (20 + m)), the uncertainty of θ + δ after
@@ -278,16 +286,18 @@ func masteryBand(taught []int32, taskPlace int32, lambda float64) (int32, bool) 
 	return 0, false
 }
 
+// maxGridCells is the bound of gridCells, 2**20.
+const maxGridCells = 1 << 20
+
 // gridCells converts the number of cells of the trial series' grid to an int, checking its range
 // within what every build converts alike: the cells of a sum of weights below 8 are at most 2000,
 // and a larger x saturates.
 func gridCells(x float64) int {
-	const limit = 1 << 20
-	if x >= 0 && x <= limit {
+	if x >= 0 && x <= maxGridCells {
 		return int(x)
 	}
-	if x > limit {
-		return limit
+	if x > maxGridCells {
+		return maxGridCells
 	}
 	return 0
 }

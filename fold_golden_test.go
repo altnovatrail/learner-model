@@ -19,9 +19,27 @@ import (
 // goes in as well as what comes out. LEARNERMODEL_UPDATE=1 writes the files anew from the logs
 // below, and they change only with the version of learner-model.
 
+// The times of the golden logs: foldLogStart is when each log begins, a synthetic time in seconds,
+// and foldAnswerGap the hour between two answers of standalone's tasks; a page of the workbook
+// comes a day after the one before it.
+const (
+	foldLogStart  = int64(epoch)
+	foldAnswerGap = 3600
+)
+
+// The answers of the log break: before the break, past 20, and after it; n = 20 + foldBreakAnswersAfter
+// at the end.
+const (
+	foldBreakAnswersBefore = 24
+	foldBreakAnswersAfter  = 4
+)
+
+// ownKinds is the kind of a golden journal whose log names the kind of each piece itself.
+const ownKinds = 0
+
 // goldenJournal is a log of a golden file with the graphs it is folded against, and the kind its
-// evidence is written in: 1 for the logs that kind 1 wrote, kept as api keeps them, and 0 for a
-// log that names the kind of each piece itself.
+// evidence is written in: 1 for the logs that kind 1 wrote, kept as api keeps them, and ownKinds
+// for a log that names the kind of each piece itself.
 type goldenJournal struct {
 	name   string
 	note   string
@@ -51,29 +69,36 @@ func foldGraphs(t *testing.T) lm.Graphs {
 // olympiadLog is a learner of grade 3 in olympiad maths: the trial series, a mastery, a slip that
 // holds it, a second that takes it away, and after a break of 60 days a mastery again.
 func olympiadLog() []lm.Evidence {
-	start := ladderBand(2)
+	const (
+		gradeBand   = 2        // the band 3-4, a learner of grade 3's
+		masteryRun  = 6        // the right answers in a row that master topic a
+		summerBreak = 60 * day // retention falls, and the next right answers raise τ much
+		answersBack = 4        // the right answers after the break
+	)
+	start := ladderBand(gradeBand)
 	var log []lm.Evidence
-	at := int64(1762041600)
-	add := func(skillID string, place, d int32, correct bool) {
-		at += 3600
-		log = append(log, choiceAnswer(skillID, place, d, correct, start, at))
+	at := foldLogStart
+	add := func(c choiceSpec) {
+		at += foldAnswerGap
+		c.start, c.at = start, at
+		log = append(log, choiceAnswer(c))
 	}
-	add(topic("a"), 2, 3, true)
-	add(topic("b"), 2, 4, false)
-	add(topic("a"), 2, 4, true)
-	add(topic("b"), 3, 1, true)
-	add(topic("a"), 1, 5, true)
-	for range 6 {
-		add(topic("a"), 2, 3, true)
+	add(choiceSpec{skill: topic("a"), place: 2, difficulty: 3, correct: true})
+	add(choiceSpec{skill: topic("b"), place: 2, difficulty: 4, correct: false})
+	add(choiceSpec{skill: topic("a"), place: 2, difficulty: 4, correct: true})
+	add(choiceSpec{skill: topic("b"), place: 3, difficulty: 1, correct: true})
+	add(choiceSpec{skill: topic("a"), place: 1, difficulty: 5, correct: true})
+	for range masteryRun {
+		add(choiceSpec{skill: topic("a"), place: 2, difficulty: 3, correct: true})
 	}
-	add(topic("a"), 2, 4, false)
+	add(choiceSpec{skill: topic("a"), place: 2, difficulty: 4, correct: false})
 	log[len(log)-1].Traps = []lm.FoundTrap{{ID: olympiad + "/trap/order", Skills: []string{topic("a")}, ItemPlaces: []int32{1}}}
-	add(topic("a"), 2, 5, false)
-	at += 60 * 86400 // a summer break: retention falls, and the next right answers raise τ much
-	for range 4 {
-		add(topic("a"), 2, 2, true)
+	add(choiceSpec{skill: topic("a"), place: 2, difficulty: 5, correct: false})
+	at += summerBreak
+	for range answersBack {
+		add(choiceSpec{skill: topic("a"), place: 2, difficulty: 2, correct: true})
 	}
-	add(topic("b"), 3, 2, false)
+	add(choiceSpec{skill: topic("b"), place: 3, difficulty: 2, correct: false})
 	return log
 }
 
@@ -81,22 +106,33 @@ func olympiadLog() []lm.Evidence {
 // names its own skill, one with a rubric, items with no answer and a failed page; a page after a
 // hint, one with the solution shown, one with the technique on request, and traps found.
 func workbookLog() []lm.Evidence {
+	// The pages with something of their own, by their index in the log.
+	const (
+		afterHintPage     = 2
+		solutionShownPage = 5
+		techniquePage     = 7
+	)
 	both := []string{skill("addition"), skill("subtraction")}
 	var log []lm.Evidence
-	for i, p := range []struct{ items, right int }{{10, 8}, {10, 9}, {6, 2}, {12, 12}, {10, 7}, {10, 3}, {10, 3}, {20, 20}} {
-		e := page(p.items, p.right, both, 1762041600+int64(86400*i))
+	for i, p := range []pageSpec{
+		{items: 10, right: 8}, {items: 10, right: 9}, {items: 6, right: 2}, {items: 12, right: 12},
+		{items: 10, right: 7}, {items: 10, right: 3}, {items: 10, right: 3}, {items: 20, right: 20},
+	} {
+		p.primary, p.at = both, foldLogStart+int64(day*i)
+		e := page(p)
 		e.Task.Items[0].OwnSkills, e.Task.Items[0].Primary = true, []string{skill("addition")}
 		e.Task.Items[1].OwnSkills, e.Task.Items[1].Primary = true, []string{skill("essay")}
 		e.Items[p.items-1].HasFirstVerdict, e.Items[p.items-1].FirstVerdict, e.Items[p.items-1].Submitted = false, 0, false
 		switch i {
-		case 2: // a page after a hint: the items first answered after the rung are with help
+		case afterHintPage: // the items first answered after the rung are with help
 			e.Outcome = lm.Outcome{Kind: lm.OutcomeAfterHint, Rung: 1, HasRung: true}
-			for k := 3; k < p.items-1; k++ { // the first wrong answer, item 3, came before them
+			// The first wrong answer, the item after the right ones, came before them.
+			for k := p.right + 1; k < p.items-1; k++ {
 				e.Items[k].WrongBeforeFirst = 1
 			}
-		case 5: // the solution shown: the item never submitted is not solved
+		case solutionShownPage: // the item never submitted is not solved
 			e.Outcome = lm.Outcome{Kind: lm.OutcomeSolutionShown}
-		case 7: // the technique on request: a page all right that masters nothing
+		case techniquePage: // a page all right that masters nothing
 			e.TechniqueOnRequest = true
 		}
 		if p.right < p.items-1 {
@@ -114,11 +150,11 @@ func workbookLog() []lm.Evidence {
 // with no answer and a task whose skill tags the AI gave, which weighs nothing.
 func mixedLog() []lm.Evidence {
 	o, w := olympiadLog(), workbookLog()
-	waiting := choiceAnswer(topic("a"), 1, 3, true, ladderBand(1), 1762041600)
+	waiting := choiceAnswer(choiceSpec{skill: topic("a"), place: 1, difficulty: 3, correct: true, start: ladderBand(1), at: foldLogStart})
 	waiting.Task.ID = "example/waiting/task/x"
-	ai := page(4, 4, []string{skill("addition")}, 1762041602)
+	ai := page(pageSpec{items: 4, right: 4, primary: []string{skill("addition")}, at: foldLogStart + 2})
 	ai.Task.SkillTagsProvenance = lm.ProvenanceAI // a task from paper the AI tagged: it weighs nothing
-	none := page(3, 3, []string{skill("addition")}, 1762041601)
+	none := page(pageSpec{items: 3, right: 3, primary: []string{skill("addition")}, at: foldLogStart + 1})
 	for i := range none.Items {
 		none.Items[i].HasFirstVerdict, none.Items[i].FirstVerdict = false, 0
 	}
@@ -160,33 +196,44 @@ func transferLog3() []lm.Evidence {
 }
 
 var goldenJournals = []goldenJournal{
-	{"olympiad", "a learner of grade 3 in olympiad maths: the trial series, mastery held, lost and set again after a break of 60 days", foldGraphs, olympiadLog, 1},
-	{"workbook", "pages of the workbook with two primary skills, J = 2, a hint, a shown solution, help and traps", foldGraphs, workbookLog, 1},
-	{"mixed", "the two interleaved, with a module without a current version, evidence with no answer and a task tagged by AI", foldGraphs, mixedLog, 1},
-	{"transfer", "the workbook across three versions, by the third: a split, a merge, a rename, a skill retired with [] and one unknown", transferGraphs, transferLog3, 1},
-	{"format04", "pages of kind 1, then of kind 2 in format 0.4: checks of the kind time, a trap of the 12-hour clock, and the leading question on request, which masters nothing", foldGraphs, format04Log, 0},
-	{"break", "a learner of grade 3 in olympiad maths past 20 answers, back after a break of 30 days: the level forgets, and n falls back to 20", foldGraphs, breakLog, 0},
+	{name: "olympiad", note: "a learner of grade 3 in olympiad maths: the trial series, mastery held, lost and set again after a break of 60 days", graphs: foldGraphs, log: olympiadLog, kind: lm.FirstKind},
+	{name: "workbook", note: "pages of the workbook with two primary skills, J = 2, a hint, a shown solution, help and traps", graphs: foldGraphs, log: workbookLog, kind: lm.FirstKind},
+	{name: "mixed", note: "the two interleaved, with a module without a current version, evidence with no answer and a task tagged by AI", graphs: foldGraphs, log: mixedLog, kind: lm.FirstKind},
+	{name: "transfer", note: "the workbook across three versions, by the third: a split, a merge, a rename, a skill retired with [] and one unknown", graphs: transferGraphs, log: transferLog3, kind: lm.FirstKind},
+	{name: "format04", note: "pages of kind 1, then of kind 2 in format 0.4: checks of the kind time, a trap of the 12-hour clock, and the leading question on request, which masters nothing", graphs: foldGraphs, log: format04Log, kind: ownKinds},
+	{name: "break", note: "a learner of grade 3 in olympiad maths past 20 answers, back after a break of 30 days: the level forgets, and n falls back to 20", graphs: foldGraphs, log: breakLog, kind: ownKinds},
 }
 
 // breakLog is a learner of grade 3 in olympiad maths with 24 answers over two skills, who comes back
 // after a break of 30 days: the pause of the module brings n back to 20 before the first answer
 // after it, and the four answers after the break take it to 24, not 28.
 func breakLog() []lm.Evidence {
-	start := ladderBand(2)
+	const (
+		gradeBand     = 2        // the band 3-4, a learner of grade 3's
+		lowDifficulty = 2        // the answers before it run through the difficulties 2, 3 and 4
+		difficulties  = 3        // in turn
+		wrongEvery    = 4        // and every fourth of them is wrong
+		breakPause    = 30 * day // the pause of the module, past 14 days
+	)
+	topics := []string{"a", "b"}
+	start := ladderBand(gradeBand)
 	var log []lm.Evidence
-	at := int64(1762041600)
-	add := func(skillID string, place, d int32, correct bool) {
-		at += 3600
-		log = append(log, choiceAnswer(skillID, place, d, correct, start, at))
+	at := foldLogStart
+	add := func(c choiceSpec) {
+		at += foldAnswerGap
+		c.start, c.at = start, at
+		log = append(log, choiceAnswer(c))
 	}
-	for i := range 24 {
-		add(topic([]string{"a", "b"}[i%2]), 2, int32(2+i%3), i%4 != 3)
+	for i := range foldBreakAnswersBefore {
+		add(choiceSpec{skill: topic(topics[i%len(topics)]), place: gradeBand, difficulty: int32(lowDifficulty + i%difficulties),
+			correct: i%wrongEvery != wrongEvery-1})
 	}
-	at += 30 * 86400
-	add(topic("a"), 2, 3, false)
-	add(topic("a"), 2, 3, true)
-	add(topic("b"), 2, 4, true)
-	add(topic("b"), 3, 2, true)
+	at += breakPause
+	// The foldBreakAnswersAfter answers after the break.
+	add(choiceSpec{skill: topic("a"), place: 2, difficulty: 3, correct: false})
+	add(choiceSpec{skill: topic("a"), place: 2, difficulty: 3, correct: true})
+	add(choiceSpec{skill: topic("b"), place: 2, difficulty: 4, correct: true})
+	add(choiceSpec{skill: topic("b"), place: 3, difficulty: 2, correct: true})
 	return log
 }
 
@@ -195,34 +242,42 @@ func breakLog() []lm.Evidence {
 // each item, and hard pages of times all right: two, then one after the leading question, which
 // masters nothing, and the same page without it, which masters addition.
 func format04Log() []lm.Evidence {
+	const (
+		kindBefore04 = 1  // the kind of evidence api kept before format 0.4
+		kind04       = 2  // the kind that records the leading question on request
+		pageItems    = 10 // the items of the pages before the hard ones
+		timesDay     = 3  // the days of the log the pages of times, of both slots and of the hard
+		bothDay      = 4  // pages fall on
+		firstHardDay = 5
+	)
 	add := []string{skill("addition")}
-	at := int64(1762041600)
+	at := foldLogStart
 	var log []lm.Evidence
 	next := func(e lm.Evidence, kind int32) {
 		e.Kind = kind
 		log = append(log, e)
 	}
 	for i, right := range []int{8, 9, 10} {
-		next(page(10, right, add, at+int64(86400*i)), 1)
+		next(page(pageSpec{items: pageItems, right: right, primary: add, at: at + int64(day*i)}), kindBefore04)
 	}
-	times := page(10, 8, add, at+3*86400)
+	times := page(pageSpec{items: pageItems, right: 8, primary: add, at: at + timesDay*day})
 	for i := range times.Task.Items {
 		times.Task.Items[i].Slots = []lm.Slot{{Check: lm.CheckKindTime}}
 	}
 	times.Traps = []lm.FoundTrap{{ID: workbook + "/trap/twelve-hours-off", Skills: add, ItemPlaces: []int32{9, 10}}}
-	next(times, 2)
-	both := page(10, 9, add, at+4*86400)
+	next(times, kind04)
+	both := page(pageSpec{items: pageItems, right: 9, primary: add, at: at + bothDay*day})
 	for i := range both.Task.Items {
 		both.Task.Items[i].Slots = []lm.Slot{{Check: lm.CheckKindNumber}, {Check: lm.CheckKindTime}}
 	}
-	next(both, 2)
+	next(both, kind04)
 	for i, leading := range []bool{false, false, true, false} {
-		e := hard(page(12, 12, add, at+int64(86400*(5+i))))
+		e := hard(page(pageSpec{items: 12, right: 12, primary: add, at: at + int64(day*(firstHardDay+i))}))
 		for k := range e.Task.Items {
 			e.Task.Items[k].Slots = []lm.Slot{{Check: lm.CheckKindTime}}
 		}
 		e.LeadingQuestionOnRequest = leading
-		next(e, 2)
+		next(e, kind04)
 	}
 	return log
 }
@@ -267,7 +322,7 @@ func TestGoldenFold(t *testing.T) {
 					}
 					for _, m := range s.Modules {
 						for _, sk := range m.Skills {
-							lost = lost || (mastered && !sk.Mastered && sk.FailuresInARow >= 2)
+							lost = lost || (mastered && !sk.Mastered && sk.FailuresInARow >= lm.FailuresToLose)
 							mastered = mastered || sk.Mastered
 						}
 					}
@@ -312,8 +367,8 @@ func TestGoldenFold(t *testing.T) {
 				}
 			}
 			if j.name == "break" {
-				// 24 answers before the break and four after it, and n = 20 + 4.
-				if n := s.Modules[0].AnswerWeight; len(log) != 28 || n != 24 {
+				// The answers before the break and after it, and n = 20 + the answers after it.
+				if n := s.Modules[0].AnswerWeight; len(log) != foldBreakAnswersBefore+foldBreakAnswersAfter || n != lm.LevelWeight+foldBreakAnswersAfter {
 					t.Errorf("after the break n is %v over %d pieces of evidence, want 24 over 28", n, len(log))
 				}
 			}
@@ -332,11 +387,16 @@ func TestGoldenFold(t *testing.T) {
 
 func writeGoldenFold(t *testing.T, path string, j goldenJournal, g lm.Graphs) {
 	t.Helper()
+	// The folder and the files are readable by all and writable by their owner.
+	const (
+		foldDirMode  = 0o755
+		foldFileMode = 0o644
+	)
 	var out strings.Builder
 	fmt.Fprintf(&out, "# %s\n", j.note)
 	var s lm.State
 	for _, e := range j.log() {
-		if j.kind != 0 {
+		if j.kind != ownKinds {
 			e.Kind = j.kind
 		}
 		b, err := lm.EncodeEvidence(e)
@@ -348,10 +408,10 @@ func writeGoldenFold(t *testing.T, path string, j goldenJournal, g lm.Graphs) {
 		}
 		fmt.Fprintf(&out, "evidence %x\nstate %x\n", b, encodeState(t, s))
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), foldDirMode); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(path, []byte(out.String()), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte(out.String()), foldFileMode); err != nil {
 		t.Fatal(err)
 	}
 }

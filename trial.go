@@ -49,7 +49,8 @@ func trialLevel(start float64, answers []TrialAnswer) float64 {
 		total += p.weight
 	}
 	reach := float64(total * startSpread2)
-	cells := gridCells(math.Ceil(float64(2 * reach / gridStep)))
+	span := float64(2 * reach) // the grid runs from start − reach to start + reach
+	cells := gridCells(math.Ceil(float64(span / gridStep)))
 
 	best, highest := start, math.Inf(-1)
 	for cell := 0; cell <= cells; cell++ {
@@ -62,7 +63,7 @@ func trialLevel(start float64, answers []TrialAnswer) float64 {
 	// The maximum is within a cell of the best point, where L′ turns from rising to falling.
 	low, high := best-gridStep, best+gridStep
 	for range halvings {
-		middle := low + float64((high-low)/2)
+		middle := midpoint(low, high)
 		if middle <= low || middle >= high {
 			break
 		}
@@ -72,8 +73,11 @@ func trialLevel(start float64, answers []TrialAnswer) float64 {
 			high = middle
 		}
 	}
-	return low + float64((high-low)/2)
+	return midpoint(low, high)
 }
+
+// midpoint is the middle of [low, high], formed from low so that it stays within the cell.
+func midpoint(low, high float64) float64 { return low + float64((high-low)/2) }
 
 // logLikelihood is L at a level. The term of an answer takes its branch by the outcome, not by a
 // factor (1 − S), and ln(1 − P) is ln(1 − c) + ln σ(−x), formed without 1 − P: far above a task σ

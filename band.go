@@ -16,8 +16,8 @@ func BandByGrade(grade Grade, bands []Band) (BandRef, error) {
 	}
 	ids := make([]string, 0, len(bands))
 	for i, b := range bands {
-		if int(b.Place) != i+1 {
-			return BandRef{}, invalid("band " + b.ID + " at place " + strconv.Itoa(int(b.Place)) + ", not " + strconv.Itoa(i+1))
+		if int(b.Place) != i+firstPlace {
+			return BandRef{}, invalid("band " + b.ID + " at place " + strconv.Itoa(int(b.Place)) + ", not " + strconv.Itoa(i+firstPlace))
 		}
 		ids = append(ids, b.ID)
 	}

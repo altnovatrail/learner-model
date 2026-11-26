@@ -18,6 +18,12 @@ func TestTaskIsTheStepsChance(t *testing.T) {
 		t.Fatal(err)
 	}
 	graphs := Graphs{module: {Graph: g, Current: true}}
+	// A page has itemsPerPage items, choices of minChoiceOptions options and up; the item at
+	// wrongItem is wrong, and the last one takes the retired skill as its own.
+	const (
+		itemsPerPage = 4
+		wrongItem    = 1
+	)
 	page := func(at int64, primary ...string) Evidence {
 		e := Evidence{
 			Kind: EvidenceKind,
@@ -25,24 +31,29 @@ func TestTaskIsTheStepsChance(t *testing.T) {
 				KeyProvenance: ProvenanceAuthor, SkillTagsProvenance: ProvenanceAuthor},
 			StartBand: BandRef{Place: 2, ID: "grade-3"}, Outcome: Outcome{Kind: OutcomeFirstSubmission}, PracticeTime: at,
 		}
-		for i := range 4 {
-			item := TaskItem{Place: int32(i + 1), Slots: []Slot{{Check: CheckKindChoice, Options: int32(2 + i), HasOptions: true}}}
-			if i == 3 {
+		for i := range itemsPerPage {
+			item := TaskItem{Place: int32(i + firstPlace),
+				Slots: []Slot{{Check: CheckKindChoice, Options: int32(minChoiceOptions + i), HasOptions: true}}}
+			if i == itemsPerPage-1 {
 				item.OwnSkills, item.Primary = true, []string{s("old")}
 			}
 			e.Task.Items = append(e.Task.Items, item)
 			verdict := VerdictCorrect
-			if i == 1 {
+			if i == wrongItem {
 				verdict = VerdictNotYet
 			}
-			e.Items = append(e.Items, ItemAnswer{Place: int32(i + 1), Submitted: true, FirstVerdict: verdict, HasFirstVerdict: true})
+			e.Items = append(e.Items, ItemAnswer{Place: int32(i + firstPlace), Submitted: true, FirstVerdict: verdict, HasFirstVerdict: true})
 		}
 		return e
 	}
 
+	const (
+		pages = 6
+		pause = 9 * day
+	)
 	var state State
-	for n := range 6 {
-		at := int64(n) * 9 * 86400 // pauses of nine days
+	for n := range pages {
+		at := int64(n) * pause
 		e := page(at, s("a"), s("b"))
 		r, err := Read(state, graphs, at, Grade{Value: 3, Known: true}, []string{module})
 		if err != nil {

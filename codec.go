@@ -88,17 +88,17 @@ func wrapRead(what string, err error) error {
 
 func writeBand(w *wire.Writer, field int, b BandRef) {
 	w.Message(field, func(w *wire.Writer) {
-		w.Int64(1, int64(b.Place))
-		w.String(2, b.ID)
+		w.Int64(fieldBandPlace, int64(b.Place))
+		w.String(fieldBandID, b.ID)
 	})
 }
 
 func writeSlots(w *wire.Writer, field int, slots []Slot) {
 	for _, s := range slots {
 		w.Message(field, func(w *wire.Writer) {
-			w.Int64(1, int64(s.Check))
+			w.Int64(fieldSlotCheckKind, int64(s.Check))
 			if s.HasOptions {
-				w.Int64(2, int64(s.Options))
+				w.Int64(fieldSlotOptionCount, int64(s.Options))
 			}
 		})
 	}
@@ -115,35 +115,35 @@ func writeTrapCounts(w *wire.Writer, field int, traps []TrapCount) {
 	slices.SortFunc(traps, func(a, b TrapCount) int { return strings.Compare(a.ID, b.ID) })
 	for _, t := range traps {
 		w.Message(field, func(w *wire.Writer) {
-			w.String(1, t.ID)
-			w.Int64(2, t.Count)
-			w.Int64(3, t.Last)
+			w.String(fieldTrapCountID, t.ID)
+			w.Int64(fieldTrapCountEvidenceCount, t.Count)
+			w.Int64(fieldTrapCountLastFoundTime, t.Last)
 		})
 	}
 }
 
 func writeEvidence(w *wire.Writer, e Evidence) {
 	t := e.Task
-	w.Int64(1, int64(e.Kind))
-	w.String(2, t.ID)
-	w.Bool(3, t.Template)
-	writeBand(w, 4, t.Band)
-	w.Int64(5, int64(t.Difficulty))
-	writeBand(w, 6, e.StartBand)
-	writeStrings(w, 7, t.Primary)
-	writeStrings(w, 8, t.Supporting)
-	w.Int64(9, int64(t.KeyProvenance))
-	w.Int64(10, int64(t.SkillTagsProvenance))
-	w.Int64(11, int64(e.Outcome.Kind))
+	w.Int64(fieldEvidenceKind, int64(e.Kind))
+	w.String(fieldEvidenceTaskID, t.ID)
+	w.Bool(fieldEvidenceTemplate, t.Template)
+	writeBand(w, fieldEvidenceTaskBand, t.Band)
+	w.Int64(fieldEvidenceDifficulty, int64(t.Difficulty))
+	writeBand(w, fieldEvidenceStartBand, e.StartBand)
+	writeStrings(w, fieldEvidencePrimarySkills, t.Primary)
+	writeStrings(w, fieldEvidenceSupportingSkills, t.Supporting)
+	w.Int64(fieldEvidenceKeyProvenance, int64(t.KeyProvenance))
+	w.Int64(fieldEvidenceSkillTagsProvenance, int64(t.SkillTagsProvenance))
+	w.Int64(fieldEvidenceOutcome, int64(e.Outcome.Kind))
 	if e.Outcome.HasRung {
-		w.Int64(12, int64(e.Outcome.Rung))
+		w.Int64(fieldEvidenceHintRung, int64(e.Outcome.Rung))
 	}
-	w.Int64(13, e.PracticeTime)
-	w.Bool(14, e.TechniqueOnStep)
-	w.Bool(15, e.TechniqueOnRequest)
-	w.Int64(16, int64(e.ExplainAgainCount))
+	w.Int64(fieldEvidencePracticeTime, e.PracticeTime)
+	w.Bool(fieldEvidenceTechniqueOnStep, e.TechniqueOnStep)
+	w.Bool(fieldEvidenceTechniqueOnRequest, e.TechniqueOnRequest)
+	w.Int64(fieldEvidenceExplainAgainCount, int64(e.ExplainAgainCount))
 	if e.HasSolutionSeenFact {
-		w.Bool(17, e.SolutionSeenBefore)
+		w.Bool(fieldEvidenceSolutionSeenBefore, e.SolutionSeenBefore)
 	}
 	items := slices.Clone(t.Items)
 	slices.SortFunc(items, func(a, b TaskItem) int { return cmp.Compare(a.Place, b.Place) })
@@ -154,40 +154,40 @@ func writeEvidence(w *wire.Writer, e Evidence) {
 	traps := slices.Clone(e.Traps)
 	slices.SortFunc(traps, func(a, b FoundTrap) int { return strings.Compare(a.ID, b.ID) })
 	for _, trap := range traps {
-		w.Message(19, func(w *wire.Writer) {
-			w.String(1, trap.ID)
-			writeStrings(w, 2, trap.Skills)
-			w.PackedInt64(3, widen(sortedCopy(trap.ItemPlaces)))
+		w.Message(fieldEvidenceTraps, func(w *wire.Writer) {
+			w.String(fieldFoundTrapID, trap.ID)
+			writeStrings(w, fieldFoundTrapSkills, trap.Skills)
+			w.PackedInt64(fieldFoundTrapItemPlaces, widen(sortedCopy(trap.ItemPlaces)))
 		})
 	}
 	// Kind 2 adds field 20, and kind 1 does not record it: its bytes stay as they were written.
 	if e.Kind >= leadingQuestionKind {
-		w.Bool(20, e.LeadingQuestionOnRequest)
+		w.Bool(fieldEvidenceLeadingQuestionOnRequest, e.LeadingQuestionOnRequest)
 	}
 	// Kind 3 adds field 21 the same way.
 	if e.Kind >= correctionKind {
-		w.Bool(21, e.LevelSetByAdult)
+		w.Bool(fieldEvidenceLevelSetByAdult, e.LevelSetByAdult)
 	}
 }
 
 func writeItem(w *wire.Writer, item TaskItem, a ItemAnswer) {
-	w.Message(18, func(w *wire.Writer) {
-		w.Int64(1, int64(item.Place))
-		w.Bool(2, item.OwnSkills)
-		writeStrings(w, 3, item.Primary)
-		writeStrings(w, 4, item.Supporting)
-		writeSlots(w, 5, item.Slots)
-		w.Bool(6, a.Submitted)
-		w.PackedInt64(7, widen(a.Unverdicted))
+	w.Message(fieldEvidenceItems, func(w *wire.Writer) {
+		w.Int64(fieldItemPlace, int64(item.Place))
+		w.Bool(fieldItemOwnSkills, item.OwnSkills)
+		writeStrings(w, fieldItemPrimarySkills, item.Primary)
+		writeStrings(w, fieldItemSupportingSkills, item.Supporting)
+		writeSlots(w, fieldItemAnswerSlots, item.Slots)
+		w.Bool(fieldItemSubmitted, a.Submitted)
+		w.PackedInt64(fieldItemUnverdictedReasons, widen(a.Unverdicted))
 		if a.HasFirstVerdict {
-			w.Int64(8, int64(a.FirstVerdict))
-			w.Int64(9, int64(a.WrongBeforeFirst))
+			w.Int64(fieldItemFirstVerdict, int64(a.FirstVerdict))
+			w.Int64(fieldItemWrongBeforeFirstVerdict, int64(a.WrongBeforeFirst))
 		}
 		if a.HasFinalVerdict {
-			w.Int64(10, int64(a.FinalVerdict))
+			w.Int64(fieldItemFinalVerdict, int64(a.FinalVerdict))
 		}
 		if a.HasFirstCorrect {
-			w.Int64(11, int64(a.WrongBeforeFirstCorrect))
+			w.Int64(fieldItemWrongBeforeFirstCorrect, int64(a.WrongBeforeFirstCorrect))
 		}
 	})
 }
@@ -201,50 +201,50 @@ func widen[T ~int32](values []T) []int64 {
 }
 
 func writeState(w *wire.Writer, s State) {
-	w.Int64(1, int64(s.Kind))
+	w.Int64(fieldStateKind, int64(s.Kind))
 	modules := slices.Clone(s.Modules)
 	slices.SortFunc(modules, func(a, b ModuleState) int { return strings.Compare(a.Module, b.Module) })
 	for _, m := range modules {
-		w.Message(2, func(w *wire.Writer) {
-			w.String(1, m.Module)
-			w.Double(2, m.Level)
-			w.Double(3, m.AnswerWeight)
-			writeBand(w, 4, m.StartBand)
+		w.Message(fieldStateModules, func(w *wire.Writer) {
+			w.String(fieldModuleID, m.Module)
+			w.Double(fieldModuleLevel, m.Level)
+			w.Double(fieldModuleAnswerWeight, m.AnswerWeight)
+			writeBand(w, fieldModuleStartBand, m.StartBand)
 			for _, a := range m.Trial {
-				w.Message(5, func(w *wire.Writer) {
-					w.Int64(1, int64(a.BandPlace))
-					w.Int64(2, int64(a.Difficulty))
-					writeSlots(w, 3, a.Slots)
-					w.Int64(4, int64(a.Verdict))
-					w.Double(5, a.Weight)
+				w.Message(fieldModuleTrialAnswers, func(w *wire.Writer) {
+					w.Int64(fieldTrialAnswerBandPlace, int64(a.BandPlace))
+					w.Int64(fieldTrialAnswerDifficulty, int64(a.Difficulty))
+					writeSlots(w, fieldTrialAnswerAnswerSlots, a.Slots)
+					w.Int64(fieldTrialAnswerVerdict, int64(a.Verdict))
+					w.Double(fieldTrialAnswerWeight, a.Weight)
 				})
 			}
-			writeTrapCounts(w, 6, m.Traps)
+			writeTrapCounts(w, fieldModuleTraps, m.Traps)
 			skills := slices.Clone(m.Skills)
 			slices.SortFunc(skills, func(a, b SkillState) int { return strings.Compare(a.Skill, b.Skill) })
 			for _, sk := range skills {
-				w.Message(7, func(w *wire.Writer) { writeSkill(w, sk) })
+				w.Message(fieldModuleSkills, func(w *wire.Writer) { writeSkill(w, sk) })
 			}
-			w.Bool(8, m.LastInTrial)
+			w.Bool(fieldModuleLastEvidenceInTrial, m.LastInTrial)
 			// Kind 2 adds fields 9 and 10, and kind 1 does not record them.
 			if s.Kind >= guardKind {
-				w.Int64(9, int64(m.FailuresInARow))
-				w.Bool(10, m.TrialEndedByAdult)
+				w.Int64(fieldModuleFailuresInARow, int64(m.FailuresInARow))
+				w.Bool(fieldModuleTrialEndedByAdult, m.TrialEndedByAdult)
 			}
 		})
 	}
 }
 
 func writeSkill(w *wire.Writer, sk SkillState) {
-	w.String(1, sk.Skill)
-	w.Double(2, sk.Correction)
-	w.Double(3, sk.AnswerWeight)
-	w.Int64(4, sk.EvidenceCount)
-	w.Int64(5, sk.LastPractice)
-	w.Double(6, sk.Stability)
-	writeTrapCounts(w, 7, sk.Traps)
+	w.String(fieldSkillID, sk.Skill)
+	w.Double(fieldSkillCorrection, sk.Correction)
+	w.Double(fieldSkillAnswerWeight, sk.AnswerWeight)
+	w.Int64(fieldSkillEvidenceCount, sk.EvidenceCount)
+	w.Int64(fieldSkillLastPracticeTime, sk.LastPractice)
+	w.Double(fieldSkillStability, sk.Stability)
+	writeTrapCounts(w, fieldSkillTraps, sk.Traps)
 	if sk.Mastered {
-		w.Int64(8, int64(sk.MasteryBand))
+		w.Int64(fieldSkillMasteryBandPlace, int64(sk.MasteryBand))
 	}
-	w.Int64(9, int64(sk.FailuresInARow))
+	w.Int64(fieldSkillFailuresInARow, int64(sk.FailuresInARow))
 }

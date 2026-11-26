@@ -451,8 +451,8 @@ func levelBandRef(level float64, g *Graph) (BandRef, bool) {
 // bandAt names the band at a place by the graph: its ID, when the graph has a band there.
 func bandAt(g *Graph, place int32) BandRef {
 	b := BandRef{Place: place}
-	if g != nil && place >= 1 && int(place) <= len(g.Bands) {
-		b.ID = g.Bands[place-1].ID
+	if g != nil && place >= firstPlace && int(place) <= len(g.Bands) {
+		b.ID = g.Bands[place-firstPlace].ID
 	}
 	return b
 }

@@ -198,9 +198,9 @@ func readBand(b []byte) (BandRef, error) {
 	var band BandRef
 	seen, err := readMessage(b, func(n int, seen *fields) *reading {
 		switch n {
-		case 1:
+		case fieldBandPlace:
 			return int32Field(n, seen, &band.Place)
-		case 2:
+		case fieldBandID:
 			return stringField(n, seen, &band.ID)
 		}
 		return nil
@@ -208,7 +208,7 @@ func readBand(b []byte) (BandRef, error) {
 	if err != nil {
 		return BandRef{}, err
 	}
-	return band, seen.require("a band", 1, 2)
+	return band, seen.require("a band", fieldBandPlace, fieldBandID)
 }
 
 func bandField(number int, seen *fields, dst *BandRef) *reading {
@@ -222,9 +222,9 @@ func readSlot(b []byte) (Slot, error) {
 	var s Slot
 	seen, err := readMessage(b, func(n int, seen *fields) *reading {
 		switch n {
-		case 1:
+		case fieldSlotCheckKind:
 			return enumField(n, seen, &s.Check)
-		case 2:
+		case fieldSlotOptionCount:
 			return int32Field(n, seen, &s.Options, &s.HasOptions)
 		}
 		return nil
@@ -232,18 +232,18 @@ func readSlot(b []byte) (Slot, error) {
 	if err != nil {
 		return Slot{}, err
 	}
-	return s, seen.require("an answer slot", 1)
+	return s, seen.require("an answer slot", fieldSlotCheckKind)
 }
 
 func readTrapCount(b []byte) (TrapCount, error) {
 	var t TrapCount
 	seen, err := readMessage(b, func(n int, seen *fields) *reading {
 		switch n {
-		case 1:
+		case fieldTrapCountID:
 			return stringField(n, seen, &t.ID)
-		case 2:
+		case fieldTrapCountEvidenceCount:
 			return int64Field(n, seen, &t.Count)
-		case 3:
+		case fieldTrapCountLastFoundTime:
 			return int64Field(n, seen, &t.Last)
 		}
 		return nil
@@ -251,7 +251,7 @@ func readTrapCount(b []byte) (TrapCount, error) {
 	if err != nil {
 		return TrapCount{}, err
 	}
-	return t, seen.require("a trap count", 1, 2, 3)
+	return t, seen.require("a trap count", fieldTrapCountID, fieldTrapCountEvidenceCount, fieldTrapCountLastFoundTime)
 }
 
 func readEvidence(b []byte) (Evidence, error) {
@@ -259,52 +259,52 @@ func readEvidence(b []byte) (Evidence, error) {
 	t := &e.Task
 	seen, err := readMessage(b, func(n int, seen *fields) *reading {
 		switch n {
-		case 1:
+		case fieldEvidenceKind:
 			return int32Field(n, seen, &e.Kind)
-		case 2:
+		case fieldEvidenceTaskID:
 			return stringField(n, seen, &t.ID)
-		case 3:
+		case fieldEvidenceTemplate:
 			return boolField(n, seen, &t.Template)
-		case 4:
+		case fieldEvidenceTaskBand:
 			return bandField(n, seen, &t.Band)
-		case 5:
+		case fieldEvidenceDifficulty:
 			return int32Field(n, seen, &t.Difficulty)
-		case 6:
+		case fieldEvidenceStartBand:
 			return bandField(n, seen, &e.StartBand)
-		case 7:
+		case fieldEvidencePrimarySkills:
 			return appendString(&t.Primary)
-		case 8:
+		case fieldEvidenceSupportingSkills:
 			return appendString(&t.Supporting)
-		case 9:
+		case fieldEvidenceKeyProvenance:
 			return enumField(n, seen, &t.KeyProvenance)
-		case 10:
+		case fieldEvidenceSkillTagsProvenance:
 			return enumField(n, seen, &t.SkillTagsProvenance)
-		case 11:
+		case fieldEvidenceOutcome:
 			return enumField(n, seen, &e.Outcome.Kind)
-		case 12:
+		case fieldEvidenceHintRung:
 			return int32Field(n, seen, &e.Outcome.Rung, &e.Outcome.HasRung)
-		case 13:
+		case fieldEvidencePracticeTime:
 			return int64Field(n, seen, &e.PracticeTime)
-		case 14:
+		case fieldEvidenceTechniqueOnStep:
 			return boolField(n, seen, &e.TechniqueOnStep)
-		case 15:
+		case fieldEvidenceTechniqueOnRequest:
 			return boolField(n, seen, &e.TechniqueOnRequest)
-		case 16:
+		case fieldEvidenceExplainAgainCount:
 			return int32Field(n, seen, &e.ExplainAgainCount)
-		case 17:
+		case fieldEvidenceSolutionSeenBefore:
 			return boolField(n, seen, &e.SolutionSeenBefore, &e.HasSolutionSeenFact)
-		case 18:
+		case fieldEvidenceItems:
 			return message(n, nil, func(b []byte) error {
 				item, answer, err := readItem(b)
 				t.Items = append(t.Items, item)
 				e.Items = append(e.Items, answer)
 				return err
 			})
-		case 19:
+		case fieldEvidenceTraps:
 			return element(&e.Traps, readFoundTrap)
-		case 20:
+		case fieldEvidenceLeadingQuestionOnRequest:
 			return boolField(n, seen, &e.LeadingQuestionOnRequest)
-		case 21:
+		case fieldEvidenceLevelSetByAdult:
 			return boolField(n, seen, &e.LevelSetByAdult)
 		}
 		return nil
@@ -312,12 +312,17 @@ func readEvidence(b []byte) (Evidence, error) {
 	if err != nil {
 		return Evidence{}, err
 	}
-	if err := seen.require("evidence", 1, 2, 3, 4, 5, 6, 9, 10, 11, 13, 14, 15, 16); err != nil {
+	if err := seen.require("evidence", fieldEvidenceKind, fieldEvidenceTaskID, fieldEvidenceTemplate,
+		fieldEvidenceTaskBand, fieldEvidenceDifficulty, fieldEvidenceStartBand, fieldEvidenceKeyProvenance,
+		fieldEvidenceSkillTagsProvenance, fieldEvidenceOutcome, fieldEvidencePracticeTime,
+		fieldEvidenceTechniqueOnStep, fieldEvidenceTechniqueOnRequest, fieldEvidenceExplainAgainCount); err != nil {
 		return e, err
 	}
 	// Kind 2 adds field 20 and kind 3 field 21, which every kind from it writes and the kinds before
 	// it do not. A kind below 1 is refused for its kind, by canonicalEvidence.
-	return e, kindFields(seen, "evidence", e.Kind, []addedField{{leadingQuestionKind, 20}, {correctionKind, 21}})
+	return e, kindFields(seen, "evidence", e.Kind, []addedField{
+		{leadingQuestionKind, fieldEvidenceLeadingQuestionOnRequest}, {correctionKind, fieldEvidenceLevelSetByAdult},
+	})
 }
 
 func readItem(b []byte) (TaskItem, ItemAnswer, error) {
@@ -325,27 +330,27 @@ func readItem(b []byte) (TaskItem, ItemAnswer, error) {
 	var a ItemAnswer
 	seen, err := readMessage(b, func(n int, seen *fields) *reading {
 		switch n {
-		case 1:
+		case fieldItemPlace:
 			return int32Field(n, seen, &item.Place)
-		case 2:
+		case fieldItemOwnSkills:
 			return boolField(n, seen, &item.OwnSkills)
-		case 3:
+		case fieldItemPrimarySkills:
 			return appendString(&item.Primary)
-		case 4:
+		case fieldItemSupportingSkills:
 			return appendString(&item.Supporting)
-		case 5:
+		case fieldItemAnswerSlots:
 			return element(&item.Slots, readSlot)
-		case 6:
+		case fieldItemSubmitted:
 			return boolField(n, seen, &a.Submitted)
-		case 7:
+		case fieldItemUnverdictedReasons:
 			return packed(n, &a.Unverdicted)
-		case 8:
+		case fieldItemFirstVerdict:
 			return enumField(n, seen, &a.FirstVerdict, &a.HasFirstVerdict)
-		case 9:
+		case fieldItemWrongBeforeFirstVerdict:
 			return int32Field(n, seen, &a.WrongBeforeFirst)
-		case 10:
+		case fieldItemFinalVerdict:
 			return enumField(n, seen, &a.FinalVerdict, &a.HasFinalVerdict)
-		case 11:
+		case fieldItemWrongBeforeFirstCorrect:
 			return int32Field(n, seen, &a.WrongBeforeFirstCorrect, &a.HasFirstCorrect)
 		}
 		return nil
@@ -355,21 +360,21 @@ func readItem(b []byte) (TaskItem, ItemAnswer, error) {
 		return item, a, err
 	}
 	// The writer writes the wrong answers before the first verdict with it, and only with it.
-	if seen.has(8) != seen.has(9) {
+	if seen.has(fieldItemFirstVerdict) != seen.has(fieldItemWrongBeforeFirstVerdict) {
 		return item, a, errors.New("an item with only one of fields 8 and 9")
 	}
-	return item, a, seen.require("an item", 1, 2, 6)
+	return item, a, seen.require("an item", fieldItemPlace, fieldItemOwnSkills, fieldItemSubmitted)
 }
 
 func readFoundTrap(b []byte) (FoundTrap, error) {
 	var t FoundTrap
 	seen, err := readMessage(b, func(n int, seen *fields) *reading {
 		switch n {
-		case 1:
+		case fieldFoundTrapID:
 			return stringField(n, seen, &t.ID)
-		case 2:
+		case fieldFoundTrapSkills:
 			return appendString(&t.Skills)
-		case 3:
+		case fieldFoundTrapItemPlaces:
 			return packed(n, &t.ItemPlaces)
 		}
 		return nil
@@ -377,7 +382,7 @@ func readFoundTrap(b []byte) (FoundTrap, error) {
 	if err != nil {
 		return FoundTrap{}, err
 	}
-	return t, seen.require("a found trap", 1)
+	return t, seen.require("a found trap", fieldFoundTrapID)
 }
 
 func readState(b []byte) (State, error) {
@@ -385,9 +390,9 @@ func readState(b []byte) (State, error) {
 	var modules []fields // the fields each module has, in order
 	seen, err := readMessage(b, func(n int, seen *fields) *reading {
 		switch n {
-		case 1:
+		case fieldStateKind:
 			return int32Field(n, seen, &s.Kind)
-		case 2:
+		case fieldStateModules:
 			return element(&s.Modules, func(b []byte) (ModuleState, error) {
 				m, f, err := readModule(b)
 				modules = append(modules, f)
@@ -399,12 +404,13 @@ func readState(b []byte) (State, error) {
 	if err != nil {
 		return State{}, err
 	}
-	if err := seen.require("a state", 1); err != nil {
+	if err := seen.require("a state", fieldStateKind); err != nil {
 		return s, err
 	}
 	// Kind 2 adds fields 9 and 10 of a module.
 	for _, f := range modules {
-		if err := kindFields(f, "a module of a state", s.Kind, []addedField{{guardKind, 9}, {guardKind, 10}}); err != nil {
+		added := []addedField{{guardKind, fieldModuleFailuresInARow}, {guardKind, fieldModuleTrialEndedByAdult}}
+		if err := kindFields(f, "a module of a state", s.Kind, added); err != nil {
 			return s, err
 		}
 	}
@@ -415,25 +421,25 @@ func readModule(b []byte) (ModuleState, fields, error) {
 	var m ModuleState
 	seen, err := readMessage(b, func(n int, seen *fields) *reading {
 		switch n {
-		case 1:
+		case fieldModuleID:
 			return stringField(n, seen, &m.Module)
-		case 2:
+		case fieldModuleLevel:
 			return doubleField(n, seen, &m.Level)
-		case 3:
+		case fieldModuleAnswerWeight:
 			return doubleField(n, seen, &m.AnswerWeight)
-		case 4:
+		case fieldModuleStartBand:
 			return bandField(n, seen, &m.StartBand)
-		case 5:
+		case fieldModuleTrialAnswers:
 			return element(&m.Trial, readTrialAnswer)
-		case 6:
+		case fieldModuleTraps:
 			return element(&m.Traps, readTrapCount)
-		case 7:
+		case fieldModuleSkills:
 			return element(&m.Skills, readSkill)
-		case 8:
+		case fieldModuleLastEvidenceInTrial:
 			return boolField(n, seen, &m.LastInTrial)
-		case 9:
+		case fieldModuleFailuresInARow:
 			return int32Field(n, seen, &m.FailuresInARow)
-		case 10:
+		case fieldModuleTrialEndedByAdult:
 			return boolField(n, seen, &m.TrialEndedByAdult)
 		}
 		return nil
@@ -441,22 +447,23 @@ func readModule(b []byte) (ModuleState, fields, error) {
 	if err != nil {
 		return ModuleState{}, seen, err
 	}
-	return m, seen, seen.require("a module", 1, 2, 3, 4, 8)
+	return m, seen, seen.require("a module", fieldModuleID, fieldModuleLevel, fieldModuleAnswerWeight,
+		fieldModuleStartBand, fieldModuleLastEvidenceInTrial)
 }
 
 func readTrialAnswer(b []byte) (TrialAnswer, error) {
 	var a TrialAnswer
 	seen, err := readMessage(b, func(n int, seen *fields) *reading {
 		switch n {
-		case 1:
+		case fieldTrialAnswerBandPlace:
 			return int32Field(n, seen, &a.BandPlace)
-		case 2:
+		case fieldTrialAnswerDifficulty:
 			return int32Field(n, seen, &a.Difficulty)
-		case 3:
+		case fieldTrialAnswerAnswerSlots:
 			return element(&a.Slots, readSlot)
-		case 4:
+		case fieldTrialAnswerVerdict:
 			return enumField(n, seen, &a.Verdict)
-		case 5:
+		case fieldTrialAnswerWeight:
 			return doubleField(n, seen, &a.Weight)
 		}
 		return nil
@@ -464,30 +471,31 @@ func readTrialAnswer(b []byte) (TrialAnswer, error) {
 	if err != nil {
 		return TrialAnswer{}, err
 	}
-	return a, seen.require("a trial answer", 1, 2, 4, 5)
+	return a, seen.require("a trial answer", fieldTrialAnswerBandPlace, fieldTrialAnswerDifficulty,
+		fieldTrialAnswerVerdict, fieldTrialAnswerWeight)
 }
 
 func readSkill(b []byte) (SkillState, error) {
 	var sk SkillState
 	seen, err := readMessage(b, func(n int, seen *fields) *reading {
 		switch n {
-		case 1:
+		case fieldSkillID:
 			return stringField(n, seen, &sk.Skill)
-		case 2:
+		case fieldSkillCorrection:
 			return doubleField(n, seen, &sk.Correction)
-		case 3:
+		case fieldSkillAnswerWeight:
 			return doubleField(n, seen, &sk.AnswerWeight)
-		case 4:
+		case fieldSkillEvidenceCount:
 			return int64Field(n, seen, &sk.EvidenceCount)
-		case 5:
+		case fieldSkillLastPracticeTime:
 			return int64Field(n, seen, &sk.LastPractice)
-		case 6:
+		case fieldSkillStability:
 			return doubleField(n, seen, &sk.Stability)
-		case 7:
+		case fieldSkillTraps:
 			return element(&sk.Traps, readTrapCount)
-		case 8:
+		case fieldSkillMasteryBandPlace:
 			return int32Field(n, seen, &sk.MasteryBand, &sk.Mastered)
-		case 9:
+		case fieldSkillFailuresInARow:
 			return int32Field(n, seen, &sk.FailuresInARow)
 		}
 		return nil
@@ -495,7 +503,8 @@ func readSkill(b []byte) (SkillState, error) {
 	if err != nil {
 		return SkillState{}, err
 	}
-	return sk, seen.require("a skill", 1, 2, 3, 4, 5, 6, 9)
+	return sk, seen.require("a skill", fieldSkillID, fieldSkillCorrection, fieldSkillAnswerWeight,
+		fieldSkillEvidenceCount, fieldSkillLastPracticeTime, fieldSkillStability, fieldSkillFailuresInARow)
 }
 
 // addedField is a field a kind adds: a message of that kind or later must have it, and one of an
@@ -513,7 +522,7 @@ func kindFields(seen fields, what string, kind int32, added []addedField) error 
 			if err := seen.require(what+" of kind "+itoa(kind), a.field); err != nil {
 				return err
 			}
-		case kind >= 1 && seen.has(a.field):
+		case kind >= firstKind && seen.has(a.field):
 			return errors.New(what + " of kind " + itoa(kind) + " with field " + strconv.Itoa(a.field))
 		}
 	}

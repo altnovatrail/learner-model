@@ -13,7 +13,26 @@ import (
 
 // Reading the state at a time t₀: Read and Readout.Task. Every value here is synthetic.
 
-const day = 86400
+const day = lm.SecondsPerDay
+
+// The school state's last practice, and the time the examples of anchor skills read it at, a
+// little after it.
+const (
+	schoolPractice = 1000
+	schoolRead     = 2000
+)
+
+// The random logs of the property, read: readRandomLogs logs from epoch, each of up to
+// readRandomEvidence pieces of evidence at most readRandomGap seconds apart, read at most
+// readRandomWindow after the last; readCoin is the coin, r.IntN(readCoin) == 0, that puts a module
+// in the engine's list.
+const (
+	readRandomLogs     = 30
+	readRandomEvidence = 40
+	readRandomGap      = 200000
+	readRandomWindow   = 100 * day
+	readCoin           = 2
+)
 
 // The anchor skills of the examples of docs/architecture.md: school maths of grade 3 teaches
 // division with remainder and fractions of a whole, and olympiad maths relies on them.
@@ -57,7 +76,7 @@ func anchorGraphs(t *testing.T) lm.Graphs {
 // not.
 func schoolState(mastered bool) lm.State {
 	sk := lm.SkillState{Skill: schoolSkill("division"), Correction: 0.3, AnswerWeight: 8, EvidenceCount: 4,
-		LastPractice: 1000, Stability: 2}
+		LastPractice: schoolPractice, Stability: 2}
 	if mastered {
 		sk.Mastered, sk.MasteryBand = true, 1
 	}
@@ -116,9 +135,9 @@ func TestAnchors(t *testing.T) {
 	}
 
 	// Division practised, not mastered; then mastered.
-	r = mustRead(t, schoolState(false), g, 2000, grade3, olympiad, school)
+	r = mustRead(t, schoolState(false), g, schoolRead, grade3, olympiad, school)
 	wantAnchor(t, "not mastered", anchorOf(t, r, division), lm.AnchorHasNot, lm.AnchorReasonNotMastered)
-	r = mustRead(t, schoolState(true), g, 2000, grade3, olympiad, school)
+	r = mustRead(t, schoolState(true), g, schoolRead, grade3, olympiad, school)
 	a := anchorOf(t, r, division)
 	wantAnchor(t, "mastered", a, lm.AnchorHas, lm.AnchorReasonNone)
 	if tr := a.Teachers[0]; !tr.Practised || !tr.Mastered || tr.MasteryBand.ID != "grade-3" || tr.Estimate != 2.3 ||
@@ -138,15 +157,15 @@ func TestAnchors(t *testing.T) {
 
 	// School maths turned off: a skill mastered there still holds the anchor; one not mastered
 	// leaves it unknown.
-	r = mustRead(t, schoolState(true), g, 2000, grade3, olympiad)
+	r = mustRead(t, schoolState(true), g, schoolRead, grade3, olympiad)
 	wantAnchor(t, "a module turned off, mastered", anchorOf(t, r, division), lm.AnchorHas, lm.AnchorReasonNone)
-	r = mustRead(t, schoolState(false), g, 2000, grade3, olympiad)
+	r = mustRead(t, schoolState(false), g, schoolRead, grade3, olympiad)
 	wantAnchor(t, "a module turned off, not mastered", anchorOf(t, r, division), lm.AnchorUnknown, lm.AnchorReasonNoTeacher)
 
 	// A module with no current version gives no graph, and its mastery is not seen.
 	gone := anchorGraphs(t)
 	gone[school] = lm.ModuleGraph{}
-	r = mustRead(t, schoolState(true), gone, 2000, grade3, olympiad)
+	r = mustRead(t, schoolState(true), gone, schoolRead, grade3, olympiad)
 	if a := anchorOf(t, r, division); a.Status != lm.AnchorUnknown || len(a.Teachers) != 0 {
 		t.Errorf("a module with no current version: %+v", a)
 	}
@@ -204,9 +223,15 @@ func TestReadModuleWithNoBands(t *testing.T) {
 func TestTrialFlags(t *testing.T) {
 	g := olympiadGraphs(t, map[string][]int32{topic("a"): {1, 2, 3}})
 	grade3 := lm.Grade{Value: 3, Known: true}
+	const (
+		// An answer of one item weighs one, so the series lasts this many answers; the i-th of
+		// them is at time i, and the evidence after it follows a second apart.
+		seriesAnswers = int(lm.TrialWeight)
+		later         = 1 << 20 // a time after every piece of evidence here
+	)
 	flags := func(what string, s lm.State, over, last bool) {
 		t.Helper()
-		r := mustRead(t, s, g, 1<<20, grade3, olympiad)
+		r := mustRead(t, s, g, later, grade3, olympiad)
 		if m := r.Modules[0]; m.TrialOver != over || m.LastInTrial != last {
 			t.Errorf("%s: the series over %v and the last evidence in it %v, want %v and %v", what, m.TrialOver, m.LastInTrial, over, last)
 		}
@@ -216,18 +241,18 @@ func TestTrialFlags(t *testing.T) {
 	if m := r.Modules[0]; m.HasEvidence || m.StartBand != ladderBand(2) || m.TrialOver || m.LastInTrial || len(m.Skills) != 0 {
 		t.Errorf("a module of the engine before its first evidence: %+v", m)
 	}
-	for i := range 4 {
-		s = mustAppend(t, s, choiceAnswer(topic("a"), 2, 3, i%2 == 0, ladderBand(2), int64(i)), g)
+	for i := range seriesAnswers - 1 {
+		s = mustAppend(t, s, choiceAnswer(choiceSpec{skill: topic("a"), place: 2, difficulty: 3, correct: i%2 == 0, start: ladderBand(2), at: int64(i)}), g)
 		flags("in the series", s, false, true)
 	}
-	s = mustAppend(t, s, choiceAnswer(topic("a"), 2, 3, false, ladderBand(2), 4), g)
+	s = mustAppend(t, s, choiceAnswer(choiceSpec{skill: topic("a"), place: 2, difficulty: 3, correct: false, start: ladderBand(2), at: int64(seriesAnswers - 1)}), g)
 	flags("at its last evidence", s, true, true)
 
-	ai := choiceAnswer(topic("a"), 2, 3, false, ladderBand(2), 5)
+	ai := choiceAnswer(choiceSpec{skill: topic("a"), place: 2, difficulty: 3, correct: false, start: ladderBand(2), at: int64(seriesAnswers)})
 	ai.Task.SkillTagsProvenance = lm.ProvenanceAI
 	flags("after evidence that weighs nothing", mustAppend(t, s, ai, g), true, true)
 
-	s = mustAppend(t, s, choiceAnswer(topic("a"), 2, 3, true, ladderBand(2), 6), g)
+	s = mustAppend(t, s, choiceAnswer(choiceSpec{skill: topic("a"), place: 2, difficulty: 3, correct: true, start: ladderBand(2), at: int64(seriesAnswers + 1)}), g)
 	flags("after it", s, true, false)
 }
 
@@ -257,7 +282,7 @@ func taskP(t *testing.T, r lm.Readout, task lm.Task) []lm.ItemProbability {
 
 func near3(t *testing.T, what string, got, want float64) {
 	t.Helper()
-	if math.Abs(got-want) > 1e-3 {
+	if math.Abs(got-want) > threeDecimals {
 		t.Errorf("%s = %.6f, want %.3f", what, got, want)
 	}
 }
@@ -266,7 +291,11 @@ func near3(t *testing.T, what string, got, want float64) {
 // summer break of 60 days.
 func TestReadSkill(t *testing.T) {
 	g := olympiadGraphs(t, map[string][]int32{topic("a"): {1, 2, 3}})
-	const t0 = 1762041600
+	const (
+		t0          = epoch
+		oneDecimal  = 0.05     // the document prints the review date to one decimal
+		summerBreak = 60 * day // the example's pause
+	)
 	s := mastered(t0)
 
 	r := mustRead(t, s, g, t0, lm.Grade{}, olympiad)
@@ -278,12 +307,12 @@ func TestReadSkill(t *testing.T) {
 	}
 	near3(t, "v", sk.Uncertainty, 0.2327)
 	near3(t, "q", sk.CautiousProbability, 0.820)
-	if days := float64(float64(sk.Review.At-t0) / day); math.Abs(days-12.9) > 0.05 {
+	if days := float64(float64(sk.Review.At-t0) / day); math.Abs(days-12.9) > oneDecimal {
 		t.Errorf("the review after τ = 10 in %.3f days, want 12.9", days)
 	}
 	near3(t, "P without forgetting", taskP(t, r, candidate(topic("a")))[0].Probability, 0.905)
 
-	r = mustRead(t, s, g, t0+60*day, lm.Grade{}, olympiad)
+	r = mustRead(t, s, g, t0+summerBreak, lm.Grade{}, olympiad)
 	sk = r.Modules[0].Skills[0]
 	near3(t, "R(60; 10)", sk.Retention, 0.645)
 	near3(t, "R · q", sk.CautiousProbability, 0.645*0.820)
@@ -317,14 +346,19 @@ func TestReadSkill(t *testing.T) {
 // without a verdict, and the transfer.
 func TestReadTask(t *testing.T) {
 	g := olympiadGraphs(t, map[string][]int32{topic("a"): {1, 2, 3}})
+	const (
+		laterCheck lm.CheckKind = 9 // a kind of check of a later version
+		longPause               = 300 * day
+		aMonth                  = 30 * day
+	)
 
 	// A learner of grade 5, of the band 5-6, starts a band below it, at θ₀ = 2.5: on the task
 	// of the band 3-4, P = 0.2 + 0.8 · σ(0) = 0.6.
 	r := mustRead(t, lm.State{}, g, 0, lm.Grade{Value: 5, Known: true}, olympiad)
 	task := candidate(topic("a"))
 	task.Items = append(task.Items,
-		lm.TaskItem{Place: 3, Slots: []lm.Slot{{Check: 9}}}, // a kind of check of a later version
-		lm.TaskItem{Place: 2})                               // no slot: a rubric
+		lm.TaskItem{Place: 3, Slots: []lm.Slot{{Check: laterCheck}}},
+		lm.TaskItem{Place: 2}) // no slot: a rubric
 	items := taskP(t, r, task)
 	if len(items) != 3 || items[0].Place != 1 || !items[0].HasVerdict ||
 		items[1] != (lm.ItemProbability{Place: 2}) || items[2] != (lm.ItemProbability{Place: 3}) {
@@ -345,12 +379,12 @@ func TestReadTask(t *testing.T) {
 	// it, retention lowers P.
 	trial := mastered(0)
 	trial.Modules[0].AnswerWeight, trial.Modules[0].LastInTrial = 3, true
-	soon, late := taskP(t, mustRead(t, trial, g, 0, lm.Grade{}), task), taskP(t, mustRead(t, trial, g, 300*day, lm.Grade{}), task)
+	soon, late := taskP(t, mustRead(t, trial, g, 0, lm.Grade{}), task), taskP(t, mustRead(t, trial, g, longPause, lm.Grade{}), task)
 	if soon[0] != late[0] {
 		t.Errorf("a pause in the trial series changed P: %v and %v", soon[0], late[0])
 	}
 	past := mastered(0)
-	if p0, p1 := taskP(t, mustRead(t, past, g, 0, lm.Grade{}), task), taskP(t, mustRead(t, past, g, 300*day, lm.Grade{}), task); !(p1[0].Probability < p0[0].Probability) {
+	if p0, p1 := taskP(t, mustRead(t, past, g, 0, lm.Grade{}), task), taskP(t, mustRead(t, past, g, longPause, lm.Grade{}), task); !(p1[0].Probability < p0[0].Probability) {
 		t.Errorf("a pause past the trial series left P at %v and %v", p0[0], p1[0])
 	}
 
@@ -361,7 +395,7 @@ func TestReadTask(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg := mustRead(t, past, lm.Graphs{olympiad: {Graph: og, Current: true}}, 30*day, lm.Grade{})
+	rg := mustRead(t, past, lm.Graphs{olympiad: {Graph: og, Current: true}}, aMonth, lm.Grade{})
 	if a, b := taskP(t, rg, candidate(topic("a"))), taskP(t, rg, candidate(topic("old"))); a[0] != b[0] {
 		t.Errorf("P by the retired skill %v, by its replacement %v", b[0], a[0])
 	}
@@ -404,11 +438,11 @@ func TestReadRefuses(t *testing.T) {
 
 	r := mustRead(t, lm.State{}, g, 0, lm.Grade{}, olympiad)
 	choice1 := candidate(topic("a"))
-	choice1.Items[0].Slots[0].Options = 1
+	choice1.Items[0].Slots[0].Options = lm.MinChoiceOptions - 1
 	hardest := candidate(topic("a"))
-	hardest.Difficulty = 6
+	hardest.Difficulty = lm.MaxDifficulty + 1
 	lowest := candidate(topic("a"))
-	lowest.Band.Place = 0
+	lowest.Band.Place = lm.FirstPlace - 1
 	twice := candidate(topic("a"))
 	twice.Items = append(twice.Items, twice.Items[0])
 	tasks := []struct {
@@ -444,27 +478,28 @@ func TestReadRefuses(t *testing.T) {
 // Read and Task on the random logs of the property: they read every state the fold gives, and
 // every number they give is a probability or a time it may be.
 func TestReadRandom(t *testing.T) {
-	for seed := range uint64(30) {
-		r := rand.New(rand.NewPCG(seed, 20))
+	const stream = 20 // the second word of the seeds of this test's logs
+	for seed := range uint64(readRandomLogs) {
+		r := rand.New(rand.NewPCG(seed, stream))
 		w := newWorld(t, r)
 		var s lm.State
 		var engine []string
 		for _, m := range w.modules {
-			if r.IntN(2) == 0 && w.graphs[m.id].Current {
+			if r.IntN(readCoin) == 0 && w.graphs[m.id].Current {
 				engine = append(engine, m.id)
 			}
 		}
-		at := int64(1762041600)
+		at := int64(epoch)
 		var tasks []lm.Task
-		for n := range 1 + r.IntN(40) {
-			at += int64(r.IntN(200000))
+		for n := range 1 + r.IntN(readRandomEvidence) {
+			at += int64(r.IntN(readRandomGap))
 			e := journalEvidence(t, r, w, n, at)
 			s = mustAppend(t, s, e, w.graphs)
 			if w.graphs[e.Task.ID[:len("example/m0")]].Current {
 				tasks = append(tasks, e.Task)
 			}
 		}
-		rd, err := lm.Read(s, w.graphs, at+int64(r.IntN(100*day)), lm.Grade{Value: 3, Known: r.IntN(2) == 0}, engine)
+		rd, err := lm.Read(s, w.graphs, at+int64(r.IntN(readRandomWindow)), lm.Grade{Value: 3, Known: r.IntN(readCoin) == 0}, engine)
 		if err != nil {
 			t.Fatalf("seed %d: %v", seed, err)
 		}

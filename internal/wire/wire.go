@@ -18,6 +18,23 @@ const (
 	Bytes   = 2
 )
 
+// fixed32 is the wire type of the 32-bit numbers: the schema writes none, but a reader passes
+// over one of a field it does not know.
+const fixed32 = 5
+
+// A tag is a varint of the field number shifted left by typeBits, with the wire type in those
+// low bits.
+const (
+	typeBits = 3
+	typeMask = 1<<typeBits - 1
+)
+
+// The sizes in bytes of a fixed64 and a fixed32 value.
+const (
+	fixed64Size = 8
+	fixed32Size = 4
+)
+
 // ErrCorrupt is bytes that break the binary form: cut short, a varint past 10 bytes, a length
 // past the end, a field number of 0 or a wire type the form does not have.
 var ErrCorrupt = errors.New("corrupt bytes")
@@ -31,7 +48,7 @@ type Writer struct {
 func (w *Writer) Bytes() []byte { return w.buf }
 
 func (w *Writer) tag(field, wireType int) {
-	w.buf = binary.AppendUvarint(w.buf, uint64(field)<<3|uint64(wireType))
+	w.buf = binary.AppendUvarint(w.buf, uint64(field)<<typeBits|uint64(wireType))
 }
 
 // Uint64 writes a varint field.
@@ -123,16 +140,16 @@ func (r *Reader) Next() (field, wireType int, err error) {
 	if err != nil {
 		return 0, 0, err
 	}
-	if t>>3 == 0 || t>>3 > math.MaxInt32 {
-		return 0, 0, corrupt("field number " + strconv.FormatUint(t>>3, 10))
+	if t>>typeBits == 0 || t>>typeBits > math.MaxInt32 {
+		return 0, 0, corrupt("field number " + strconv.FormatUint(t>>typeBits, 10))
 	}
-	wireType = int(t & 7)
+	wireType = int(t & typeMask)
 	switch wireType {
-	case Varint, Fixed64, Bytes, 5:
+	case Varint, Fixed64, Bytes, fixed32:
 	default:
 		return 0, 0, corrupt("wire type " + strconv.Itoa(wireType))
 	}
-	return int(t >> 3), wireType, nil
+	return int(t >> typeBits), wireType, nil
 }
 
 // Int64 reads the value of an int64 field.
@@ -167,11 +184,11 @@ func (r *Reader) Bool() (bool, error) {
 
 // Double reads the value of a double field.
 func (r *Reader) Double() (float64, error) {
-	if len(r.buf) < 8 {
+	if len(r.buf) < fixed64Size {
 		return 0, corrupt("a double cut short")
 	}
 	v := math.Float64frombits(binary.LittleEndian.Uint64(r.buf))
-	r.buf = r.buf[8:]
+	r.buf = r.buf[fixed64Size:]
 	return v, nil
 }
 
@@ -217,11 +234,11 @@ func (r *Reader) Skip(wireType int) error {
 		_, err = r.Double()
 	case Bytes:
 		_, err = r.Bytes()
-	case 5:
-		if len(r.buf) < 4 {
+	case fixed32:
+		if len(r.buf) < fixed32Size {
 			return corrupt("a fixed32 cut short")
 		}
-		r.buf = r.buf[4:]
+		r.buf = r.buf[fixed32Size:]
 	default:
 		err = corrupt("wire type " + strconv.Itoa(wireType))
 	}
