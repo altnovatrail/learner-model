@@ -76,7 +76,8 @@ func TestExpAgainstMath(t *testing.T) {
 func TestLogAgainstMath(t *testing.T) {
 	for _, x := range portInputs(logSeed, 0, logHigh) {
 		// math.Log's assembler on amd64 takes a subnormal for one near 2**-1023: log(5e-324) is
-		// -709.09 there, not -744.44. The port is right, and Log keeps subnormals out anyway.
+		// -709.09 there, not -744.44, an error no tolerance of ulps covers. The port is right, and
+		// Log keeps subnormals out anyway, so the test skips them there.
 		if !sameCodeAsMath() && x != 0 && math.Abs(x) < minNormal {
 			continue
 		}
