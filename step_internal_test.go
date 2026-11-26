@@ -16,6 +16,32 @@ import (
 
 const internalTolerance = 1e-4
 
+// The other tolerances of the tests of the package: sumTolerance, of a float sum of a few terms
+// against its exact value; productTolerance, of a product of a few exact fractions; threeDecimals
+// and oneDecimal, of a value a document prints to three decimals and to one.
+const (
+	sumTolerance     = 1e-12
+	productTolerance = 1e-15
+	threeDecimals    = 1e-3
+	oneDecimal       = 0.05
+)
+
+// guessOfFive is c, the chance of guessing a choice of five options.
+const guessOfFive = 0.2
+
+// summerBreak is the pause of the examples of forgetting: 60 days.
+const summerBreak = 60 * day
+
+// The learner of the examples of forgetting of docs/architecture.md: θ and δ of a skill mastered at
+// the band `3-4`, its place, and the weights of answers n of the module and m of the skill.
+const (
+	exampleLevel      = 4
+	exampleCorrection = 0.5
+	examplePlace      = 2
+	exampleN          = 100
+	exampleM          = 20
+)
+
 // day is a day in seconds, for the times of the tests of the package.
 const day = secondsPerDay
 
@@ -55,6 +81,8 @@ func TestStandaloneTenAnswers(t *testing.T) {
 		{a, 4, 0.5579, true, 0.2753, 0.7125},
 		{b, 3, 0.6244, true, 0.3271, -0.0165},
 	}
+	// noMasteryYet is the step after which SPEC.md works out that the skill is not mastered yet.
+	const noMasteryYet = 9
 	ms := ModuleState{Module: module, StartBand: BandRef{Place: 1, ID: "1-2"}}
 	for i, r := range rows {
 		step := "answer " + strconv.Itoa(i+1)
@@ -84,7 +112,7 @@ func TestStandaloneTenAnswers(t *testing.T) {
 		if ms.AnswerWeight != float64(i+1) || len(ms.Trial) != 0 {
 			t.Errorf("%s: n %v, %d trial answers", step, ms.AnswerWeight, len(ms.Trial))
 		}
-		if i == 8 {
+		if i+1 == noMasteryYet {
 			// "No mastery yet": after step 9, n = 9 and m = 7, v = 0.9093 and λ = 0.0342, too low
 			// for the middle task of `1-2`.
 			i, _ := ms.skillIndex(a)
@@ -103,19 +131,20 @@ func TestStandaloneTenAnswers(t *testing.T) {
 // example of the scale of docs/architecture.md, that the tests through Append cannot see.
 func TestModelNumbers(t *testing.T) {
 	// A child of grade 3 at θ₀ = 2.5 on difficulty 3 of `3-4` with five options: P = 0.6.
-	nearTo(t, "P at the start", probability(0.2, shift(2)-beta(2, 3)), 0.6)
+	nearTo(t, "P at the start", probability(guessOfFive, shift(2)-beta(2, middleDifficulty)), 0.6)
 	// The scale: a child at the start of their level expects these at the five difficulties.
 	for d, want := range []float64{0.9046, 0.7848, 0.6000, 0.4152, 0.2954} {
-		nearTo(t, "P at difficulty "+strconv.Itoa(d+1), probability(0.2, -beta(1, int32(d+1))), want)
+		difficulty := int32(d + minDifficulty)
+		nearTo(t, "P at difficulty "+itoa(difficulty), probability(guessOfFive, -beta(firstPlace, difficulty)), want)
 	}
 	// The floor of θ's step, the first answer: K_θ at its floor, K_δ, v and √v.
-	nearTo(t, "K_θ at n = 79", levelStep(79), 0.05)
+	nearTo(t, "K_θ at n = 79", levelStep(79), levelStepFloor)
 	nearTo(t, "K_δ at m = 9", correctionStep(9), 0.2759)
 	nearTo(t, "v at n = 80, m = 10", uncertainty(80, 10), 0.3045)
 	nearTo(t, "√v at n = 80, m = 10", math.Sqrt(uncertainty(80, 10)), 0.5518)
 	// The weight of an attempt: the table of docs/architecture.md.
 	for n, want := range map[int]float64{1: 1, 2: 1.5, 4: 2, 10: 2.5} {
-		if got := float64(float64(n) * seriesWeight(n)); math.Abs(got-want) > 1e-12 {
+		if got := float64(float64(n) * seriesWeight(n)); math.Abs(got-want) > sumTolerance {
 			t.Errorf("an attempt of %d answers weighs %v, want %v", n, got, want)
 		}
 	}
@@ -132,14 +161,15 @@ func TestModelNumbers(t *testing.T) {
 		{[]Slot{choice3, {Check: CheckKindTime}}, 0},
 		{[]Slot{{Check: CheckKindTime}}, 0},
 	} {
-		if got := guess(c.slots); math.Abs(got-c.want) > 1e-15 {
+		if got := guess(c.slots); math.Abs(got-c.want) > productTolerance {
 			t.Errorf("guess(%+v) = %v, want %v", c.slots, got, c.want)
 		}
 	}
 	if gridCells(-1) != 0 || gridCells(1e300) != maxGridCells || gridCells(NaN) != 0 || gridCells(7.9) != 7 {
 		t.Errorf("gridCells does not keep to its range")
 	}
-	if trialLevel(2.5, nil) != 2.5 {
+	const start = 2.5
+	if trialLevel(start, nil) != start {
 		t.Errorf("the trial level with no answers is not the start")
 	}
 }
@@ -149,19 +179,20 @@ func TestModelNumbers(t *testing.T) {
 func TestForgettingExample(t *testing.T) {
 	near3 := func(what string, got, want float64) {
 		t.Helper()
-		if math.Abs(got-want) > 1e-3 {
+		if math.Abs(got-want) > threeDecimals {
 			t.Errorf("%s = %.6f, want %.3f", what, got, want)
 		}
 	}
-	nearTo(t, "v", uncertainty(100, 20), 0.2327)
-	near3("λ", cautiousLevel(4, 0.5, 100, 20), 4.018)
-	q := masteryChance(4, 100, SkillState{Correction: 0.5, AnswerWeight: 20, MasteryBand: 2})
+	nearTo(t, "v", uncertainty(exampleN, exampleM), 0.2327)
+	near3("λ", cautiousLevel(exampleLevel, exampleCorrection, exampleN, exampleM), 4.018)
+	q := masteryChance(exampleLevel, exampleN,
+		SkillState{Correction: exampleCorrection, AnswerWeight: exampleM, MasteryBand: examplePlace})
 	near3("q", q, 0.820)
 	days := func(r ReviewDate, from int64) float64 { return float64(float64(r.At-from) / day) }
 	near3("the review after τ = 1", days(reviewDate(q, 1, 0), 0), 1.288)
 	near1 := func(what string, got, want float64) {
 		t.Helper()
-		if math.Abs(got-want) > 0.05 {
+		if math.Abs(got-want) > oneDecimal {
 			t.Errorf("%s = %.6f, want %.1f", what, got, want)
 		}
 	}
@@ -175,13 +206,13 @@ func TestForgettingExample(t *testing.T) {
 	near1("the review after it", days(reviewDate(q, tau, day), day), 3.2)
 
 	// Back after a summer break of 60 days at τ = 10, on difficulty 3 of `3-4` with five options.
-	r = retentionAt(SkillState{LastPractice: 0, Stability: 10}, 60*day)
+	r = retentionAt(SkillState{LastPractice: 0, Stability: 10}, summerBreak)
 	near3("R(60; 10)", r, 0.645)
-	sigma := detmath.Sigmoid(4.5 - beta(2, 3))
-	near3("P without forgetting", chance(0.2, sigma, 1), 0.905)
-	p := chance(0.2, sigma, r)
+	sigma := detmath.Sigmoid(exampleLevel + exampleCorrection - beta(examplePlace, middleDifficulty))
+	near3("P without forgetting", chance(guessOfFive, sigma, 1), 0.905)
+	p := chance(guessOfFive, sigma, r)
 	near3("P with forgetting", p, 0.654)
-	w := retentionWeight(0.2, sigma, r, chance(0.2, sigma, 1), p)
+	w := retentionWeight(guessOfFive, sigma, r, chance(guessOfFive, sigma, 1), p)
 	near3("w", w, 0.246)
 	near3("the move of a right answer", float64(w*(1-p)), 0.085)
 	near3("the move of a wrong one", float64(w*(0-p)), -0.161)
@@ -189,7 +220,8 @@ func TestForgettingExample(t *testing.T) {
 	nearTo(t, "τ after a wrong one", stabilityAfter(10, r, 0), 5)
 
 	// Within a lesson R stays near 1: two minutes after an answer at τ = 1.
-	nearTo(t, "R after two minutes", retentionAt(SkillState{Stability: 1}, 120), 0.99984)
+	const twoMinutes = 120 // in seconds
+	nearTo(t, "R after two minutes", retentionAt(SkillState{Stability: 1}, twoMinutes), 0.99984)
 }
 
 // The example of forgetting of docs/architecture.md, with the forgetting of the level: the
@@ -208,48 +240,49 @@ func TestLevelForgettingExample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ms := ModuleState{Module: module, Level: 4, AnswerWeight: 100, StartBand: band,
-		Skills: []SkillState{{Skill: a, Correction: 0.5, AnswerWeight: 20, EvidenceCount: 20, LastPractice: 0, Stability: 10,
-			Mastered: true, MasteryBand: 2}}}
+	ms := ModuleState{Module: module, Level: exampleLevel, AnswerWeight: exampleN, StartBand: band,
+		Skills: []SkillState{{Skill: a, Correction: exampleCorrection, AnswerWeight: exampleM, EvidenceCount: 20,
+			LastPractice: 0, Stability: 10, Mastered: true, MasteryBand: examplePlace}}}
 	e := Evidence{
 		Kind: EvidenceKind,
 		Task: Task{ID: module + "/task/x", Band: band, Difficulty: 3, Primary: []string{a},
 			KeyProvenance: ProvenanceAuthor, SkillTagsProvenance: ProvenanceAuthor,
 			Items: []TaskItem{{Place: 1, Slots: []Slot{{Check: CheckKindChoice, Options: 5, HasOptions: true}}}}},
-		StartBand: band, PracticeTime: 60 * day,
+		StartBand: band, PracticeTime: summerBreak,
 		Items: []ItemAnswer{{Place: 1, Submitted: true, FirstVerdict: VerdictCorrect, HasFirstVerdict: true}},
 	}
 	near3 := func(what string, got, want float64) {
 		t.Helper()
-		if math.Abs(got-want) > 1e-3 {
+		if math.Abs(got-want) > threeDecimals {
 			t.Errorf("%s = %.6f, want %.3f", what, got, want)
 		}
 	}
-	nearTo(t, "K_θ at n = 100", levelStep(100), 0.05)
-	nearTo(t, "K_θ at n = 20", levelStep(20), 0.1)
+	nearTo(t, "K_θ at n = 100", levelStep(exampleN), levelStepFloor)
+	nearTo(t, "K_θ at n = 20", levelStep(levelWeight), 0.1)
 	// The same learner, but another skill of the module was practised a day before the answer: the
 	// pause of the module is a day, the rule stays off, and the answer of skill a is the same.
 	control := ms
 	control.Skills = append(slices.Clone(ms.Skills), SkillState{Skill: b, AnswerWeight: 3, EvidenceCount: 1,
-		LastPractice: 59 * day, Stability: 1})
+		LastPractice: summerBreak - day, Stability: 1})
 	for _, m := range []*ModuleState{&ms, &control} {
 		if !m.step(e, pairItems(e), &g) {
 			t.Fatal("the answer moved nothing")
 		}
 	}
 	sk, ck := ms.Skills[0], control.Skills[0]
-	nearTo(t, "the move of θ", ms.Level-4, 0.0085)
-	nearTo(t, "the move of θ without the rule", control.Level-4, 0.0043)
-	nearTo(t, "the move of δ", sk.Correction-0.5, 0.0170)
+	nearTo(t, "the move of θ", ms.Level-exampleLevel, 0.0085)
+	nearTo(t, "the move of θ without the rule", control.Level-exampleLevel, 0.0043)
+	nearTo(t, "the move of δ", sk.Correction-exampleCorrection, 0.0170)
 	if ck.Correction != sk.Correction || ck.Stability != sk.Stability {
 		t.Errorf("the rule moved δ or τ: %+v, want %+v", sk, ck)
 	}
-	if ms.AnswerWeight != 21 || control.AnswerWeight != 101 || sk.AnswerWeight != 21 {
+	// The answer weighs 1: n after the pause is levelWeight, and without it exampleN.
+	if ms.AnswerWeight != levelWeight+1 || control.AnswerWeight != exampleN+1 || sk.AnswerWeight != exampleM+1 {
 		t.Errorf("n %v, %v without the rule, and m %v after the answer, want 21, 101 and 21",
 			ms.AnswerWeight, control.AnswerWeight, sk.AnswerWeight)
 	}
 	reviewIn := func(q float64) float64 {
-		return float64(float64(reviewDate(q, sk.Stability, sk.LastPractice).At-60*day) / day)
+		return float64(float64(reviewDate(q, sk.Stability, sk.LastPractice).At-summerBreak) / day)
 	}
 	for _, c := range []struct {
 		what        string
@@ -262,11 +295,11 @@ func TestLevelForgettingExample(t *testing.T) {
 		near3("v"+c.what, uncertainty(c.m.AnswerWeight, c.m.Skills[0].AnswerWeight), c.v)
 		q := masteryChance(c.m.Level, c.m.AnswerWeight, c.m.Skills[0])
 		near3("q"+c.what, q, c.q)
-		if got := reviewIn(q); math.Abs(got-c.after) > 0.05 {
+		if got := reviewIn(q); math.Abs(got-c.after) > oneDecimal {
 			t.Errorf("the next review%s in %.3f days, want %.1f", c.what, got, c.after)
 		}
 	}
-	if !sk.Mastered || sk.MasteryBand != 2 {
+	if !sk.Mastered || sk.MasteryBand != examplePlace {
 		t.Errorf("the mastery after the answer: %v at %d, want held at 2", sk.Mastered, sk.MasteryBand)
 	}
 }
@@ -297,23 +330,24 @@ func TestForgettingEdges(t *testing.T) {
 			rbar := 0.7
 			p1, p := chance(c, sigma, 1), chance(c, sigma, rbar)
 			want := float64(rbar * p1 * (1 - p1) / (p * (1 - p)))
-			if got := weight(c, sigma, rbar); math.Abs(got-want) > 1e-12 {
+			if got := weight(c, sigma, rbar); math.Abs(got-want) > sumTolerance {
 				t.Errorf("w(c = %v, σ = %v) = %v, want %v", c, sigma, got, want)
 			}
 		}
 	}
 	// No guessing and σ at its smallest: the weight is still a plain number.
-	if w := weight(0, detmath.Sigmoid(-708), 0.5); math.Abs(w-1) > 1e-12 {
+	if w := weight(0, detmath.Sigmoid(math.Inf(-1)), 0.5); math.Abs(w-1) > sumTolerance {
 		t.Errorf("w at the smallest σ = %v", w)
 	}
 
 	// The stability: S̄ = 1 is τ · (1 + g · (1 − R)) to the bit, S̄ = 0 halves it down to τ₀, and a
 	// page right but for some grows it less.
+	const tau = 3.0
 	r := 0.9 // a variable, so that 1 − r is the float the code takes, not an exact constant
-	if got, want := stabilityAfter(3, r, 1), float64(3*(1+float64(15*(1-r)))); got != want {
+	if got, want := stabilityAfter(tau, r, 1), float64(tau*(1+float64(stabilityGrowth*(1-r)))); got != want {
 		t.Errorf("τ after right answers = %v, want %v", got, want)
 	}
-	if stabilityAfter(3, 0.9, 0) != 1.5 || stabilityAfter(1.5, 0.9, 0) != 1 {
+	if stabilityAfter(tau, 0.9, 0) != tau*stabilityLoss || stabilityAfter(tau*stabilityLoss, 0.9, 0) != stabilityFloor {
 		t.Errorf("τ after wrong answers")
 	}
 	nearTo(t, "τ after 8 of 10 at R = 0.9", stabilityAfter(1, 0.9, 0.8), 1.8119)
@@ -324,16 +358,21 @@ func TestForgettingEdges(t *testing.T) {
 
 	// The review date: "already" below the threshold, never sooner than τ₀, rounded up to the
 	// second, and saturating past the largest time.
-	if !reviewDate(0.7, 1, 0).Already {
+	const (
+		belowThreshold = 0.7  // q just below masteryThreshold
+		barelyHeld     = 0.72 // q just above it
+		practice       = 1000 // the time of the last practice, in seconds
+	)
+	if !reviewDate(belowThreshold, 1, 0).Already {
 		t.Errorf("q below the threshold is not already due")
 	}
-	if got := reviewDate(0.72, 1, 1000); got.Already || got.At != 1000+day {
+	if got := reviewDate(barelyHeld, 1, practice); got.Already || got.At != practice+stabilityFloor*day {
 		t.Errorf("a mastery barely held is due at %+v, want a day after its practice", got)
 	}
-	q := 0.9
+	q, tauReview := 0.9, 5.0
 	rStar := float64(masteryThreshold / q)
-	exact := float64(float64(5*(float64(1/float64(rStar*rStar))-1)/detmath.RetentionFactor) * day)
-	if got := reviewDate(q, 5, 0).At; float64(got) < exact || float64(got)-exact >= 1 {
+	exact := float64(float64(tauReview*(float64(1/float64(rStar*rStar))-1)/detmath.RetentionFactor) * day)
+	if got := reviewDate(q, tauReview, 0).At; float64(got) < exact || float64(got)-exact >= 1 {
 		t.Errorf("the review at %d s, want %v rounded up", got, exact)
 	}
 	// Δt* lands on a whole second here, and its three roundings bring it to a second at which R · q
@@ -343,10 +382,12 @@ func TestForgettingEdges(t *testing.T) {
 	holds := func(s int64) bool {
 		return float64(retentionAt(SkillState{Stability: tauEdge}, s)*edge) > masteryThreshold
 	}
-	if at != 101357 || holds(at) || !holds(at-1) {
-		t.Errorf("the review on the edge is at %d s, want 101357, the first second past the threshold", at)
+	const edgeSecond = 101357
+	if at != edgeSecond || holds(at) || !holds(at-1) {
+		t.Errorf("the review on the edge is at %d s, want %d, the first second past the threshold", at, edgeSecond)
 	}
-	if reviewDate(q, 1e300, 0).At != math.MaxInt64 || addSeconds(math.MaxInt64-5, 10) != math.MaxInt64 ||
+	const hugeTau = 1e300 // a stability whose review date is past the largest time
+	if reviewDate(q, hugeTau, 0).At != math.MaxInt64 || addSeconds(math.MaxInt64-5, 10) != math.MaxInt64 ||
 		addSeconds(5, math.Inf(1)) != math.MaxInt64 || addSeconds(5, -3) != 5 {
 		t.Errorf("the review date does not saturate")
 	}
