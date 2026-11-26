@@ -15,9 +15,6 @@ import (
 
 const day = lm.SecondsPerDay
 
-// readEpoch is the time the synthetic logs of reading start at, 2 November 2025, 00:00 UTC.
-const readEpoch = 1762041600
-
 // The school state's last practice, and the time the examples of anchor skills read it at, a
 // little after it.
 const (
@@ -25,7 +22,7 @@ const (
 	schoolRead     = 2000
 )
 
-// The random logs of the property, read: readRandomLogs logs from readEpoch, each of up to
+// The random logs of the property, read: readRandomLogs logs from epoch, each of up to
 // readRandomEvidence pieces of evidence at most readRandomGap seconds apart, read at most
 // readRandomWindow after the last; readCoin is the coin, r.IntN(readCoin) == 0, that puts a module
 // in the engine's list.
@@ -295,7 +292,7 @@ func near3(t *testing.T, what string, got, want float64) {
 func TestReadSkill(t *testing.T) {
 	g := olympiadGraphs(t, map[string][]int32{topic("a"): {1, 2, 3}})
 	const (
-		t0          = readEpoch
+		t0          = epoch
 		oneDecimal  = 0.05     // the document prints the review date to one decimal
 		summerBreak = 60 * day // the example's pause
 	)
@@ -492,7 +489,7 @@ func TestReadRandom(t *testing.T) {
 				engine = append(engine, m.id)
 			}
 		}
-		at := int64(readEpoch)
+		at := int64(epoch)
 		var tasks []lm.Task
 		for n := range 1 + r.IntN(readRandomEvidence) {
 			at += int64(r.IntN(readRandomGap))

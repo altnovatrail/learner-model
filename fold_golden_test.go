@@ -23,7 +23,7 @@ import (
 // and foldAnswerGap the hour between two answers of standalone's tasks; a page of the workbook
 // comes a day after the one before it.
 const (
-	foldLogStart  = int64(1762041600)
+	foldLogStart  = int64(epoch)
 	foldAnswerGap = 3600
 )
 

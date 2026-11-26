@@ -470,9 +470,9 @@ func withKind(b []byte, kind byte) []byte {
 func rulesLog() []lm.Evidence {
 	start := ladderBand(lm.FirstPlace) // the band of grade 1
 	const (
-		logStart = 1762041600 // 2025-11-02 00:00 UTC
-		hour     = 3600       // an hour between pieces of evidence
-		wrongAt  = 2          // the third answer of the trial series is wrong
+		logStart = epoch
+		hour     = 3600 // an hour between pieces of evidence
+		wrongAt  = 2    // the third answer of the trial series is wrong
 	)
 	at := int64(logStart)
 	next := func() int64 {

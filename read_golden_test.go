@@ -33,7 +33,7 @@ func anchorsLog() []lm.Evidence {
 		pageDifficulty = 4
 		oneWrongPage   = 4
 	)
-	at := int64(readEpoch)
+	at := int64(epoch)
 	var log []lm.Evidence
 	for i := range answers {
 		at += hour

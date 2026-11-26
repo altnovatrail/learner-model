@@ -43,11 +43,11 @@ func versionGraphs(t *testing.T, verdict, untaught, rubric []string, retired ...
 func transferLog(pages ...[]string) []lm.Evidence {
 	var log []lm.Evidence
 	const (
-		logStart    = 1762041600 // 2025-11-02 00:00 UTC
-		firstItems  = 8          // the first page, and the later ones
-		secondItems = 13         // the second page: with the first, m = 5 within ε
-		wrongCycle  = 3          // the later pages have 0, 1 or 2 wrong answers in turn
-		trapEvery   = 2          // every second page has a trap
+		logStart    = epoch
+		firstItems  = 8  // the first page, and the later ones
+		secondItems = 13 // the second page: with the first, m = 5 within ε
+		wrongCycle  = 3  // the later pages have 0, 1 or 2 wrong answers in turn
+		trapEvery   = 2  // every second page has a trap
 	)
 	at := int64(logStart)
 	for i, primary := range pages {

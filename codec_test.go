@@ -59,11 +59,11 @@ const (
 
 // The values of the codec's tests.
 const (
-	codecLeadingQuestionKind = 2          // the kind of evidence that adds field 20
-	codecKindFieldLen        = 2          // the bytes of the kind's field at the top: its tag and its value
-	codecNoSuchItemPlace     = 9          // a place no item of the golden evidence has
-	codecSomeWrongAnswers    = 3          // wrong answers recorded without the verdict they came before
-	codecGoldenTime          = 1762041600 // 2025-11-02, 00:00 UTC, the practice time of the golden values
+	codecLeadingQuestionKind = 2     // the kind of evidence that adds field 20
+	codecKindFieldLen        = 2     // the bytes of the kind's field at the top: its tag and its value
+	codecNoSuchItemPlace     = 9     // a place no item of the golden evidence has
+	codecSomeWrongAnswers    = 3     // wrong answers recorded without the verdict they came before
+	codecGoldenTime          = epoch // the practice time of the golden values
 	codecCorrectionTime      = codecGoldenTime + 3*day
 	codecWireFileMode        = 0o644 // the golden files are written readable by all, writable by their owner
 )

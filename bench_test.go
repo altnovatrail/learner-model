@@ -93,7 +93,7 @@ func poolAnswer(t lm.Task, right bool, at int64) lm.Evidence {
 	}
 }
 
-const poolTime = int64(readEpoch)
+const poolTime = int64(epoch)
 
 // poolLater is the second time the pool is read at, a month past poolTime.
 const poolLater = 30 * day

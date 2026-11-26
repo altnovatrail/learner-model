@@ -141,7 +141,7 @@ func TestTaskIsReference(t *testing.T) {
 		}
 		var s lm.State
 		var log []lm.Evidence
-		at := int64(readEpoch)
+		at := int64(epoch)
 		for n := range 1 + r.IntN(readRandomEvidence) {
 			at += int64(r.IntN(readRandomGap))
 			e := journalEvidence(t, r, w, n, at)

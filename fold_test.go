@@ -288,7 +288,7 @@ func TestAppendIsRecompute(t *testing.T) {
 		logs        = 50
 		logStream   = 16 // the second word of each log's seed
 		maxEvidence = 50
-		logStart    = 1762041600
+		logStart    = epoch
 		maxStep     = 200000
 		stepBack    = 20000
 		cutOneIn    = 6
@@ -674,7 +674,7 @@ func TestForgettingPage(t *testing.T) {
 	g := workbookGraphs(t)
 	add := skill("addition")
 	const (
-		t0          = 1762041600
+		t0          = epoch
 		twoDecimals = 0.005 // of τ, which the document prints to two decimals
 		cameBack    = 1000  // how many seconds before t0 a page's time comes back to
 	)
