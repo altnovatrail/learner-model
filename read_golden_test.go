@@ -166,8 +166,7 @@ func readGolden(t *testing.T, note string, log []lm.Evidence, g lm.Graphs) strin
 	const moduleParts = 2 // a module's ID is the first two parts of a task's, <publisher>/<name>
 	var last int64
 	var candidates []lm.Task
-	for i := len(log) - 1; i >= 0; i-- {
-		e := log[i]
+	for _, e := range slices.Backward(log) {
 		last = max(last, e.PracticeTime)
 		module := strings.Join(strings.SplitN(e.Task.ID, "/", moduleParts+1)[:moduleParts], "/")
 		if !e.LevelSetByAdult && g[module].Current && !slices.ContainsFunc(candidates, func(c lm.Task) bool { return strings.HasPrefix(c.ID, module+"/") }) {
