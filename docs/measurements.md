@@ -23,7 +23,7 @@ On go1.27.3 in the container:
 
 ## 2. The time of `Readout.Task`
 
-After `Readout.Task` was made faster, 2026-11-11. The benchmark is `BenchmarkReadoutTask`, a synthetic module of the form of `olympiad-math` 0.1.1 in four states: 697–755 ns per call before and 286–346 after, and `engine.Choose` 0.96–1.04 ms before and 0.57–0.69 after.
+After `Readout.Task` was made faster, 2026-11-11. The benchmark is `BenchmarkReadoutTask`, a synthetic module of the form of `olympiad-math` 0.1.1 in four states: 697–755 ns per call before and 286–346 after, and `engine.Choose` 0.96–1.04 ms before and 0.57–0.69 after. Allocations: 10–12 per call before and one after, the slice of the answer; memory 465–561 bytes per call before and 24 after. `engine.Choose`, its `BenchmarkChoose` on `olympiad-math` 0.1.1 with a `replace` to this code: 9,538–11,046 allocations per choice before and 1,750–2,558 after, memory 54–63% less. Before the change, the profile of `go test -bench` with `-cpuprofile` gave `Task` 79% of the benchmark's time, a notable share of it memory allocation and garbage collection, and `detmath` about 3.5%: the copy and sort of the tags in `idList` and `chanceOf` 23% of the allocations, `[]Skill{s}` in `transfer` 12%, inserting retentions 11% and shares of transfer 11%, the copy of the items 11%, `strings.SplitN` in `moduleOf` 11%. AMD Ryzen AI 9 365, 20 threads, 10 runs each, the mean.
 
 ## 3. The schema and `buf`
 
@@ -281,3 +281,127 @@ What showed that recomputation needs no snapshot: whether a fold of the whole lo
 
 - **How.** A one-off Node script in the session's folder, not kept, with a rough model of the step — not the library's code, which did not exist yet —, folded synthetic logs from the empty state ([docs/plan/E1.md](plan/E1.md)).
 - **Numbers.** 10,000 pieces of evidence in 13–18 ms; 50,000 pages of 10 items in about 55 ms. The time grows linearly with the log.
+
+## 12. The exploration and the first judgement of the forgetting candidates, 2026-11-10
+
+What the numbers of Д5–Д7 do to the model's criterion at rough runs of the harness, and how the three candidates of forgetting that the exploration chose fared in `sim`'s judgement `model-1`.
+
+### 12.1. The harness and the first stage, 100 learners a cell
+
+- **The harness** — `sim` `v0.1.2`, commit e61f90a: `modules` v0.1.4 with `olympiad-math` 0.1.1, `engine` `v0.1.0` from `sim`'s `go.mod`, the set `working`, the rule `engine`, all populations. The run is put together as the gate's recipe puts it: `go.work` in the session's folder with a clone of `sim` and a copy of `learner-model` at the variant's commit, 20 parts `sim run -learners N -part k/20 -commit github.com/altnovatrail/learner-model=<sha>` and `sim merge`. The base is the code of `main` 4f3cfbb; each variant is a commit on a branch of the clone in the session's folder, and neither the variants nor the files of the runs are kept. The SHA-256 of the base: at 100 learners `700bf41b03673fad…20e`, at 300 `6dc6a481c32d8182…be8`; a repeat of the variant "base 0.35" at 100 learners gave the same file, `b70827557e181bff…b69`, to the byte.
+- **The analysis** — `sim judge` of the rough look, "a rough look, which decides nothing": a variant stands in the file of the judgement as a candidate for each of the eight groups of the model's criterion and for each target, and `sim compare` gives the differences by measure. The overall score is read only when the candidate's run reads every number with a path (`judge.go`, `score`); at 100 learners it is read for no variant, nor for the base against itself, so the first stage ranks by the score of the groups and by the constraints.
+- **The time:** a variant's run took from 10 to 45 minutes on 20 cores, longer when the host was busy from outside. A run at 1,000 learners was estimated at about 1 h 40 min per variant on a free machine.
+- **The scores** — of the groups (↑ and ↓: the interval wholly above or below zero) and the number of violated constraints "no worse" and of the floor; "—", the group's score is not read; the groups `mastered` and `anchor` are not read at all at 100 learners, which is below the edge of `sim`'s rough look, 300–1,000 learners:
+
+| Variant | `still` | `learns` | `jumps` | `off-band` | `forgets` | `pages` | Violated |
+|---|---|---|---|---|---|---|---|
+| `bandStep` 2.0 | −0.138↓ | −0.234↓ | — | −0.184↓ | +0.141 | 0 | 91 |
+| `bandStep` 3.0 | −0.156↓ | +0.219↑ | +0.121↑ | −0.003 | −0.543↓ | 0 | 83 |
+| σ₀ 2.0 | −0.001 | +0.015 | −0.058 | −0.217↓ | +0.205 | +0.018↑ | 12 |
+| σ₀ 3.0 | −0.004 | +0.020↑ | −0.007 | +0.060↑ | +0.001 | −0.027↓ | 10 |
+| I 0.12 | +0.002 | −0.001 | −0.010 | 0 | +0.205 | +0.002 | 10 |
+| I 0.202148 | −0.001 | +0.005 | −0.005 | 0 | −0.117 | −0.009 | 9 |
+| τ₀ 0.5 days | −0.019↓ | +0.011 | −0.011 | 0 | +0.121 | −0.016↓ | 26 |
+| τ₀ 2 days | −0.005 | −0.018↓ | +0.012 | 0 | −0.313↓ | −0.007↓ | 44 |
+| g 10 | +0.002 | +0.011↑ | +0.015 | 0 | +0.372 | 0 | 3 |
+| g 22.5 | −0.006 | 0 | +0.017 | 0 | +0.051 | 0 | 10 |
+| base 0.35 | −0.002 | +0.002 | +0.025 | 0 | +0.517↑ | 0 | 2 |
+| base 0.7 | 0 | −0.006 | +0.036 | 0 | +0.099 | 0 | 14 |
+| ρ 1/4 | −0.019 | +0.024↑ | +0.041↑ | +0.020↑ | −0.070 | +0.005 | 5 |
+| ρ 1/2 | +0.009 | −0.029↓ | −0.034 | −0.036↓ | +0.372↑ | −0.001 | 20 |
+| help and repeat of a task 1/2 | −0.022 | −0.086↓ | −0.045 | 0 | +0.289 | −0.061↓ | 39 |
+
+### 12.2. The second stage, 300 learners a cell
+
+Five runs: the four best of the first stage — at least one group improved beyond the noise and no more than ten constraints violated — and the set of the two numbers that move `forgets` the same way. Not run: ρ 1/2 — `forgets` +0.372↑, but `learns` and `off-band` ↓ and 20 violations; I 0.202148 — 9 violations, but no group beyond the noise, and `forgets` −0.117.
+
+| Variant | Overall score | `forgets` | Other groups | Violated |
+|---|---|---|---|---|
+| g 10 and base 0.35 | +0.060 [0.023; 0.103] | +0.457 [0.183; 0.784] | within the noise | 8: the corridor `E1` on six populations of olympiad maths, `M1` on G3-drop, `M10` on F-none of school maths, `M3.settle` on F-break — all barely past the tolerance |
+| g 10 | +0.052 [0.018; 0.093] | +0.396 [0.148; 0.702] | within the noise | 4: `E1` on G2, `M1` on G3-drop, `M5.caught` and `M10` on F-none of school maths — all barely past the tolerance |
+| base 0.35 | +0.039 [0.006; 0.079] | +0.315 [0.060; 0.636] | within the noise | 1: `M10.retention` on F-none of school maths, 0.00245 at the tolerance 0.00202 |
+| σ₀ 3.0 | +0.006 [−0.026; 0.042] | +0.089 | `learns` +0.029↑, `off-band` +0.062↑, `still` −0.015↓, `pages` −0.020↓ | 28 |
+| ρ 1/4 | −0.038 [−0.098; 0.020] | −0.283↓ | `learns` +0.026↑, `jumps` +0.020↑, `off-band` +0.020↑ | 18 and the floor `M4` on G0 of school maths: 0.26 at the floor 0.20 |
+
+No variant reaches a target — `lag`, `corridor`, `settle` —, and the base is far from them: on G3 the share of those "not settled" is 0.88 for olympiad maths and 0.59 for school maths, at the target 0.25.
+
+### 12.3. The judgement `model-1`, 1,000 learners a cell
+
+Deciding runs at 1,000 working learners per cell, what a deciding run weighed at that tag of `sim`, on `engine` and `learner-model` v0.1.4 of the base and on the candidates' commits, 41–44 minutes each; the report is `sim`'s [judgements/model-1/](https://github.com/altnovatrail/sim/tree/0364b40/judgements/model-1), `main` 0364b40.
+
+| Candidate | Estimate | `forgets` | Failed "no worse" |
+|---|---|---|---|
+| `g10` | 0.025 [0.011; 0.037] | 0.195 [0.098; 0.294] | 4: `M1.rms.200` on G3-drop, G8 and S-scale1.5 of olympiad maths and `M3.settle` on F-break |
+| `halve035` | 0.014 [0.002; 0.027] | 0.117 [0.031; 0.213] | 3: at the edge of the tolerance — `E3.late` on F-growth5, 0.04967 at 0.049, and `M1.rms.200` on A-unpractised, 0.03116 at 0.03076 —, and `M3.settle` on F-break, 19.42 at 18.11, 7 % past the tolerance |
+| `forget-set` | 0.033 [0.020; 0.046] | 0.277 [0.184; 0.373] | 8: those of `g10`, `E1.corridor` on G2, G2-fading and S-adult and `M1.rms.200` on F-none of olympiad maths |
+
+- The gain in `forgets` is 1.7–2.7 times smaller than at 300 learners, where it was 0.40, 0.32 and 0.46.
+- The common failure, `M3.settle` on F-break, the second stage saw only for the set; of `g10`'s `M1.rms.200` on olympiad maths it saw only G3-drop: at 300 learners the resolution of "no worse" is wider, and these failures passed for noise.
+- No candidate passed, so there was no confirmation, and the held-out learners `held-out-model-1` stay untouched.
+- The exploration ran on `engine` `v0.1.0` and the judgement on `v0.1.4`; the directions stayed: the change of `engine` between them is a lesson for a skill from the map, not forgetting.
+
+## 13. The cause of the slow catching up after a break, 2026-11-11
+
+Why the model with the forgetting numbers of the first round catches up with the truth after a break more slowly, on `F-break` and the five other `F-` populations.
+
+- **The harness** is `sim` `v0.1.8`, commit d957fc7: `engine` `v0.1.6`, `modules` v0.2.0, the set `working`, `engine`'s rule, 1,500 learners per graph of each population — the size of the deciding run at that tag ([sim@d957fc7](https://github.com/altnovatrail/sim/blob/d957fc7/justfile)) — on both maths. A run is the recipe `decisive` assembled by hand: a `go.work` in the session's folder with a clone of `sim`, a variant of `learner-model` and `engine` at the commit of `gate.json`; 20 parts of `sim run -populations … -learners 1500 -part k/20 -commit …` and `sim merge`; the comparison is `sim compare` against the base, paired by learner, with a 95-percent interval. The base is `learner-model` `v0.1.4` of `sim`'s `go.mod` (`v0.1.6` gives the same bits). A run of `F-break` took 3–10 minutes on 20 cores, of the five other populations 16–38.
+- **The variants.** The candidates of the first judgement are the commits of its drafts: `g10` 7f735b2, `halve035` 17e0a42, `forget-set` 75c6a90. The diagnostic variants are commits of a clone in the session's folder, never published; a repetition assembles them anew by this description, with the same numbers and another SHA in the file's header:
+  - `w1`, 7847d28 — `forget-set` with w = 1 for each answer in the step (the field `w` in `answers`, `step.go`) and P with R̄;
+  - `nostep`, 4b95d26 — `forget-set` and a step without forgetting: in `answers` P₁ instead of P and w = 1, τ and reading as they are; `nostep-base`, 2b69d24 — the same on the base;
+  - `theta`, 235e44d — the base and the forgetting of θ: in `move`, right after `at := e.PracticeTime`, outside the trial series and for a module with skills, if from the greatest t_last of the module's skills to the time of practice is no less than 14 days, n := min(n; 20); `theta-fs`, 3c603ab — the same on `forget-set`;
+  - `law` — the truth of `F-break` with the law of `forget-set`, commit 8c0285c of the clone of `sim` on `v0.1.8`: `a.Growth = 10` for `F-break` in `internal/population/population.go` and the base 0.35 instead of 0.5 in `internal/learner/attempt.go`.
+- **The files**, SHA-256: the base on `F-break` `12441811f9e5913c…7f5` (a repetition gave the same file to the byte), on `F-model`, `F-none`, `F-exp`, `F-C1` and `F-growth5` `9a9618339e07ed35…b79`; `g10` `7bed24d5d11defa9…8f6`; `halve035` `9db8026222be4046…ef1`; `forget-set` `1cc325663d9961e4…595`; `w1` `197998a6d6f68740…a38`; `nostep` `015a44bf99827aa0…702` and on the five others `8e708bd37d2ea344…54c`; `nostep-base` `fa5fe8efc0c7d935…f66` and `9e462fa825b97240…997`; `theta` `a52a27a3c893f1af…320` and `e38b4b538902d076…4fc`; `theta-fs` `340d89a87bb7a818…d51` and `70161c8e9570f5ba…aba`; on the truth `law` the base `5a6563097aa625ae…fcf` and `forget-set` `42a776f9ae9c2877…2f4`.
+- **The yardstick.** "Not worse" by the rule of `sim`'s judgement (`notWorseChecks`, `internal/criterion/judge.go` of `sim`): the worse edge of the 95-percent interval of the paired difference is no farther than the tolerance, the larger of the author's tolerance (`defs`, `measures.go` of `sim`: `M3.settle` 1 answer, `M1.rms.200` 0.01, `M5.caught` 1) and 4.3 standard errors of the difference; the standard error is the interval's width of `sim compare` divided by 3.92, and the checks are those the model's criterion puts on the `F-` populations. It is the judgement's yardstick on the `F-` populations alone, not the judgement. At 1,500 learners 4.3 standard errors of the difference of `M3.settle` are 14–16 answers, at 300 about twice as many.
+
+`F-break`, b − a against the base; `M3.settle` — answers until catching up, `M3.unsettled` — the share that never catches up, `M3.lag` — the estimate minus the truth from the 101st answer; the last column — the "not worse" checks failed on `F-break` and, where run, on the five other `F-`:
+
+| Variant | `M3.settle` olympiad | `M3.unsettled` olympiad | `M3.lag` olympiad | `M3.settle` school | "Not worse" failures |
+|---|---|---|---|---|---|
+| base | 173.1 | 0.237 | 0.280 | 338.1 | — |
+| `g10` | +13.5 [7.4; 20.1] | +0.011 [−0.011; 0.032] | +0.021 | 0.0 [−1.8; 2.0] | 1: `M3.settle`, 20.09 at a tolerance of 13.91 |
+| `halve035` | +6.3 [−0.7; 13.0] | +0.022 [0.001; 0.043] | +0.014 | +1.8 [−0.6; 4.4] | 0 |
+| `forget-set` | +22.2 [14.9; 29.5] | +0.009 [−0.015; 0.031] | +0.034 | +1.5 [−0.2; 3.3] | 3: `M3.settle`, 29.51 at 15.97; `M1.rms.200` of olympiad; `M5.caught` of school — on the edge |
+| `w1` | +28.0 [20.9; 35.8] | +0.065 [0.040; 0.088] | +0.060 | −3.7 [−7.0; −0.4] | 5 |
+| `nostep` | −51.0 [−58.2; −44.0] | −0.044 [−0.067; −0.022] | −0.262 | −78.5 [−82.4; −74.8] | 3, and 20 on the five others |
+| `nostep-base` | −55.9 [−63.1; −48.7] | −0.040 [−0.064; −0.017] | −0.266 | −78.0 [−81.9; −74.1] | 2: `M6.never` and `E1.corridor` of olympiad, and 19 on the five others |
+| `theta` | −9.8 [−15.0; −4.6] | −0.028 [−0.045; −0.011] | −0.020 | −42.2 [−44.5; −39.8] | 0, and 1 on the five others: `M5.caught` on `F-none` of school, 2.77 at 2.73 |
+| `theta-fs` | +10.0 [3.4; 16.8] | +0.005 [−0.019; 0.028] | +0.016 | −40.4 [−43.2; −37.6] | 1: `M3.settle`, 16.8 at 14.71; and 2 on the five others |
+
+- **The truth `law`**, which forgets by the law of `forget-set`: the base catches up in 162.1 answers, `forget-set` 14.9 [8.2; 21.6] longer; on school maths 3.7 [1.1; 6.4] longer. The truth of `F-break` itself forgets by the base's law, g = 15 and halving (`internal/learner/attempt.go` of `sim`).
+- **Calibration after pauses**: `M2.bias.pause30` of the base +0.048, of `forget-set` −0.011.
+- **A step without forgetting** on the populations without a fall: on olympiad maths `M3.lag` on `F-model` −0.27 instead of −0.02, and `M1.rms.200` worse by 0.14 on `F-model`, 0.19 on `F-exp`, 0.29 on `F-C1` and 0.23 on `F-growth5`, and by 0.02 on `F-C1` of school maths; smaller error on `F-none` of olympiad maths and on `F-model` and `F-none` of school maths.
+- **`theta` on the five other `F-`**: `M6.never` of olympiad maths worse by 0.002–0.003 on `F-model`, `F-none` and `F-exp`; Brier and `M10.retention` worse by less than a tenth of the tolerance; `M5.caught` on `F-none` of school maths +1.5 [0.3; 2.8] at a tolerance of 2.73; better are the false "mastered" on `F-none` and `F-C1` of olympiad maths and `M5.caught` on `F-exp` and `F-C1` of school maths; on `F-growth5` of olympiad maths the corridor `E1.corridor` moved by 0.001, within the tolerance.
+- **`theta-fs` on the five other `F-`**: it gives back 12 answers of the 22 of `forget-set`'s delay; `E3.late` better by 0.03–0.12 on olympiad maths and by 0.29–0.36 on school maths, but for `F-growth5`, within the noise, and `M10.retention` of olympiad maths by 0.001–0.005; it fails `M1.rms.200` on `F-none` of olympiad maths, 0.0204 at 0.014, and `M5.caught` on `F-none` of school maths, 3.65 at 3.41; worse outside the noise also `M10.retention` of school maths — on `F-none` by 0.0014, on `F-model` and `F-exp` by 0.0004–0.0005 — and `M1.rms.200` on `F-model`, `F-none` and `F-growth5` of school maths by 0.0001–0.0006.
+
+## 14. The exploration of the forgetting of the module's level, 2026-11-12
+
+The forgetting of the module's level with its strength N and its threshold d₀, with the forgetting numbers of the first round, and a weight 1/2 for an answer with help, on every population.
+
+- **The harness** is `sim` `v0.1.10`, commit ff921be ([sim@ff921be](https://github.com/altnovatrail/sim/blob/ff921be/gate.json)): `learner-model` v0.1.6, `engine` v0.1.6, the packages of `modules` v0.2.5 with `olympiad-math` and `grade-3-math` 0.3.0 — with `time` and leading questions —, the set `working`, `engine`'s rule, every population, 2,000 learners per cell. A run is `sim`'s recipe `just decisive engine <file>`, a variant given by `CANDIDATE_LEARNER_MODEL` with the folder of its working copy. The base is a run without a candidate, by `sim`'s `go.mod`: SHA-256 `7db81ec7bdf8c02a…92e`, exactly `base` of `internal/criterion/paths.json` of `sim`. A run took 36–41 minutes on 20 cores, 50 when neighbours shared the host.
+- **The variants** are commits on `v0.1.6` (7d796e2) in a clone in the session's folder, never published; a repetition assembles them anew by this description, with the same numbers and another SHA in the file's header:
+  - the rule is in `move` (`step.go`), right after `at := e.PracticeTime`: outside the trial series and for a module with skills, if `pauseDays` from the greatest `LastPractice` of the module's skills to `at` is no less than d₀, `AnswerWeight` := min(`AnswerWeight`; N), both constants in `model.go` after `secondsPerDay`; N ≥ 5, or the module would return to the trial series;
+  - `thN-d` — the rule with N and d₀: `th10-14` e47c860, `th20-14` 90b6236, `th40-14` 796d781, `th20-7` c7aaba7, `th20-28` 4268e96;
+  - `thfs20-14`, 4cd32e6 — `th20-14` and `forget-set`: `stabilityGrowth` 10 and the base of dividing τ 0.35 in `stabilityAfter`; `thh20-14`, 6e36283 — `th20-14` and the base 0.35 alone; `thh040-20-14`, 011f089 — `th20-14` and the base 0.4;
+  - `help05`, d98e1d6 — the weight w of an answer with help (`helped`) multiplied by 1/2 in `answers`.
+- **The files**, SHA-256: `th10-14` `3103286a394584c8…8e0`, `th20-14` `356b4969438ce09f…bef`, `th40-14` `73164447c7dd9367…b5e`, `th20-7` `77313baeea2d8ad6…df8`, `th20-28` `fb3651b2c39b706f…3e1`, `thfs20-14` `329f803c8aeca9fb…3dc`, `thh20-14` `4994fd294ed902b6…9e9`, `thh040-20-14` `1ea79fcaa4b28187…623`, `help05` `1149cd8721bcda8b…801`.
+- **The yardstick** is `sim judge` with the model's criterion by a judgement file in the session's folder, the base and the variants each with its group and number of constants; the report reads them as deciding runs, but it is the exploration's. The differences by measure are `sim compare` against the base, b − a, with a 95-percent interval.
+
+The estimate and the score of the variant's own group — the rule `jumps`, the sets with the forgetting numbers `forgets`, the weight of help `learns` —, the "not worse" failures, `M3.settle` on `F-break` (base 161.1 on olympiad maths, 336.4 on school maths) and `M5.caught` on `F-none` of school maths:
+
+| Variant | Estimate | Group | Failures | `M3.settle` olympiad | `M3.settle` school | `M5.caught` `F-none` school |
+|---|---|---|---|---|---|---|
+| `th10-14` | +0.0127 [0.0075; 0.0179] | `jumps` +0.035 | 1: `M5.caught` on `F-none` of school, 3.54 at 2.61 | −20.7 [−25.5; −16.2] | −75.0 [−77.6; −72.4] | +2.29 [1.14; 3.54] |
+| `th20-14` | +0.0103 [0.0052; 0.0152] | `jumps` +0.021 [0.018; 0.023] | 0 | −12.7 [−17.0; −8.3] | −42.6 [−44.7; −40.5] | +1.26 [0.19; 2.35] |
+| `th40-14` | +0.0063 [0.0022; 0.0101] | `jumps` +0.004 | 0 | −3.2 [−7.2; 0.9] | −7.9 [−8.9; −6.7] | +0.49 [−0.33; 1.26] |
+| `th20-7` | +0.0083 [0.0024; 0.0146] | `jumps` +0.021 | 1: `M5.caught` on `F-none` of school, 2.69 at 2.58 | −13.3 [−18.1; −8.7] | −44.3 [−46.5; −42.2] | +1.47 [0.34; 2.69] |
+| `th20-28` | +0.0068 [0.0025; 0.0111] | `jumps` +0.015 | 0 | −9.0 [−12.6; −5.3] | −31.3 [−33.2; −29.3] | +0.45 [−0.49; 1.35] |
+| `thfs20-14` | +0.0361 [0.0269; 0.0461] | `forgets` +0.277 [0.207; 0.352] | 7: `E1.corridor` on G2, G3 and S-adult and `M1.rms.200` on G3-drop, S-scale1.5 and `F-none` of olympiad, `M5.caught` on `F-none` of school, 3.05 at 3.01 | +4.5 [−1.2; 10.0] | −38.7 [−41.6; −35.6] | +1.63 [0.30; 3.05] |
+| `thh20-14` | +0.0161 [0.0065; 0.0262] | `forgets` +0.119 [0.045; 0.197] | 1: `M1.rms.200` on G8 of olympiad, 0.01044 at 0.01 | −5.4 [−10.7; −0.1] | −41.0 [−43.6; −38.5] | +1.80 [0.22; 3.47] |
+| `thh040-20-14` | +0.0092 [−0.0003; 0.0190] | `forgets` +0.067 [−0.007; 0.141] | 1: `M5.caught` on `F-none` of school, 4.83 at 3.75 | −4.0 [−9.4; 1.3] | −42.5 [−44.9; −40.1] | +3.07 [1.46; 4.83] |
+| `help05` | −0.0297 [−0.0411; −0.0188] | `learns` −0.080 [−0.082; −0.078] | 62: 46 on school, 13 on olympiad, 2 on the pair of maths, 1 on essays | +4.5 [−0.4; 9.1] | +350.0 [343.0; 357.4] | −2.45 [−4.41; −0.59] |
+
+- `thfs20-14` in the group `jumps`: +0.008 [−0.010; 0.028]. The exploration's judgement of the first stage called `th20-14` and `th40-14` equal to the best.
+- **`th20-14`** moves numbers only on the six `F-` populations and four numbers on `A-fading`; elsewhere, and on the essays, its file coincides with the base's number for number. `E1.corridor` and `E2` move nowhere outside the noise. Better: `M4.false.break` of olympiad maths by 0.005–0.034 on `F-model`, `F-none`, `F-exp`, `F-growth5` and `F-break`, `M1.rms.200` on `F-break` of olympiad maths by 0.012, `M5.caught` on `F-exp` of school maths by 0.55 answers. Worse: `M6.never` of olympiad maths by 0.0025–0.0036 on `F-model`, `F-none`, `F-C1`, `F-growth5` and `F-break`, and `M5.caught` on `F-none` of school maths, above. Brier `M2` and `M10.retention` move by less than 0.001, Brier by less than half of the author's tolerance 0.002.
+- **`forget-set` with the rule**: `M1.rms.200` on `F-none` of olympiad maths 0.01196 at 0.01125. The standard error of the difference of `M5.caught` on `F-none` of school maths is 0.6–0.9 answers, the noisiest of the cells.
+- **`help05`**: on school maths `M1.rms.200` on G2 worse by 0.68 and `M3.lag` on G2-half by 0.31; the group `learns` was −0.086 in the first round's exploration on packages without leading questions.
+- **The judgement `model-2`** chose `th20-14` as `theta` and repeated its numbers on the working learners; on `held-out-model-1` it holds every constraint, the estimate +0.04215 [0.03279; 0.05219] ([sim@7c32016](https://github.com/altnovatrail/sim/blob/7c32016/judgements/model-2/report.md)).
