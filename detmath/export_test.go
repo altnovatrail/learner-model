@@ -10,6 +10,9 @@ const (
 	ExpOverflow  = expOverflow
 	ExpUnderflow = expUnderflow
 	ExpNearZero  = expNearZero
+
+	// LogBranch is √2/2, where log's reduction of its argument changes branch.
+	LogBranch = math.Sqrt2 / 2
 )
 
 // NaN is the NaN that math.NaN gives, and OtherNaN one unlike it — negative, signalling, with a

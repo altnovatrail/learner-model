@@ -56,7 +56,7 @@ func portInputs(seed uint64, lo, hi float64) []float64 {
 		0, math.Copysign(0, -1), math.Inf(1), math.Inf(-1), NaN, OtherNaN,
 		math.SmallestNonzeroFloat64, minNormal, math.MaxFloat64, -math.MaxFloat64, 1, -1,
 		expNearZero, -expNearZero, Below(expNearZero),
-		expOverflow, aboveOverflow, expUnderflow, belowUnderflow, math.Sqrt2 / 2, Below(math.Sqrt2 / 2),
+		expOverflow, aboveOverflow, expUnderflow, belowUnderflow, LogBranch, Below(LogBranch),
 	}
 	r := rand.New(rand.NewPCG(portSeed, seed))
 	for range randomInputs {
@@ -121,6 +121,7 @@ func TestBuiltOnThePort(t *testing.T) {
 		powPowerReach = 2    // its exponents within ±powPowerReach
 		powULPs       = 4    // its ulp, and as many again for each unit of |s · ln a|
 		tenYears      = 3650 // the pauses and the stabilities run up to ten years, in days
+		minTau        = 1    // and the stabilities from τ₀, a day
 	)
 	r := rand.New(rand.NewPCG(builtSeed, 0))
 	for range randomInputs {
@@ -135,7 +136,7 @@ func TestBuiltOnThePort(t *testing.T) {
 		if got := Pow(a, s); math.Abs(got-want) > bound {
 			t.Fatalf("Pow(%v, %v) = %v, against %v", a, s, got, want)
 		}
-		dt, tau := float64(r.Float64()*tenYears), 1+float64(r.Float64()*tenYears)
+		dt, tau := float64(r.Float64()*tenYears), minTau+float64(r.Float64()*tenYears)
 		if got, want := Retention(dt, tau), float64(1/math.Sqrt(1+float64(RetentionFactor*dt/tau))); got != want {
 			t.Fatalf("Retention(%v, %v) = %v, not %v", dt, tau, got, want)
 		}
